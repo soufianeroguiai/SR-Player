@@ -46,4 +46,4 @@ flutter:
     - assets/
 
 dependency_overrides:
-  package_info_plus: 8.2.2
+  package_info_plus: 8.2.1
