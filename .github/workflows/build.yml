@@ -172,7 +172,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ======= الخطوة المضافة لإصلاح الخطأ =======
+      # ------- إصلاحات المكتبات غير المتوافقة -------
       - name: Fix package_info_plus build.gradle bug
         run: |
           FILE="$HOME/.pub-cache/hosted/pub.dev/package_info_plus-9.0.1/android/build.gradle"
@@ -191,7 +191,17 @@ jobs:
               fi
             done
           fi
-      # ===========================================
+
+      - name: Fix screen_brightness_android build.gradle.kts bug
+        run: |
+          FILE="$HOME/.pub-cache/hosted/pub.dev/screen_brightness_android-2.1.6/android/build.gradle.kts"
+          if [ -f "$FILE" ]; then
+            sed -i 's/^\s*jvmTarget\s*=.*//g' "$FILE"
+            echo "Patched screen_brightness_android 2.1.6"
+          else
+            echo "File not found, skipping patch"
+          fi
+      # ---------------------------------------------
 
       - name: Analyze code
         run: flutter analyze --no-fatal-infos
