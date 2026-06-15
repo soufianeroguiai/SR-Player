@@ -35,12 +35,16 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
-      # ====== ضبط إصدارة Kotlin ======
-      - name: Set Kotlin version
+      # ====== ضبط Kotlin إلى 2.0.0 ======
+      - name: Upgrade Kotlin to 2.0.0
         run: |
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.0'/" android/build.gradle
-          echo "Kotlin version set to 1.9.0"
-      # ===============================
+          echo "🔧 Upgrading Kotlin version to 2.0.0..."
+          # في settings.gradle
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.0"/' android/settings.gradle
+          # في build.gradle (للمشاريع القديمة التي تستخدم ext.kotlin_version)
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '2.0.0'/" android/build.gradle
+          echo "Kotlin updated successfully."
+      # =================================
 
       - name: Apply custom MainActivity
         run: |
