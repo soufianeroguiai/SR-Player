@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/video_file.dart';
-import '../theme/app_theme.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import '../models/video_item.dart';
 
 class VideoCard extends StatelessWidget {
-  final VideoFile video;
+  final VideoItem video;
   final VoidCallback onTap;
   final VoidCallback? onMoreTap;
 
@@ -16,111 +16,285 @@ class VideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            // Thumbnail
-            _buildThumbnail(),
-            const SizedBox(width: 12),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    video.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      _tag(video.formattedSize, Colors.white24),
-                      const SizedBox(width: 6),
-                      _tag(video.extension.toUpperCase(), AppTheme.orange.withOpacity(0.7)),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    video.folder,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white24, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            // More button
+            _Thumbnail(video: video),
+            const SizedBox(width: 14),
+            Expanded(child: _Info(video: video)),
             IconButton(
-              icon: const Icon(Icons.more_vert, color: Colors.white24, size: 20),
-              onPressed: onMoreTap ?? () {},
+              icon: Icon(Symbols.more_vert_rounded,
+                  color: cs.onSurfaceVariant, size: 22),
+              onPressed: onMoreTap,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildThumbnail() {
-    return Container(
-      width: 80,
-      height: 58,
-      decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(
-            Icons.movie_outlined,
-            color: Colors.white.withOpacity(0.15),
-            size: 28,
-          ),
-          const Icon(Icons.play_circle_fill, color: AppTheme.orange, size: 28),
-          if (video.duration != null)
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.75),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  video.formattedDuration,
-                  style: const TextStyle(color: Colors.white, fontSize: 9),
-                ),
+class VideoGridCard extends StatelessWidget {
+  final VideoItem video;
+  final VoidCallback onTap;
+  final VoidCallback? onMoreTap;
+
+  const VideoGridCard({
+    super.key,
+    required this.video,
+    required this.onTap,
+    this.onMoreTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thumbnail
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  video.thumbnail != null
+                      ? Image.memory(video.thumbnail!, fit: BoxFit.cover)
+                      : Container(
+                          color: cs.surfaceContainerHighest,
+                          child: Icon(Symbols.movie_rounded,
+                              color: cs.onSurfaceVariant.withOpacity(0.4),
+                              size: 40),
+                        ),
+                  // Duration badge
+                  Positioned(
+                    bottom: 6, right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        video.formattedDuration,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  // Play overlay
+                  Center(
+                    child: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer.withOpacity(0.85),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Symbols.play_arrow_rounded,
+                          color: cs.onPrimaryContainer, size: 24),
+                    ),
+                  ),
+                ],
               ),
             ),
-        ],
+            // Info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          video.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: cs.onSurface,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              height: 1.3),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          video.formattedSize,
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Symbols.more_vert_rounded,
+                        color: cs.onSurfaceVariant, size: 18),
+                    onPressed: onMoreTap,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                        minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _tag(String label, Color color) {
+// ── Private widgets ──────────────────────────────────────────────────
+
+class _Thumbnail extends StatelessWidget {
+  final VideoItem video;
+  const _Thumbnail({required this.video});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 90,
+        height: 64,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            video.thumbnail != null
+                ? Image.memory(video.thumbnail!, fit: BoxFit.cover)
+                : Container(
+                    color: cs.surfaceContainerHighest,
+                    child: Icon(Symbols.movie_rounded,
+                        color: cs.onSurfaceVariant.withOpacity(0.35),
+                        size: 28),
+                  ),
+            // Play button
+            Center(
+              child: Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Symbols.play_arrow_rounded,
+                    color: cs.onPrimaryContainer, size: 20),
+              ),
+            ),
+            // Duration
+            Positioned(
+              bottom: 4, right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.72),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  video.formattedDuration,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Info extends StatelessWidget {
+  final VideoItem video;
+  const _Info({required this.video});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          video.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              height: 1.3),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _Tag(video.formattedSize, cs),
+            const SizedBox(width: 6),
+            _Tag(video.extension.toUpperCase(), cs, primary: true),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Icon(Symbols.folder_rounded,
+                size: 12,
+                color: cs.onSurfaceVariant.withOpacity(0.6)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                video.folder,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: cs.onSurfaceVariant.withOpacity(0.6),
+                    fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  final ColorScheme cs;
+  final bool primary;
+  const _Tag(this.label, this.cs, {this.primary = false});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(4),
+        color: primary
+            ? cs.primaryContainer.withOpacity(0.4)
+            : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          color: primary ? cs.primary : cs.onSurfaceVariant,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

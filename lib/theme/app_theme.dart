@@ -1,55 +1,103 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const orange = Color(0xFFFF6B35);
-  static const bg = Color(0xFF0A0A0A);
-  static const surface = Color(0xFF1A1A1A);
-  static const card = Color(0xFF1E1E1E);
-  static const divider = Color(0xFF2A2A2A);
+  static const Color _seed = Color(0xFF1B6CA8); // Deep Blue seed
 
-  static ThemeData dark() {
-    return ThemeData.dark().copyWith(
-      colorScheme: const ColorScheme.dark(
-        primary: orange,
-        secondary: orange,
-        surface: surface,
-      ),
-      scaffoldBackgroundColor: bg,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: surface,
+  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData light() => _build(Brightness.light);
+
+  static ThemeData _build(Brightness brightness) {
+    final cs = ColorScheme.fromSeed(
+      seedColor: _seed,
+      brightness: brightness,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: cs,
+      scaffoldBackgroundColor: cs.surface,
+      appBarTheme: AppBarTheme(
+        backgroundColor: cs.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: false,
+        scrolledUnderElevation: 1,
         titleTextStyle: TextStyle(
-          color: orange,
-          fontWeight: FontWeight.bold,
-          fontSize: 22,
-          letterSpacing: 0.5,
+          color: cs.onSurface,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
+          letterSpacing: -0.3,
         ),
-        iconTheme: IconThemeData(color: Colors.white70),
+        iconTheme: IconThemeData(color: cs.onSurfaceVariant),
       ),
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(color: orange, width: 2),
+          borderSide: BorderSide(color: cs.primary, width: 2.5),
+          borderRadius: const BorderRadius.all(Radius.circular(2)),
         ),
-        labelColor: orange,
-        unselectedLabelColor: Colors.white38,
-        labelStyle: TextStyle(fontWeight: FontWeight.w600),
+        labelColor: cs.primary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        labelStyle:
+            const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        unselectedLabelStyle: const TextStyle(fontSize: 14),
+        dividerColor: Colors.transparent,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: orange,
-        unselectedItemColor: Colors.white38,
+      cardTheme: CardThemeData(
+        color: cs.surfaceContainerLow,
+        elevation: 0,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: EdgeInsets.zero,
       ),
-      listTileTheme: const ListTileThemeData(
-        iconColor: Colors.white54,
-        textColor: Colors.white,
+      listTileTheme: ListTileThemeData(
+        titleTextStyle:
+            TextStyle(color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
+        subtitleTextStyle:
+            TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+        iconColor: cs.onSurfaceVariant,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      dividerColor: divider,
-      sliderTheme: const SliderThemeData(
-        activeTrackColor: orange,
-        thumbColor: orange,
-        inactiveTrackColor: Colors.white24,
-        overlayColor: Color(0x29FF6B35),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: cs.primaryContainer,
+        foregroundColor: cs.onPrimaryContainer,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cs.surfaceContainerLow,
+        modalBackgroundColor: cs.surfaceContainerLow,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        showDragHandle: true,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: cs.surfaceContainer,
+        indicatorColor: cs.primaryContainer,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: cs.inverseSurface,
+        contentTextStyle: TextStyle(color: cs.onInverseSurface),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        behavior: SnackBarBehavior.floating,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.selected) ? cs.onPrimary : cs.outline),
+        trackColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.selected) ? cs.primary : cs.surfaceVariant),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: cs.primary,
+        thumbColor: cs.primary,
+        inactiveTrackColor: cs.surfaceVariant,
+        overlayColor: cs.primary.withOpacity(0.2),
+        trackHeight: 4,
+      ),
+      dividerTheme: DividerThemeData(
+        color: cs.outlineVariant,
+        thickness: 1,
+        space: 1,
       ),
     );
   }

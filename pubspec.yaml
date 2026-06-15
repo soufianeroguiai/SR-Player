@@ -1,29 +1,45 @@
-name: video_player_app
-description: Video Player - Full Featured Video Player
+name: s_player
+description: S-Player - Advanced Video Player
 publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  video_player: ^2.8.3
-  chewie: ^1.8.1
-  file_picker: ^8.0.3
-  permission_handler: ^11.3.1
-  shared_preferences: ^2.2.3
-  path: ^1.9.0
-  intl: ^0.19.0
-  wakelock_plus: ^1.2.1
-  screen_brightness: ^0.2.2+1
-  volume_controller: ^2.0.7
+
+  # ── Video ──────────────────────────────────────────────
+  better_player:            ^0.0.84   # تشغيل + إيماءات + ترجمة + سرعة
+  video_thumbnail:          ^0.5.3    # صور مصغرة
+  srt_parser:               ^2.0.0    # ترجمة SRT
+
+  # ── Media / Files ──────────────────────────────────────
+  photo_manager:            ^3.3.0    # تصفح الفيديوهات + thumbnail سريع
+  file_picker:              ^8.1.2    # اختيار ملف يدوي
+
+  # ── Permissions ────────────────────────────────────────
+  permission_handler:       ^11.3.1
+
+  # ── UI / Icons ─────────────────────────────────────────
+  material_symbols_icons:   ^4.2719.1
+
+  # ── State / Storage ────────────────────────────────────
+  shared_preferences:       ^2.3.2
+  provider:                 ^6.1.2
+
+  # ── Utilities ──────────────────────────────────────────
+  wakelock_plus:            ^1.2.1
+  share_plus:               ^10.0.2
+  flutter_pip:              ^1.0.4
+  path:                     ^1.9.0
+  path_provider:            ^2.1.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints:            ^4.0.0
 
 flutter:
   uses-material-design: true
