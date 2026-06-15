@@ -31,9 +31,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ✅ الحل الصحيح: إنشاء الملف في جذر المشروع (وليس داخل android)
-      - name: Create local.properties at project root
-        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "flutter.sdk=$FLUTTER_ROOT" >> local.properties
 
       - name: Build release APK (split per ABI)
         run: flutter build apk --release --split-per-abi
