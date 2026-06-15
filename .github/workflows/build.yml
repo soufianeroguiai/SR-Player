@@ -28,24 +28,38 @@ jobs:
       - name: Recreate Android platform
         run: flutter create --platforms android .
 
-      # ── الإصلاحات الأساسية لتجنب أخطاء Gradle ───────────
-      - name: Fix Android SDK versions and Gradle compatibility
+      # تثبيت Android SDK Platform 35 (مطلوب)
+      - name: Install Android SDK Platform 35
         run: |
-          # 1. تحديث compileSdk و targetSdk و minSdk في build.gradle للتطبيق
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      # إصلاح ملفات Gradle يدوياً
+      - name: Fix Gradle configuration
+        run: |
+          # 1. تطبيق compileSdk 35 على التطبيق
           sed -i 's/compileSdkVersion .*/compileSdkVersion 35/' android/app/build.gradle
           sed -i 's/targetSdkVersion .*/targetSdkVersion 35/' android/app/build.gradle
           sed -i 's/minSdkVersion .*/minSdkVersion 21/' android/app/build.gradle
 
-          # 2. إضافة خاصية flutter القديمة التي تحتاجها package_info_plus
-          #    (تُضاف بعد سطر "android {" في ملف build.gradle للمشروع)
-          sed -i '/^android {/a \    ext.flutter = [compileSdkVersion: 35]' android/build.gradle
+          # 2. إضافة ext.flutter إلى root build.gradle (سيحل خطأ package_info_plus)
+          cat >> android/build.gradle << 'EOF'
 
-          # 3. التأكد من استخدام أحدث إصدار من Android Gradle Plugin
+          // حقن خصائص Flutter لتكون متاحة لكل المشاريع الفرعية
+          ext {
+              flutter = [
+                  sdk            : System.getenv('FLUTTER_ROOT') ?: '/opt/hostedtoolcache/flutter/stable-3.24.0-x64/flutter',
+                  compileSdkVersion: 35,
+                  buildToolsVersion: '35.0.0'
+              ]
+          }
+          EOF
+
+          # 3. رفع إصدار Android Gradle Plugin إلى 8.1.0
           sed -i "s/classpath 'com.android.tools.build:gradle:.*/classpath 'com.android.tools.build:gradle:8.1.0'/" android/build.gradle
 
-          # 4. تعطيل تحذير الـ namespace (اختياري)
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # 4. تفعيل AndroidX
           echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
 
       - name: Install dependencies
         run: flutter pub get
