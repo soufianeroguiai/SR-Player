@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -218,7 +217,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     return PopScope(
       // عند الضغط على Back → ندخل PiP بدل الإغلاق
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           await _enterPip();
         }

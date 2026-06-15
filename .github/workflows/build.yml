@@ -35,9 +35,42 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
+      - name: Apply custom MainActivity
+        run: |
+          mkdir -p android/app/src/main/kotlin/com/splayer/app
+          cat > android/app/src/main/kotlin/com/splayer/app/MainActivity.kt << 'KT'
+          package com.splayer.app
+          import android.app.PictureInPictureParams
+          import android.os.Build
+          import android.util.Rational
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
+          class MainActivity : FlutterActivity() {
+              private val CHANNEL = "com.splayer.app/pip"
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                      .setMethodCallHandler { call, result ->
+                          if (call.method == "enterPip") {
+                              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                  val params = PictureInPictureParams.Builder()
+                                      .setAspectRatio(Rational(16, 9)).build()
+                                  enterPictureInPictureMode(params)
+                              }
+                              result.success(null)
+                          } else {
+                              result.notImplemented()
+                          }
+                      }
+              }
+          }
+          KT
+
       - name: Apply custom AndroidManifest
         run: |
-          MANIFEST='<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          cat > android/app/src/main/AndroidManifest.xml << 'XML'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
               <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
               <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -72,14 +105,50 @@ jobs:
                   </activity>
                   <meta-data android:name="flutterEmbedding" android:value="2" />
               </application>
-          </manifest>'
-          echo "$MANIFEST" > android/app/src/main/AndroidManifest.xml
+          </manifest>
+          XML
 
       - name: Patch app/build.gradle
         run: |
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
-          sed -i '/compileSdk/a\    ndkVersion = "26.1.10909125"' android/app/build.gradle
+          cat > android/app/build.gradle << 'GRADLE'
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-gradle-plugin"
+          }
+          android {
+              namespace "com.splayer.app"
+              compileSdk 36
+              ndkVersion "26.1.10909125"
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+              kotlinOptions {
+                  jvmTarget = "1.8"
+              }
+              sourceSets {
+                  main.java.srcDirs += "src/main/kotlin"
+              }
+              defaultConfig {
+                  applicationId "com.splayer.app"
+                  minSdk 21
+                  targetSdk 36
+                  versionCode flutter.versionCode
+                  versionName flutter.versionName
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                      minifyEnabled false
+                      shrinkResources false
+                  }
+              }
+          }
+          flutter {
+              source "../.."
+          }
+          GRADLE
 
       - name: Patch gradle.properties
         run: |
@@ -95,6 +164,10 @@ jobs:
       - name: Install NDK 26
         run: |
           echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125"
+
+      - name: Install Android SDK 36
+        run: |
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-36"
 
       - name: Install dependencies
         run: flutter pub get

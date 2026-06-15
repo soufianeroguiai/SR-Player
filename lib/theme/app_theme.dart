@@ -24,7 +24,7 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: cs.onSurfaceVariant),
       ),
-      tabBarTheme: TabBarThemeData(
+      tabBarTheme: TabBarTheme(
         indicator: UnderlineTabIndicator(
           borderSide: BorderSide(color: cs.primary, width: 2.5),
           borderRadius: const BorderRadius.all(Radius.circular(2)),
@@ -34,21 +34,24 @@ class AppTheme {
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         dividerColor: Colors.transparent,
       ),
-      cardTheme: CardThemeData(
+      cardTheme: CardTheme(
         color: cs.surfaceContainerLow,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: EdgeInsets.zero,
       ),
       listTileTheme: ListTileThemeData(
-        titleTextStyle: TextStyle(color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
-        subtitleTextStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+        titleTextStyle: TextStyle(
+            color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
+        subtitleTextStyle:
+            TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
         iconColor: cs.onSurfaceVariant,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: cs.primaryContainer,
         foregroundColor: cs.onPrimaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 2,
       ),
       bottomSheetTheme: BottomSheetThemeData(
@@ -62,10 +65,12 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: cs.inverseSurface,
         contentTextStyle: TextStyle(color: cs.onInverseSurface),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
-      dividerTheme: DividerThemeData(color: cs.outlineVariant, thickness: 1, space: 1),
+      dividerTheme: DividerThemeData(
+          color: cs.outlineVariant, thickness: 1, space: 1),
     );
   }
 }
