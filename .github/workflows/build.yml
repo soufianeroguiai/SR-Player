@@ -35,6 +35,13 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
+      # ====== ضبط إصدارة Kotlin ======
+      - name: Set Kotlin version
+        run: |
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.0'/" android/build.gradle
+          echo "Kotlin version set to 1.9.0"
+      # ===============================
+
       - name: Apply custom MainActivity
         run: |
           mkdir -p android/app/src/main/kotlin/com/splayer/app
@@ -172,7 +179,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ========== خطوة واحدة لإصلاح جميع الإضافات المتضررة ==========
+      # ========== إصلاح جميع الإضافات غير المتوافقة ==========
       - name: Fix all incompatible plugins
         run: |
           echo "🔧 Fixing flutter.* properties in Groovy build.gradle files..."
@@ -188,7 +195,6 @@ jobs:
           echo "🔧 Fixing Kotlin DSL build.gradle.kts files with jvmTarget issue..."
           find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 3 -type f -name "build.gradle.kts" | while read file; do
             if grep -q '^\s*jvmTarget\s*=' "$file"; then
-              # إذا كان الملف خاص بـ screen_brightness_android، استبدله بالكامل
               if echo "$file" | grep -q "screen_brightness_android"; then
                 cat > "$file" << 'KTS'
           plugins {
@@ -213,7 +219,6 @@ jobs:
           KTS
                 echo "Replaced screen_brightness_android build.gradle.kts"
               else
-                # للمكتبات الأخرى: استبدل السطر بالصيغة الصحيحة
                 sed -i 's/^\s*jvmTarget\s*=.*/    compilerOptions { jvmTarget.set(JvmTarget.JVM_1_8) }/g' "$file"
                 echo "Fixed jvmTarget in: $file"
               fi
