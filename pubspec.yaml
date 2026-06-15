@@ -10,29 +10,36 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # ── Video ──────────────────────────────────────────────
-  better_player: ^0.0.84
-  video_thumbnail: ^0.5.3
+  # ── Video Player (libmpv - يدعم HEVC/MKV/AV1/كل الترميزات) ────
+  media_kit:                    ^1.1.11
+  media_kit_video:              ^1.2.4
+  media_kit_libs_video:         ^1.0.4   # native libs للأندرويد
 
-  # ── Media / Files ──────────────────────────────────────
-  photo_manager: ^3.3.0
-  file_picker: ^8.1.2
+  # ── Subtitles ─────────────────────────────────────────────────
+  srt_parser:                   ^2.0.0
 
-  # ── Permissions ────────────────────────────────────────
-  permission_handler: ^11.3.1
+  # ── Picture in Picture ────────────────────────────────────────
+  flutter_pip:                  ^1.0.4
 
-  # ── UI / Icons ─────────────────────────────────────────
-  material_symbols_icons: ^4.2719.1
+  # ── Media / Files ─────────────────────────────────────────────
+  photo_manager:                ^3.3.0
+  file_picker:                  ^8.1.2
 
-  # ── State / Storage ────────────────────────────────────
-  shared_preferences: ^2.3.2
-  provider: ^6.1.2
+  # ── Permissions ───────────────────────────────────────────────
+  permission_handler:           ^11.3.1
 
-  # ── Utilities ──────────────────────────────────────────
-  wakelock_plus: ^1.2.1
-  share_plus: ^10.0.2
-  path: ^1.9.0
-  path_provider: ^2.1.4
+  # ── UI / Icons ────────────────────────────────────────────────
+  material_symbols_icons:       ^4.2719.1
+
+  # ── State / Storage ───────────────────────────────────────────
+  shared_preferences:           ^2.3.2
+  provider:                     ^6.1.2
+
+  # ── Utilities ─────────────────────────────────────────────────
+  wakelock_plus:                ^1.2.1
+  share_plus:                   ^10.0.2
+  path:                         ^1.9.0
+  path_provider:                ^2.1.4
 
 dev_dependencies:
   flutter_test:

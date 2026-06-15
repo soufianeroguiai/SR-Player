@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  // Theme
   ThemeMode _themeMode = ThemeMode.dark;
   ThemeMode get themeMode => _themeMode;
 
-  // Player
   bool _rememberPosition = true;
   bool get rememberPosition => _rememberPosition;
 
@@ -19,15 +17,10 @@ class SettingsProvider extends ChangeNotifier {
   bool _showSubtitlesByDefault = true;
   bool get showSubtitlesByDefault => _showSubtitlesByDefault;
 
-  // UI
   bool _gridView = false;
   bool get gridView => _gridView;
 
-  bool _showHiddenFiles = false;
-  bool get showHiddenFiles => _showHiddenFiles;
-
-  // Sort
-  String _sortBy = 'date'; // date | name | size | duration
+  String _sortBy = 'date';
   String get sortBy => _sortBy;
 
   bool _sortDesc = true;
@@ -39,9 +32,8 @@ class SettingsProvider extends ChangeNotifier {
     _rememberPosition = p.getBool('rememberPosition') ?? true;
     _autoPlay = p.getBool('autoPlay') ?? true;
     _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
-    _showSubtitlesByDefault = p.getBool('showSubtitlesByDefault') ?? true;
+    _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
     _gridView = p.getBool('gridView') ?? false;
-    _showHiddenFiles = p.getBool('showHiddenFiles') ?? false;
     _sortBy = p.getString('sortBy') ?? 'date';
     _sortDesc = p.getBool('sortDesc') ?? true;
     notifyListeners();
@@ -53,64 +45,18 @@ class SettingsProvider extends ChangeNotifier {
     await p.setBool('rememberPosition', _rememberPosition);
     await p.setBool('autoPlay', _autoPlay);
     await p.setDouble('defaultSpeed', _defaultSpeed);
-    await p.setBool('showSubtitlesByDefault', _showSubtitlesByDefault);
+    await p.setBool('showSubtitles', _showSubtitlesByDefault);
     await p.setBool('gridView', _gridView);
-    await p.setBool('showHiddenFiles', _showHiddenFiles);
     await p.setString('sortBy', _sortBy);
     await p.setBool('sortDesc', _sortDesc);
   }
 
-  void setThemeMode(ThemeMode m) {
-    _themeMode = m;
-    notifyListeners();
-    _save();
-  }
-
-  void setRememberPosition(bool v) {
-    _rememberPosition = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setAutoPlay(bool v) {
-    _autoPlay = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setDefaultSpeed(double v) {
-    _defaultSpeed = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setShowSubtitlesByDefault(bool v) {
-    _showSubtitlesByDefault = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setGridView(bool v) {
-    _gridView = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setShowHiddenFiles(bool v) {
-    _showHiddenFiles = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setSortBy(String v) {
-    _sortBy = v;
-    notifyListeners();
-    _save();
-  }
-
-  void setSortDesc(bool v) {
-    _sortDesc = v;
-    notifyListeners();
-    _save();
-  }
+  void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
+  void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
+  void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
+  void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
+  void setShowSubtitlesByDefault(bool v) { _showSubtitlesByDefault = v; notifyListeners(); _save(); }
+  void setGridView(bool v) { _gridView = v; notifyListeners(); _save(); }
+  void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
+  void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
 }

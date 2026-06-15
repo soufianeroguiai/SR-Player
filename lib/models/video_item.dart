@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 class VideoItem {
   final String id;
   final String path;
@@ -8,7 +6,7 @@ class VideoItem {
   final DateTime modified;
   final String folder;
   final Duration duration;
-  Uint8List? thumbnail;
+  List<int>? thumbnail;
 
   VideoItem({
     required this.id,
@@ -25,9 +23,7 @@ class VideoItem {
 
   String get formattedSize {
     if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(0)} KB';
-    if (size < 1024 * 1024 * 1024) {
-      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
+    if (size < 1024 * 1024 * 1024) return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
     return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
@@ -39,9 +35,6 @@ class VideoItem {
   }
 
   String get formattedDate {
-    final y = modified.year;
-    final mo = modified.month.toString().padLeft(2, '0');
-    final d = modified.day.toString().padLeft(2, '0');
-    return '$y-$mo-$d';
+    return '${modified.year}-${modified.month.toString().padLeft(2,'0')}-${modified.day.toString().padLeft(2,'0')}';
   }
 }

@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,50 +23,37 @@ class LibraryProvider extends ChangeNotifier {
     return map;
   }
 
-  Future<bool> requestPermission() async {
-    final result = await PhotoManager.requestPermissionExtend();
-    return result.isAuth;
-  }
-
   Future<void> scan() async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final granted = await requestPermission();
-      if (!granted) {
+      final result = await PhotoManager.requestPermissionExtend();
+      if (!result.isAuth) {
         _error = 'لم يتم منح الإذن للوصول إلى الوسائط';
         _loading = false;
         notifyListeners();
         return;
       }
 
-      // Get all video albums
-      final albums = await PhotoManager.getAssetPathList(
-        type: RequestType.video,
-        onlyAll: false,
-      );
-
+      final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final Set<String> seen = {};
-      final List<VideoItem> result = [];
+      final List<VideoItem> result2 = [];
 
       for (final album in albums) {
-        final assets = await album.getAssetListRange(
-          start: 0,
-          end: await album.assetCountAsync,
-        );
+        final count = await album.assetCountAsync;
+        final assets = await album.getAssetListRange(start: 0, end: count);
         for (final asset in assets) {
           if (seen.contains(asset.id)) continue;
           seen.add(asset.id);
           final file = await asset.file;
           if (file == null) continue;
-
-          result.add(VideoItem(
+          result2.add(VideoItem(
             id: asset.id,
             path: file.path,
             name: asset.title ?? file.path.split('/').last,
-            size: asset.size.isNaN ? 0 : (asset.orientatedSize.width * asset.orientatedSize.height).toInt(),
+            size: file.lengthSync(),
             modified: asset.modifiedDateTime,
             folder: album.name,
             duration: asset.videoDuration,
@@ -74,51 +61,34 @@ class LibraryProvider extends ChangeNotifier {
         }
       }
 
-      // Sort by date desc
-      result.sort((a, b) => b.modified.compareTo(a.modified));
-      _videos = result;
+      result2.sort((a, b) => b.modified.compareTo(a.modified));
+      _videos = result2;
     } catch (e) {
       _error = e.toString();
     }
 
     _loading = false;
     notifyListeners();
-
-    // Load thumbnails in background
     _loadThumbnails();
   }
 
   Future<void> _loadThumbnails() async {
-    final albums = await PhotoManager.getAssetPathList(
-      type: RequestType.video,
-      onlyAll: true,
-    );
-    if (albums.isEmpty) return;
-
-    final allAssets = await albums.first.getAssetListRange(
-      start: 0,
-      end: await albums.first.assetCountAsync,
-    );
-
-    final assetMap = {for (final a in allAssets) a.id: a};
-
     for (final video in _videos) {
-      final asset = assetMap[video.id];
-      if (asset == null) continue;
       try {
-        final thumb = await asset.thumbnailDataWithSize(
-          const ThumbnailSize(200, 140),
-          quality: 80,
-        );
+        final assets = await PhotoManager.getAssetPathList(type: RequestType.video);
+        if (assets.isEmpty) continue;
+        final count = await assets.first.assetCountAsync;
+        final all = await assets.first.getAssetListRange(start: 0, end: count);
+        final asset = all.firstWhere((a) => a.id == video.id, orElse: () => all.first);
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(180, 120), quality: 75);
         if (thumb != null) {
-          video.thumbnail = thumb;
+          video.thumbnail = thumb.toList();
           notifyListeners();
         }
       } catch (_) {}
     }
   }
 
-  // Recent files
   Future<void> loadRecent() async {
     final p = await SharedPreferences.getInstance();
     _recentPaths = p.getStringList('recent_paths') ?? [];
@@ -141,10 +111,9 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Playback position
-  Future<void> savePosition(String path, Duration position) async {
+  Future<void> savePosition(String path, Duration pos) async {
     final p = await SharedPreferences.getInstance();
-    await p.setInt('pos_${path.hashCode}', position.inMilliseconds);
+    await p.setInt('pos_${path.hashCode}', pos.inMilliseconds);
   }
 
   Future<Duration?> getPosition(String path) async {

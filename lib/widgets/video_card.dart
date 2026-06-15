@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../models/video_item.dart';
@@ -7,29 +8,22 @@ class VideoCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onMoreTap;
 
-  const VideoCard({
-    super.key,
-    required this.video,
-    required this.onTap,
-    this.onMoreTap,
-  });
+  const VideoCard({super.key, required this.video, required this.onTap, this.onMoreTap});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            _Thumbnail(video: video),
+            _Thumb(video: video),
             const SizedBox(width: 14),
             Expanded(child: _Info(video: video)),
             IconButton(
-              icon: Icon(Symbols.more_vert_rounded,
-                  color: cs.onSurfaceVariant, size: 22),
+              icon: Icon(Symbols.more_vert_rounded, color: cs.onSurfaceVariant, size: 22),
               onPressed: onMoreTap,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -46,12 +40,7 @@ class VideoGridCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onMoreTap;
 
-  const VideoGridCard({
-    super.key,
-    required this.video,
-    required this.onTap,
-    this.onMoreTap,
-  });
+  const VideoGridCard({super.key, required this.video, required this.onTap, this.onMoreTap});
 
   @override
   Widget build(BuildContext context) {
@@ -63,92 +52,42 @@ class VideoGridCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  video.thumbnail != null
-                      ? Image.memory(video.thumbnail!, fit: BoxFit.cover)
-                      : Container(
-                          color: cs.surfaceContainerHighest,
-                          child: Icon(Symbols.movie_rounded,
-                              color: cs.onSurfaceVariant.withOpacity(0.4),
-                              size: 40),
-                        ),
-                  // Duration badge
-                  Positioned(
-                    bottom: 6, right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.75),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        video.formattedDuration,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  // Play overlay
-                  Center(
-                    child: Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer.withOpacity(0.85),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Symbols.play_arrow_rounded,
-                          color: cs.onPrimaryContainer, size: 24),
-                    ),
-                  ),
-                ],
-              ),
+              child: Stack(fit: StackFit.expand, children: [
+                video.thumbnail != null
+                    ? Image.memory(Uint8List.fromList(video.thumbnail!), fit: BoxFit.cover)
+                    : Container(color: cs.surfaceContainerHighest,
+                        child: Icon(Symbols.movie_rounded, color: cs.onSurfaceVariant.withOpacity(0.3), size: 40)),
+                Center(child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(color: cs.primaryContainer.withOpacity(0.9), shape: BoxShape.circle),
+                  child: Icon(Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 24),
+                )),
+                Positioned(bottom: 6, right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.75), borderRadius: BorderRadius.circular(5)),
+                    child: Text(video.formattedDuration, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                  )),
+              ]),
             ),
-            // Info
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          video.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: cs.onSurface,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              height: 1.3),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          video.formattedSize,
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant, fontSize: 10),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Symbols.more_vert_rounded,
-                        color: cs.onSurfaceVariant, size: 18),
-                    onPressed: onMoreTap,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                        minWidth: 32, minHeight: 32),
-                  ),
-                ],
-              ),
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(video.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: cs.onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 3),
+                  Text(video.formattedSize, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10)),
+                ])),
+                IconButton(
+                  icon: Icon(Symbols.more_vert_rounded, color: cs.onSurfaceVariant, size: 18),
+                  onPressed: onMoreTap,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ]),
             ),
           ],
         ),
@@ -157,64 +96,33 @@ class VideoGridCard extends StatelessWidget {
   }
 }
 
-// ── Private widgets ──────────────────────────────────────────────────
-
-class _Thumbnail extends StatelessWidget {
+class _Thumb extends StatelessWidget {
   final VideoItem video;
-  const _Thumbnail({required this.video});
+  const _Thumb({required this.video});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 90,
-        height: 64,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            video.thumbnail != null
-                ? Image.memory(video.thumbnail!, fit: BoxFit.cover)
-                : Container(
-                    color: cs.surfaceContainerHighest,
-                    child: Icon(Symbols.movie_rounded,
-                        color: cs.onSurfaceVariant.withOpacity(0.35),
-                        size: 28),
-                  ),
-            // Play button
-            Center(
-              child: Container(
-                width: 34, height: 34,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Symbols.play_arrow_rounded,
-                    color: cs.onPrimaryContainer, size: 20),
-              ),
-            ),
-            // Duration
-            Positioned(
-              bottom: 4, right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.72),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  video.formattedDuration,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: SizedBox(width: 90, height: 64,
+        child: Stack(fit: StackFit.expand, children: [
+          video.thumbnail != null
+              ? Image.memory(Uint8List.fromList(video.thumbnail!), fit: BoxFit.cover)
+              : Container(color: cs.surfaceContainerHighest,
+                  child: Icon(Symbols.movie_rounded, color: cs.onSurfaceVariant.withOpacity(0.3), size: 28)),
+          Center(child: Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(color: cs.primaryContainer.withOpacity(0.9), shape: BoxShape.circle),
+            child: Icon(Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 20),
+          )),
+          Positioned(bottom: 4, right: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.72), borderRadius: BorderRadius.circular(4)),
+              child: Text(video.formattedDuration, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
+            )),
+        ]),
       ),
     );
   }
@@ -227,48 +135,23 @@ class _Info extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          video.name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              height: 1.3),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            _Tag(video.formattedSize, cs),
-            const SizedBox(width: 6),
-            _Tag(video.extension.toUpperCase(), cs, primary: true),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Icon(Symbols.folder_rounded,
-                size: 12,
-                color: cs.onSurfaceVariant.withOpacity(0.6)),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                video.folder,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: cs.onSurfaceVariant.withOpacity(0.6),
-                    fontSize: 11),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(video.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: cs.onSurface, fontSize: 13.5, fontWeight: FontWeight.w500, height: 1.3)),
+      const SizedBox(height: 6),
+      Row(children: [
+        _Tag(video.formattedSize, cs),
+        const SizedBox(width: 6),
+        _Tag(video.extension.toUpperCase(), cs, primary: true),
+      ]),
+      const SizedBox(height: 4),
+      Row(children: [
+        Icon(Symbols.folder_rounded, size: 12, color: cs.onSurfaceVariant.withOpacity(0.6)),
+        const SizedBox(width: 4),
+        Expanded(child: Text(video.folder, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6), fontSize: 11))),
+      ]),
+    ]);
   }
 }
 
@@ -283,19 +166,13 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: primary
-            ? cs.primaryContainer.withOpacity(0.4)
-            : cs.surfaceContainerHighest,
+        color: primary ? cs.primaryContainer.withOpacity(0.4) : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: primary ? cs.primary : cs.onSurfaceVariant,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: Text(label, style: TextStyle(
+        color: primary ? cs.primary : cs.onSurfaceVariant,
+        fontSize: 10, fontWeight: FontWeight.w600,
+      )),
     );
   }
 }
