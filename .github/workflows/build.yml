@@ -35,14 +35,14 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
-      # ====== ضبط Kotlin إلى 2.0.0 ======
-      - name: Upgrade Kotlin to 2.0.0
+      # ====== ضبط Kotlin إلى 2.2.0 ======
+      - name: Upgrade Kotlin to 2.2.0
         run: |
-          echo "🔧 Upgrading Kotlin version to 2.0.0..."
+          echo "🔧 Upgrading Kotlin version to 2.2.0..."
           # في settings.gradle
-          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.0"/' android/settings.gradle
-          # في build.gradle (للمشاريع القديمة التي تستخدم ext.kotlin_version)
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '2.0.0'/" android/build.gradle
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.2.0"/' android/settings.gradle
+          # في build.gradle (للمشاريع القديمة)
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '2.2.0'/" android/build.gradle
           echo "Kotlin updated successfully."
       # =================================
 
