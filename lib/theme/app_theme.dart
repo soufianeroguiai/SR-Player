@@ -27,7 +27,7 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: Colors.white70),
       ),
-      tabBarTheme: const TabBarThemeData(
+      tabBarTheme: const TabBarTheme(
         indicator: UnderlineTabIndicator(
           borderSide: BorderSide(color: orange, width: 2),
         ),
