@@ -15,9 +15,6 @@ dependencies:
   media_kit_video:              ^1.2.4
   media_kit_libs_video:         ^1.0.4
 
-  # Picture in Picture
-  pip_flutter:                  ^0.0.3
-
   # Media / Files
   photo_manager:                ^3.3.0
   file_picker:                  ^8.1.2

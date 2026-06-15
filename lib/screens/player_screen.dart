@@ -6,7 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:pip_flutter/pip_flutter.dart';
+
 
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +14,7 @@ import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/subtitle_service.dart';
+import '../services/pip_service.dart';
 import 'info_screen.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -161,7 +162,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // ── PiP ───────────────────────────────────────────────────────────
   Future<void> _enterPip() async {
     try {
-      await PipFlutter.enterPictureInPictureMode();
+      await PipService.enter();
     } catch (_) {}
   }
 
