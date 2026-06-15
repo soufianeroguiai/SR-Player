@@ -36,6 +36,10 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           echo "flutter.sdk=$FLUTTER_ROOT" >> local.properties
 
+      # 🔧 حل الخطأ الجديد: إزالة ملف settings.gradle.kts من الجذر
+      - name: Remove root settings.gradle.kts
+        run: rm -f settings.gradle.kts
+
       - name: Build release APK (split per ABI)
         run: flutter build apk --release --split-per-abi
 
