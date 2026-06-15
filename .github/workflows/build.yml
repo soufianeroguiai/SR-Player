@@ -172,61 +172,29 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ------- إصلاحات المكتبات غير المتوافقة -------
-      - name: Fix package_info_plus build.gradle bug
+      # ========== خطوة واحدة لإصلاح جميع الإضافات المتضررة ==========
+      - name: Fix all incompatible plugins
         run: |
-          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 1 -type d -name "package_info_plus-*" | while read dir; do
-            FILE="$dir/android/build.gradle"
-            if [ -f "$FILE" ]; then
-              sed -i 's/flutter\.compileSdkVersion/34/g' "$FILE"
-              sed -i 's/flutter\.minSdkVersion/21/g' "$FILE"
-              sed -i 's/flutter\.targetSdkVersion/34/g' "$FILE"
-              echo "Patched $(basename $dir)"
+          echo "🔧 Fixing flutter.* properties in Groovy build.gradle files..."
+          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 3 -type f -name "build.gradle" | while read file; do
+            if grep -q 'flutter\.compileSdkVersion\|flutter\.minSdkVersion\|flutter\.targetSdkVersion' "$file"; then
+              sed -i 's/flutter\.compileSdkVersion/34/g' "$file"
+              sed -i 's/flutter\.minSdkVersion/21/g' "$file"
+              sed -i 's/flutter\.targetSdkVersion/34/g' "$file"
+              echo "Patched: $file"
             fi
           done
-
-      - name: Fix screen_brightness_android build.gradle.kts bug
-        run: |
-          FILE="$HOME/.pub-cache/hosted/pub.dev/screen_brightness_android-2.1.6/android/build.gradle.kts"
-          if [ -f "$FILE" ]; then
-            cat > "$FILE" << 'KTS'
-          plugins {
-              id("com.android.library")
-              id("kotlin-android")
-          }
-          android {
-              namespace = "com.example.screen_brightness_android"
-              compileSdk = 34
-              defaultConfig {
-                  minSdk = 21
-                  targetSdk = 34
-              }
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_1_8
-                  targetCompatibility = JavaVersion.VERSION_1_8
-              }
-          }
-          dependencies {
-              implementation("androidx.core:core-ktx:1.9.0")
-          }
-          KTS
-            echo "Replaced screen_brightness_android build.gradle.kts"
-          else
-            echo "File not found, skipping patch"
-          fi
-
-      - name: Fix wakelock_plus build.gradle bug
-        run: |
-          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 1 -type d -name "wakelock_plus-*" | while read dir; do
-            FILE="$dir/android/build.gradle"
-            if [ -f "$FILE" ]; then
-              sed -i 's/flutter\.compileSdkVersion/34/g' "$FILE"
-              sed -i 's/flutter\.minSdkVersion/21/g' "$FILE"
-              sed -i 's/flutter\.targetSdkVersion/34/g' "$FILE"
-              echo "Patched $(basename $dir)"
+          
+          echo "🔧 Fixing Kotlin DSL build.gradle.kts files with jvmTarget issue..."
+          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 3 -type f -name "build.gradle.kts" | while read file; do
+            if grep -q '^\s*jvmTarget\s*=' "$file"; then
+              sed -i 's/^\s*jvmTarget\s*=.*/    compilerOptions { jvmTarget.set(JvmTarget.JVM_1_8) }/g' "$file"
+              echo "Fixed jvmTarget in: $file"
             fi
           done
-      # ---------------------------------------------
+          
+          echo "✅ All incompatible plugins have been patched."
+      # =============================================================
 
       - name: Analyze code
         run: flutter analyze --no-fatal-infos
