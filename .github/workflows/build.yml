@@ -31,10 +31,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ========== الحل الأساسي للمشكلة ==========
-      - name: Create local.properties (fix Gradle error)
-        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-      # ========================================
+      # ✅ الحل الصحيح: إنشاء الملف في جذر المشروع (وليس داخل android)
+      - name: Create local.properties at project root
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Build release APK (split per ABI)
         run: flutter build apk --release --split-per-abi
