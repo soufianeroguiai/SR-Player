@@ -15,9 +15,6 @@ dependencies:
   media_kit_video:              ^1.2.4
   media_kit_libs_video:         ^1.0.4
 
-  # Subtitles
-  srt_parser:                   ^2.0.0
-
   # Picture in Picture
   pip_flutter:                  ^0.0.3
 
