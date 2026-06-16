@@ -10,34 +10,34 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # ================= VIDEO ENGINE (MEDIA_KIT STABLE STACK) =================
+  # ================= VIDEO ENGINE (STABLE MEDIA_KIT STACK) =================
   media_kit: ^1.2.0
   media_kit_video: ^1.2.0
   media_kit_libs_video: ^1.0.7
 
-  # ================= FILE & MEDIA ACCESS =================
-  file_picker: ^8.1.6
+  # ================= FILE ACCESS =================
+  file_picker: ^8.3.7
   photo_manager: ^3.6.0
 
-  # ================= PERMISSIONS (ANDROID 13/14 READY) =================
-  permission_handler: ^11.3.1
+  # ================= PERMISSIONS =================
+  permission_handler: ^11.4.0
 
   # ================= STATE MANAGEMENT =================
   provider: ^6.1.2
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.4.0
 
-  # ================= UI / ICONS =================
+  # ================= UI =================
   material_symbols_icons: ^4.2719.1
 
   # ================= UTILITIES =================
   path: ^1.9.0
-  path_provider: ^2.1.4
-  share_plus: ^10.0.2
-  wakelock_plus: ^1.2.1
+  path_provider: ^2.1.5
+  share_plus: ^10.1.0
+  wakelock_plus: ^1.4.0
 
-  # ================= PLAYER FEATURES (VLC-LIKE CONTROLS) =================
+  # ================= PLAYER FEATURES =================
   screen_brightness: ^2.1.7
-  volume_controller: ^3.1.0
+  volume_controller: ^3.4.4
 
 dev_dependencies:
   flutter_test:

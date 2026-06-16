@@ -1,4 +1,4 @@
-name: Build S-Player APK (Kotlin DSL Stable)
+name: Build S-Player APK
 
 on:
   push:
@@ -24,47 +24,25 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.35.5"   # أو أي نسخة أحدث 3.35.x
+          flutter-version: "3.35.5"
           channel: stable
           cache: true
 
-      - name: Fix Gradle permissions
-        run: chmod +x android/gradlew
-
-      - name: Accept Android SDK licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
-
-      - name: Install dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Flutter doctor
-        run: flutter doctor -v
-
-      - name: Analyze code
+      - name: Analyze
         run: flutter analyze
         continue-on-error: true
 
-      - name: Build release APK
-        run: |
-          flutter clean
-          flutter build apk --release
+      - name: Build APK
+        run: flutter build apk --release
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: s-player-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
 
       - name: Get version
         id: version
@@ -72,21 +50,12 @@ jobs:
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d '[:space:]')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      - name: Create Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: S-Player v${{ steps.version.outputs.version }}
-          body: |
-            🎬 S-Player Stable Build
-
-            ✔ Flutter 3.35.x (Java 17 ready)
-            ✔ Java 17
-            ✔ AGP 8.7.3, Gradle 8.9, Kotlin 2.1.0
-            ✔ media_kit compatible
-
-            🚀 Auto-generated build
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
