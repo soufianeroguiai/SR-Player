@@ -35,9 +35,42 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
+      - name: Inject Strict Gradle & Kotlin Versions (Fixes compilerOptions)
+        run: |
+          cat > android/settings.gradle << 'EOF'
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  def file = new File(settingsDir, "local.properties")
+                  if (file.exists()) {
+                      properties.load(file.newDataInputStream())
+                  }
+                  def sdkPath = properties.getProperty("flutter.sdk")
+                  if (sdkPath == null) {
+                      sdkPath = System.getenv("FLUTTER_ROOT")
+                  }
+                  if (sdkPath == null) {
+                      throw new GradleException("Flutter SDK not found.")
+                  }
+                  return sdkPath
+              }()
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          plugins {
+              id "com.android.application" version "8.3.2" apply false
+              id "org.jetbrains.kotlin.android" version "1.9.24" apply false
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+          }
+          include ":app"
+          EOF
+
       - name: Apply custom MainActivity (with PiP Support)
         run: |
-          # تنظيف أي تضارب في المجلدات القديمة وضمان مسار واحد نظيف ومطابق لـ Package فلوتر الافتراضية
           rm -rf android/app/src/main/kotlin/com/splayer
           mkdir -p android/app/src/main/kotlin/com/splayer/s_player
           cat > android/app/src/main/kotlin/com/splayer/s_player/MainActivity.kt << 'KT'
@@ -110,7 +143,7 @@ jobs:
           </manifest>
           XML
 
-      - name: Patch app/build.gradle (Forced SDK 35 & Safe Native Properties)
+      - name: Patch app/build.gradle (Upgraded to SDK 36)
         run: |
           cat > android/app/build.gradle << 'GRADLE'
           plugins {
@@ -139,7 +172,7 @@ jobs:
 
           android {
               namespace "com.splayer.s_player"
-              compileSdk 35
+              compileSdk 36
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_1_8
                   targetCompatibility JavaVersion.VERSION_1_8
@@ -153,7 +186,7 @@ jobs:
               defaultConfig {
                   applicationId "com.splayer.s_player"
                   minSdk 21
-                  targetSdk 35
+                  targetSdk 36
                   versionCode flutterVersionCode.toInteger()
                   versionName flutterVersionName
               }
@@ -176,21 +209,21 @@ jobs:
           echo "flutter.sdk=$FLUTTER_ROOT"  > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
 
-      - name: Install Android SDK 35
+      - name: Install Android SDK 36
         run: |
-          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-35"
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-36"
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Fix all incompatible plugins
+      - name: Fix all incompatible plugins (Groovy + Kotlin DSL)
         run: |
-          echo "🔧 Fixing flutter.* properties in Groovy build.gradle files..."
-          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 3 -type f -name "build.gradle" | while read file; do
+          echo "🔧 Patching SDK properties inside pub-cache plugins to SDK 36..."
+          find "$HOME/.pub-cache/hosted/pub.dev/" -maxdepth 3 -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | while read file; do
             if grep -q 'flutter\.compileSdkVersion\|flutter\.minSdkVersion\|flutter\.targetSdkVersion' "$file"; then
-              sed -i 's/flutter\.compileSdkVersion/35/g' "$file"
+              sed -i 's/flutter\.compileSdkVersion/36/g' "$file"
               sed -i 's/flutter\.minSdkVersion/21/g' "$file"
-              sed -i 's/flutter\.targetSdkVersion/35/g' "$file"
+              sed -i 's/flutter\.targetSdkVersion/36/g' "$file"
               echo "Patched: $file"
             fi
           done
