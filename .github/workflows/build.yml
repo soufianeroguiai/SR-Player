@@ -35,6 +35,17 @@ jobs:
           rm -rf android
           cp -r /tmp/fresh/android .
 
+      - name: Upgrade Gradle Wrapper Engine (Fixes Version-Check Error)
+        run: |
+          mkdir -p android/gradle/wrapper
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip
+          EOF
+
       - name: Inject Strict Gradle & Kotlin Versions (Fixes compilerOptions)
         run: |
           cat > android/settings.gradle << 'EOF'
