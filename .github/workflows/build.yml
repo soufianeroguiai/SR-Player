@@ -31,10 +31,10 @@ jobs:
 
       - name: Force Upgrade Media-Kit Versions (Server-Side)
         run: |
-          # هاد الخطوة تقوم بتحديث الإصدارات في الـ pubspec قبل التحميل لمنع صدام الجافا
+          # تحديث دقيق للإصدارات داخل pubspec لتفادي تكرار المفاتيح وصدام الجافا
           sed -i 's/media_kit:.*/media_kit: ^1.2.6/g' pubspec.yaml
-          sed -i 's/media_kit_video:.*/media_kit: ^2.0.1/g' pubspec.yaml
-          sed -i 's/media_kit_libs_video:.*/media_kit: ^1.0.7/g' pubspec.yaml
+          sed -i 's/media_kit_video:.*/media_kit_video: ^2.0.1/g' pubspec.yaml
+          sed -i 's/media_kit_libs_video:.*/media_kit_libs_video: ^1.0.7/g' pubspec.yaml
 
       - name: Generate Pristine Android Project
         run: |
