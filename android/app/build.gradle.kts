@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.s_player"
-        minSdk = 21   // media_kit requirement
+        minSdk = 21   // ضروري لـ media_kit
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
