@@ -4,36 +4,40 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # Video Player (supports HEVC/MKV/AV1 via libmpv)
-  media_kit:                    ^1.1.11
-  media_kit_video:              ^1.2.4
-  media_kit_libs_video:         ^1.0.4
+  # ================= VIDEO ENGINE (MEDIA_KIT STABLE STACK) =================
+  media_kit: ^1.2.0
+  media_kit_video: ^1.2.0
+  media_kit_libs_video: ^1.0.7
 
-  # Media / Files
-  photo_manager:                ^3.3.0
-  file_picker:                  ^8.1.2
+  # ================= FILE & MEDIA ACCESS =================
+  file_picker: ^8.1.6
+  photo_manager: ^3.6.0
 
-  # Permissions
-  permission_handler:           ^11.3.1
+  # ================= PERMISSIONS (ANDROID 13/14 READY) =================
+  permission_handler: ^11.3.1
 
-  # UI / Icons
-  material_symbols_icons:       ^4.2719.1
+  # ================= STATE MANAGEMENT =================
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
 
-  # State / Storage
-  shared_preferences:           ^2.3.2
-  provider:                     ^6.1.2
+  # ================= UI / ICONS =================
+  material_symbols_icons: ^4.2719.1
 
-  # Utilities
-  wakelock_plus:                ^1.2.1
-  share_plus:                   ^10.0.2
-  path:                         ^1.9.0
-  path_provider:                ^2.1.4
+  # ================= UTILITIES =================
+  path: ^1.9.0
+  path_provider: ^2.1.4
+  share_plus: ^10.0.2
+  wakelock_plus: ^1.2.1
+
+  # ================= PLAYER FEATURES (VLC-LIKE CONTROLS) =================
+  screen_brightness: ^2.1.7
+  volume_controller: ^3.1.0
 
 dev_dependencies:
   flutter_test:
@@ -42,8 +46,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/
-
-dependency_overrides:
-  package_info_plus: 8.2.1
