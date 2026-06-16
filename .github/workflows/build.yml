@@ -39,9 +39,7 @@ jobs:
       - name: Upgrade Android Gradle Plugin and Gradle
         run: |
           echo "🔧 Upgrading Android Gradle Plugin to 8.1.0..."
-          # في ملف build.gradle (الجذر) – buildscript classpath
           sed -i "s/classpath 'com.android.tools.build:gradle:[^']*'/classpath 'com.android.tools.build:gradle:8.1.0'/" android/build.gradle
-          # في settings.gradle – المكونات الإضافية (plugins)
           sed -i 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.1.0"/' android/settings.gradle
           sed -i 's/id "com.android.library" version "[^"]*"/id "com.android.library" version "8.1.0"/' android/settings.gradle
           echo "AGP updated."
@@ -55,9 +53,7 @@ jobs:
       - name: Upgrade Kotlin to 2.2.0
         run: |
           echo "🔧 Upgrading Kotlin version to 2.2.0..."
-          # في settings.gradle
           sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.2.0"/' android/settings.gradle
-          # في build.gradle (للمشاريع القديمة)
           sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '2.2.0'/" android/build.gradle
           echo "Kotlin updated successfully."
       # =================================
@@ -244,6 +240,14 @@ jobs:
               fi
             fi
           done
+          
+          # إزالة package من AndroidManifest.xml للإضافات القديمة (screen_brightness_android)
+          echo "🔧 Removing package attribute from screen_brightness_android AndroidManifest..."
+          MANIFEST_FILE="$HOME/.pub-cache/hosted/pub.dev/screen_brightness_android-2.1.6/android/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST_FILE" ]; then
+            sed -i '/package=/d' "$MANIFEST_FILE"
+            echo "Removed package attribute from screen_brightness_android manifest."
+          fi
           
           echo "✅ All incompatible plugins have been patched."
       # =============================================================
