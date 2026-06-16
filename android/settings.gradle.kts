@@ -19,8 +19,8 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "9.0.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.0.21" apply false   // ▼ تم تعديله هنا
+    id("com.android.application") version "8.5.0" apply false          // ▼ AGP متوافق مع Java 17 و Flutter 3.32.3
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false    // ▼ Kotlin مستقر مع Java 17
 }
 
 include(":app")
