@@ -58,7 +58,6 @@ jobs:
                   return sdkPath
               }()
               includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              // إخبار Gradle بمكان البحث عن الإضافات (هذا ما كان ينقصنا)
               repositories {
                   google()
                   mavenCentral()
@@ -170,6 +169,26 @@ jobs:
               id "kotlin-android"
               id "dev.flutter.flutter-gradle-plugin"
           }
+
+          // قراءة الإصدارات بشكل ديناميكي وآمن من ملف الخصائص المحلي
+          def localProperties = new Properties()
+          def localPropertiesFile = rootProject.file('local.properties')
+          if (localPropertiesFile.exists()) {
+              localPropertiesFile.withReader('UTF-8') { reader ->
+                  localProperties.load(reader)
+              }
+          }
+
+          def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+          if (flutterVersionCode == null) {
+              flutterVersionCode = '1'
+          }
+
+          def flutterVersionName = localProperties.getProperty('flutter.versionName')
+          if (flutterVersionName == null) {
+              flutterVersionName = '1.0'
+          }
+
           android {
               namespace "com.splayer.app"
               compileSdk 35
@@ -187,8 +206,8 @@ jobs:
                   applicationId "com.splayer.app"
                   minSdk 21
                   targetSdk 35
-                  versionCode flutter.versionCode
-                  versionName flutter.versionName
+                  versionCode flutterVersionCode.toInteger()
+                  versionName flutterVersionName
               }
               buildTypes {
                   release {
@@ -197,6 +216,11 @@ jobs:
                       shrinkResources false
                   }
               }
+          }
+
+          // إخبار الـ Plugin بمكان كود التطبيق الأساسي لترجمة الـ Dart والـ Assets
+          flutter {
+              source "../.."
           }
           GRADLE
 
