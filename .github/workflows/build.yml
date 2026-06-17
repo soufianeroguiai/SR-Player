@@ -31,24 +31,16 @@ jobs:
       - name: Fix permissions
         run: chmod +x android/gradlew
 
-      - name: Clean project
+      - name: Clean Flutter
         run: flutter clean
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Clean Gradle cache (IMPORTANT)
-        run: |
-          rm -rf ~/.gradle/caches
-          rm -rf android/.gradle
-
-      - name: Accept Android licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
       - name: Flutter doctor
         run: flutter doctor -v
 
-      - name: Analyze project
+      - name: Analyze (non-blocking)
         run: flutter analyze
         continue-on-error: true
 
@@ -62,13 +54,13 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
-      - name: Get version
+      - name: Extract version
         id: version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d '[:space:]')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      - name: Create Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
@@ -76,10 +68,9 @@ jobs:
           name: SR Player v${{ steps.version.outputs.version }}
           body: |
             🚀 SR Player Stable Build
+            ✔ Flutter Stable
             ✔ Kotlin 2.1 Compatible
-            ✔ Flutter Stable Build
             ✔ Android 14 Ready
-            ✔ media_kit supported
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
