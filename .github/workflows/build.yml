@@ -44,7 +44,7 @@ jobs:
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation
 
       - name: Locate APK
         if: always()

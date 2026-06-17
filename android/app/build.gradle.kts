@@ -26,34 +26,13 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        debug {
-            storeFile file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
 flutter {
     source = "../.."
-}
-
-// مهام إضافية: نسخ APK الناتج إلى المكان الذي يتوقعه Flutter
-tasks.whenTaskAdded { task ->
-    if (task.name.startsWith("merge") && task.name.endsWith("NativeLibs")) {
-        task.doLast {
-            copy {
-                from "${buildDir}/outputs/apk/release/app-release.apk"
-                into "${rootProject.buildDir}/../../../../build/app/outputs/flutter-apk/"
-            }
-        }
-    }
 }
