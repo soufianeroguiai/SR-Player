@@ -5,6 +5,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:volume_controller/volume_controller.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
 import '../models/video_item.dart';
@@ -31,17 +33,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isPip = false;
   Timer? _hideTimer;
 
+  // Subtitle
   List<SubtitleEntry> _subtitles = [];
   SubtitleEntry? _currentSub;
   bool _showSubtitles = true;
   Timer? _subTimer;
 
+  // Speed
   double _speed = 1.0;
   final _speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
+  // Progress
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
+
+  // Volume & brightness
+  double _volume = 1.0;
+  double _brightness = 1.0;
+  bool _showBrightnessIndicator = false;
+  bool _showVolumeIndicator = false;
+  Timer? _indicatorTimer;
 
   @override
   void initState() {
@@ -73,23 +85,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final settings = context.read<SettingsProvider>();
 
     try {
-      // فتح الفيديو
       await _player.open(Media(widget.video.path), play: settings.autoPlay);
       _player.setRate(_speed);
 
-      // استعادة الموضع المحفوظ
       if (settings.rememberPosition) {
         try {
           final saved = await context.read<LibraryProvider>().getPosition(widget.video.path);
           if (saved != null && saved.inSeconds > 0) {
             await _player.seek(saved);
           }
-        } catch (_) {
-          // تجاهل أي خطأ في استعادة الموضع
-        }
+        } catch (_) {}
       }
 
-      // Listeners
       _player.stream.position.listen((pos) {
         if (!mounted) return;
         setState(() => _position = pos);
@@ -97,31 +104,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           context.read<LibraryProvider>().savePosition(widget.video.path, pos);
         }
         _updateSubtitle(pos);
-      }, onError: (e) {
-        debugPrint('Player position error: $e');
       });
 
       _player.stream.duration.listen((dur) {
         if (mounted) setState(() => _duration = dur);
-      }, onError: (e) {
-        debugPrint('Player duration error: $e');
       });
 
       _player.stream.playing.listen((playing) {
         if (mounted) setState(() => _isPlaying = playing);
-      }, onError: (e) {
-        debugPrint('Player playing error: $e');
       });
+
+      // تهيئة الصوت والسطوع الحاليين
+      _volume = await VolumeController().getVolume() / await VolumeController().getMaxVolume();
+      _brightness = await ScreenBrightness().current;
 
       setState(() => _initialized = true);
       _scheduleHide();
 
-      // Auto-load SRT
       final srtPath = SubtitleService.findSrt(widget.video.path);
       if (srtPath != null) await _loadSrtFile(srtPath);
 
     } catch (e) {
-      // فشل تشغيل الفيديو – عرض رسالة والعودة
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('تعذر تشغيل الملف: $e')),
@@ -131,7 +134,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  // باقي الدوال بدون تغيير (نفس الكود السابق)
   void _updateSubtitle(Duration pos) {
     if (_subtitles.isEmpty) return;
     SubtitleEntry? found;
@@ -179,10 +181,41 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     } catch (_) {}
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
-      _enterPip();
+  // ── الإيماءات ──────────────────────────────────────
+  void _onVerticalDragStart(DragStartDetails details, double screenWidth) {
+    // نحدد نصف الشاشة
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details, double screenWidth) {
+    final isLeft = details.localPosition.dx < screenWidth / 2;
+    final delta = -details.delta.dy / 200; // مقدار التغيير
+
+    if (isLeft) {
+      // تغيير السطوع
+      final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
+      ScreenBrightness().setScreenBrightness(newBrightness);
+      setState(() {
+        _brightness = newBrightness;
+        _showBrightnessIndicator = true;
+        _showVolumeIndicator = false;
+      });
+      _indicatorTimer?.cancel();
+      _indicatorTimer = Timer(const Duration(seconds: 1), () {
+        setState(() => _showBrightnessIndicator = false);
+      });
+    } else {
+      // تغيير الصوت
+      final newVolume = (_volume + delta).clamp(0.0, 1.0);
+      VolumeController().setVolume((newVolume * 100).round());
+      setState(() {
+        _volume = newVolume;
+        _showVolumeIndicator = true;
+        _showBrightnessIndicator = false;
+      });
+      _indicatorTimer?.cancel();
+      _indicatorTimer = Timer(const Duration(seconds: 1), () {
+        setState(() => _showVolumeIndicator = false);
+      });
     }
   }
 
@@ -209,6 +242,45 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
+  // ── الترجمة المدمجة ─────────────────────────────────
+  Future<void> _selectEmbeddedSubtitle() async {
+    final tracks = _player.state.tracks.subtitle;
+    if (tracks.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا توجد ترجمات مدمجة')));
+      }
+      return;
+    }
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(context: context, builder: (_) => Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+          child: Text('اختيار الترجمة', style: TextStyle(
+              color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
+        const Divider(height: 1),
+        ...tracks.map((track) => ListTile(
+          title: Text(track.title ?? track.language ?? 'غير معروف'),
+          subtitle: Text(track.language ?? ''),
+          trailing: _player.state.track.subtitle == track
+              ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+          onTap: () {
+            _player.setSubtitleTrack(track);
+            Navigator.pop(context);
+          },
+        )),
+        ListTile(
+          leading: const Icon(Icons.clear),
+          title: const Text('إيقاف الترجمة'),
+          onTap: () {
+            _player.setSubtitleTrack(SubtitleTrack.no());
+            Navigator.pop(context);
+          },
+        ),
+      ]),
+    ));
+  }
+
   String _fmt(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -219,6 +291,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     if (_isPip) {
       return Scaffold(
@@ -240,12 +313,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : GestureDetector(
                 onTap: _toggleControls,
+                onVerticalDragUpdate: (details) => _onVerticalDragUpdate(details, screenWidth),
                 child: Stack(children: [
                   Video(
                     controller: _controller,
                     controls: NoVideoControls,
                   ),
 
+                  // الترجمة
                   if (_showSubtitles && _currentSub != null)
                     Positioned(
                       bottom: 72, left: 20, right: 20,
@@ -266,6 +341,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       ),
                     ),
 
+                  // مؤشر السطوع
+                  if (_showBrightnessIndicator)
+                    Positioned(
+                      left: 20,
+                      bottom: 120,
+                      child: _buildIndicator(Icons.brightness_6, '${(_brightness * 100).round()}%', cs.primary),
+                    ),
+
+                  // مؤشر الصوت
+                  if (_showVolumeIndicator)
+                    Positioned(
+                      right: 20,
+                      bottom: 120,
+                      child: _buildIndicator(Icons.volume_up, '${(_volume * 100).round()}%', cs.primary),
+                    ),
+
                   if (_showControls) ...[
                     _TopBar(
                       name: widget.video.name,
@@ -276,6 +367,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onSpeed: _showSpeedSheet,
                       onSubToggle: () => setState(() => _showSubtitles = !_showSubtitles),
                       onSubLoad: _pickSubtitle,
+                      onEmbeddedSubs: _selectEmbeddedSubtitle,
                       onInfo: () => Navigator.push(context, MaterialPageRoute(
                         builder: (_) => InfoScreen(video: widget.video))),
                     ),
@@ -354,11 +446,30 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  Widget _buildIndicator(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 4),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _subTimer?.cancel();
+    _indicatorTimer?.cancel();
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -367,18 +478,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ── Widgets مساعدة (بدون تغيير) ────────────────────────────────
-
+// ── TopBar (تم تعديلها لإضافة زر الترجمة المدمجة) ─────
 class _TopBar extends StatelessWidget {
   final String name;
   final double speed;
   final bool subtitlesOn;
-  final VoidCallback onBack, onPip, onSpeed, onSubToggle, onSubLoad, onInfo;
+  final VoidCallback onBack, onPip, onSpeed, onSubToggle, onSubLoad, onEmbeddedSubs, onInfo;
 
   const _TopBar({
     required this.name, required this.speed, required this.subtitlesOn,
     required this.onBack, required this.onPip, required this.onSpeed,
-    required this.onSubToggle, required this.onSubLoad, required this.onInfo,
+    required this.onSubToggle, required this.onSubLoad, required this.onEmbeddedSubs, required this.onInfo,
   });
 
   @override
@@ -422,6 +532,12 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
+            // زر الترجمة المدمجة
+            IconButton(
+              icon: const Icon(Symbols.subtitles_rounded, color: Colors.white70),
+              onPressed: onEmbeddedSubs,
+              tooltip: 'اختيار الترجمة المدمجة',
+            ),
             IconButton(
               icon: Icon(
                 subtitlesOn ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,

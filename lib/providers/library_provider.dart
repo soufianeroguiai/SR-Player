@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';  // ✅ أضفنا الاستيراد
 import '../models/video_item.dart';
 
 class LibraryProvider extends ChangeNotifier {
@@ -28,9 +29,16 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await PhotoManager.requestPermissionExtend();
-      if (!result.isAuth) {
-        _error = 'لم يتم منح الإذن للوصول إلى الوسائط';
+      // ✅ طلب الصلاحيات المناسبة حسب إصدار أندرويد
+      bool granted = false;
+      if (await _requestMediaPermissions()) {
+        // نطلب صلاحية photo_manager (للكشف عن الفيديوهات)
+        final pmResult = await PhotoManager.requestPermissionExtend();
+        granted = pmResult.isAuth;
+      }
+
+      if (!granted) {
+        _error = 'لم يتم منح الإذن للوصول إلى الوسائط.\nالرجاء منح الصلاحية من إعدادات التطبيق.';
         _loading = false;
         notifyListeners();
         return;
@@ -68,30 +76,40 @@ class LibraryProvider extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
-
-    // تحميل الصور المصغرة في الخلفية (محسّنة)
     _loadThumbnails();
   }
 
+  /// طلب الصلاحيات المطلوبة حسب إصدار أندرويد
+  Future<bool> _requestMediaPermissions() async {
+    // Android 13+ (API 33) يحتاج صلاحيات وسائط مفصلة
+    if (await Permission.videos.isGranted) return true;
+
+    // طلب الصلاحية مع إظهار مربع الحوار
+    final status = await Permission.videos.request();
+    if (status.isGranted) return true;
+
+    // إذا رفض المستخدم، نظهر تنبيهًا
+    if (status.isPermanentlyDenied) {
+      // يمكن توجيه المستخدم للإعدادات
+      // openAppSettings();
+      return false;
+    }
+    return false;
+  }
+
   Future<void> _loadThumbnails() async {
-    // نأخذ نسخة من القائمة الحالية لتجنب التعديل أثناء التكرار
     final videosToProcess = List<VideoItem>.from(_videos);
     try {
-      // نحصل على قائمة الألبومات مرة واحدة
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       if (albums.isEmpty) return;
 
-      // نجلب كل الأصول من الألبوم الأول (أو كل الألبومات إذا أردت)
       for (final album in albums) {
         final count = await album.assetCountAsync;
         final assets = await album.getAssetListRange(start: 0, end: count);
 
         for (final video in videosToProcess) {
-          // إذا كان الفيديو لم يعد موجودًا (أُزيل أثناء التحميل) نتخطاه
           if (!_videos.contains(video)) continue;
-
           try {
-            // البحث عن الأصل المطابق للفيديو
             final asset = assets.firstWhere((a) => a.id == video.id,
                 orElse: () => assets.isNotEmpty ? assets.first : null as dynamic);
             if (asset == null) continue;
@@ -104,14 +122,10 @@ class LibraryProvider extends ChangeNotifier {
               video.thumbnail = thumb.toList();
               notifyListeners();
             }
-          } catch (_) {
-            // فشل تحميل هذه الصورة المصغرة – تجاهل وتابع
-          }
+          } catch (_) {}
         }
       }
-    } catch (_) {
-      // فشل عام في تحميل الصور المصغرة – لا نعرض خطأ للمستخدم
-    }
+    } catch (_) {}
   }
 
   Future<void> loadRecent() async {
