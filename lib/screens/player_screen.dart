@@ -33,27 +33,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isPip = false;
   Timer? _hideTimer;
 
-  // Subtitle
   List<SubtitleEntry> _subtitles = [];
   SubtitleEntry? _currentSub;
   bool _showSubtitles = true;
 
-  // Speed
   double _speed = 1.0;
   final _speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
-  // Progress
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
-  // Volume & brightness
   double _volume = 1.0;
   double _brightness = 1.0;
   bool _showBrightnessIndicator = false;
   bool _showVolumeIndicator = false;
   Timer? _indicatorTimer;
-  StreamSubscription? _volumeSubscription;
 
   @override
   void initState() {
@@ -91,9 +86,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       if (settings.rememberPosition) {
         try {
           final saved = await context.read<LibraryProvider>().getPosition(widget.video.path);
-          if (saved != null && saved.inSeconds > 0) {
-            await _player.seek(saved);
-          }
+          if (saved != null && saved.inSeconds > 0) await _player.seek(saved);
         } catch (_) {}
       }
 
@@ -114,22 +107,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (mounted) setState(() => _isPlaying = playing);
       });
 
-      // تهيئة الصوت والسطوع
+      // 🔊 الصوت (Singleton)
       try {
-        _volume = await VolumeController().getVolume();
+        _volume = await VolumeController.instance.getVolume();
       } catch (_) {
         _volume = 1.0;
       }
+      VolumeController.instance.addListener((vol) {
+        if (mounted) setState(() => _volume = vol);
+      });
+
+      // ☀️ السطوع (API الإصدار 2.x)
       try {
-        _brightness = await ScreenBrightness().current;
+        _brightness = await ScreenBrightness().system;   // ← تغير هنا
       } catch (_) {
         _brightness = 1.0;
       }
-
-      // الاستماع لتغييرات الصوت من أزرار الجهاز
-      _volumeSubscription = VolumeController().listener.listen((volume) {
-        if (mounted) setState(() => _volume = volume);
-      });
 
       setState(() => _initialized = true);
       _scheduleHide();
@@ -160,9 +153,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final subs = await SubtitleService.load(path);
     setState(() => _subtitles = subs);
     if (mounted && subs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('✅ تم تحميل ${subs.length} سطر ترجمة'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ تم تحميل ${subs.length} سطر ترجمة')),
+      );
     }
   }
 
@@ -194,24 +187,24 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     } catch (_) {}
   }
 
-  // ── الإيماءات ──────────────────────────────────────
+  // ── الإيماءات ────────────────────────────────
   void _onVerticalDragUpdate(DragUpdateDetails details, double screenWidth) {
     final isLeft = details.localPosition.dx < screenWidth / 2;
     final delta = -details.delta.dy / 200;
 
     if (isLeft) {
-      // تغيير السطوع
+      // ☀️ سطوع (API 2.x)
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
-      ScreenBrightness().setScreenBrightness(newBrightness);
+      ScreenBrightness().setSystemScreenBrightness(newBrightness);  // ← تغير هنا
       setState(() {
         _brightness = newBrightness;
         _showBrightnessIndicator = true;
         _showVolumeIndicator = false;
       });
     } else {
-      // تغيير الصوت
+      // 🔊 صوت
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
-      VolumeController().setVolume(newVolume);
+      VolumeController.instance.setVolume(newVolume);
       setState(() {
         _volume = newVolume;
         _showVolumeIndicator = true;
@@ -220,12 +213,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
     _indicatorTimer?.cancel();
     _indicatorTimer = Timer(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _showBrightnessIndicator = false;
-          _showVolumeIndicator = false;
-        });
-      }
+      if (mounted) setState(() {
+        _showBrightnessIndicator = false;
+        _showVolumeIndicator = false;
+      });
     });
   }
 
@@ -252,12 +243,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
-  // ── الترجمة المدمجة ─────────────────────────────────
   Future<void> _selectEmbeddedSubtitle() async {
     final tracks = _player.state.tracks.subtitle;
     if (tracks.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا توجد ترجمات مدمجة')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد ترجمات مدمجة')),
+        );
       }
       return;
     }
@@ -312,9 +304,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) {
-          await _enterPip();
-        }
+        if (!didPop) await _enterPip();
       },
       canPop: false,
       child: Scaffold(
@@ -323,7 +313,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : GestureDetector(
                 onTap: _toggleControls,
-                onVerticalDragUpdate: (details) => _onVerticalDragUpdate(details, screenWidth),
+                onVerticalDragUpdate: (details) =>
+                    _onVerticalDragUpdate(details, screenWidth),
                 child: Stack(children: [
                   Video(controller: _controller, controls: NoVideoControls),
 
@@ -350,13 +341,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   if (_showBrightnessIndicator)
                     Positioned(
                       left: 20, bottom: 120,
-                      child: _buildIndicator(Icons.brightness_6, '${(_brightness * 100).round()}%', cs.primary),
+                      child: _buildIndicator(Icons.brightness_6,
+                          '${(_brightness * 100).round()}%', cs.primary),
                     ),
 
                   if (_showVolumeIndicator)
                     Positioned(
                       right: 20, bottom: 120,
-                      child: _buildIndicator(Icons.volume_up, '${(_volume * 100).round()}%', cs.primary),
+                      child: _buildIndicator(Icons.volume_up,
+                          '${(_volume * 100).round()}%', cs.primary),
                     ),
 
                   if (_showControls) ...[
@@ -370,14 +363,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onSubToggle: () => setState(() => _showSubtitles = !_showSubtitles),
                       onSubLoad: _pickSubtitle,
                       onEmbeddedSubs: _selectEmbeddedSubtitle,
-                      onInfo: () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => InfoScreen(video: widget.video))),
+                      onInfo: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => InfoScreen(video: widget.video))),
                     ),
 
                     Center(child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _CtrlBtn(Symbols.replay_10_rounded, () => _player.seek(_position - const Duration(seconds: 10))),
+                        _CtrlBtn(Symbols.replay_10_rounded,
+                            () => _player.seek(_position - const Duration(seconds: 10))),
                         const SizedBox(width: 28),
                         GestureDetector(
                           onTap: () => _isPlaying ? _player.pause() : _player.play(),
@@ -394,10 +388,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           ),
                         ),
                         const SizedBox(width: 28),
-                        _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
+                        _CtrlBtn(Symbols.forward_10_rounded,
+                            () => _player.seek(_position + const Duration(seconds: 10))),
                       ],
                     )),
 
+                    // شريط التقدم
                     Positioned(
                       bottom: 0, left: 0, right: 0,
                       child: Container(
@@ -468,9 +464,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
-    _subTimer?.cancel();
     _indicatorTimer?.cancel();
-    _volumeSubscription?.cancel();
+    VolumeController.instance.removeListener();
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -479,7 +474,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ── TopBar ─────────────────────────────────────────────
+// ── TopBar ────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final String name;
   final double speed;
@@ -487,9 +482,16 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onBack, onPip, onSpeed, onSubToggle, onSubLoad, onEmbeddedSubs, onInfo;
 
   const _TopBar({
-    required this.name, required this.speed, required this.subtitlesOn,
-    required this.onBack, required this.onPip, required this.onSpeed,
-    required this.onSubToggle, required this.onSubLoad, required this.onEmbeddedSubs, required this.onInfo,
+    required this.name,
+    required this.speed,
+    required this.subtitlesOn,
+    required this.onBack,
+    required this.onPip,
+    required this.onSpeed,
+    required this.onSubToggle,
+    required this.onSubLoad,
+    required this.onEmbeddedSubs,
+    required this.onInfo,
   });
 
   @override
