@@ -33,7 +33,7 @@ dependencies:
 
   # ⚙️ Utilities
   share_plus: ^10.1.0
-  wakelock_plus: ^1.6.1
+  wakelock_plus: ^1.5.2
   volume_controller: ^3.6.0
 
 dev_dependencies:
