@@ -33,17 +33,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isPip = false;
   Timer? _hideTimer;
 
+  // Subtitle
   List<SubtitleEntry> _subtitles = [];
   SubtitleEntry? _currentSub;
   bool _showSubtitles = true;
 
+  // Speed
   double _speed = 1.0;
   final _speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
+  // Progress
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
+  // Volume & brightness
   double _volume = 1.0;
   double _brightness = 1.0;
   bool _showBrightnessIndicator = false;
@@ -120,11 +124,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       // ☀️ السطوع (API 2.1.11)
       try {
-        _brightness = await ScreenBrightness.instance.systemScreenBrightness;
+        _brightness = await ScreenBrightness.instance.system;   // ← تم التصحيح
       } catch (_) {
         _brightness = 1.0;
       }
-      // الاستماع لتغيرات السطوع من النظام
       _brightnessSubscription = ScreenBrightness
           .instance.onSystemScreenBrightnessChanged
           .listen((newBrightness) {
@@ -160,9 +163,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final subs = await SubtitleService.load(path);
     setState(() => _subtitles = subs);
     if (mounted && subs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ تم تحميل ${subs.length} سطر ترجمة')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('✅ تم تحميل ${subs.length} سطر ترجمة'),
+      ));
     }
   }
 
@@ -250,13 +253,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
+  // ── الترجمة المدمجة ─────────────────────────────────
   Future<void> _selectEmbeddedSubtitle() async {
     final tracks = _player.state.tracks.subtitle;
     if (tracks.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا توجد ترجمات مدمجة')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا توجد ترجمات مدمجة')));
       }
       return;
     }
@@ -311,7 +313,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) await _enterPip();
+        if (!didPop) {
+          await _enterPip();
+        }
       },
       canPop: false,
       child: Scaffold(
@@ -320,11 +324,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : GestureDetector(
                 onTap: _toggleControls,
-                onVerticalDragUpdate: (details) =>
-                    _onVerticalDragUpdate(details, screenWidth),
+                onVerticalDragUpdate: (details) => _onVerticalDragUpdate(details, screenWidth),
                 child: Stack(children: [
-                  Video(controller: _controller, controls: NoVideoControls),
+                  Video(
+                    controller: _controller,
+                    controls: NoVideoControls,
+                  ),
 
+                  // الترجمة
                   if (_showSubtitles && _currentSub != null)
                     Positioned(
                       bottom: 72, left: 20, right: 20,
@@ -345,18 +352,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       ),
                     ),
 
+                  // مؤشر السطوع
                   if (_showBrightnessIndicator)
                     Positioned(
-                      left: 20, bottom: 120,
-                      child: _buildIndicator(Icons.brightness_6,
-                          '${(_brightness * 100).round()}%', cs.primary),
+                      left: 20,
+                      bottom: 120,
+                      child: _buildIndicator(Icons.brightness_6, '${(_brightness * 100).round()}%', cs.primary),
                     ),
 
+                  // مؤشر الصوت
                   if (_showVolumeIndicator)
                     Positioned(
-                      right: 20, bottom: 120,
-                      child: _buildIndicator(Icons.volume_up,
-                          '${(_volume * 100).round()}%', cs.primary),
+                      right: 20,
+                      bottom: 120,
+                      child: _buildIndicator(Icons.volume_up, '${(_volume * 100).round()}%', cs.primary),
                     ),
 
                   if (_showControls) ...[
@@ -370,15 +379,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onSubToggle: () => setState(() => _showSubtitles = !_showSubtitles),
                       onSubLoad: _pickSubtitle,
                       onEmbeddedSubs: _selectEmbeddedSubtitle,
-                      onInfo: () => Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => InfoScreen(video: widget.video))),
+                      onInfo: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => InfoScreen(video: widget.video))),
                     ),
 
                     Center(child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _CtrlBtn(Symbols.replay_10_rounded,
-                            () => _player.seek(_position - const Duration(seconds: 10))),
+                        _CtrlBtn(Symbols.replay_10_rounded, () => _player.seek(_position - const Duration(seconds: 10))),
                         const SizedBox(width: 28),
                         GestureDetector(
                           onTap: () => _isPlaying ? _player.pause() : _player.play(),
@@ -395,8 +403,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           ),
                         ),
                         const SizedBox(width: 28),
-                        _CtrlBtn(Symbols.forward_10_rounded,
-                            () => _player.seek(_position + const Duration(seconds: 10))),
+                        _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
                       ],
                     )),
 
@@ -414,7 +421,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                             child: Row(children: [
-                              Text(_fmt(_position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                              Text(_fmt(_position),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
                               Expanded(
                                 child: SliderTheme(
                                   data: SliderThemeData(
@@ -435,7 +443,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                   ),
                                 ),
                               ),
-                              Text(_fmt(_duration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                              Text(_fmt(_duration),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             ]),
                           ),
                         ),
@@ -481,7 +490,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ── TopBar ────────────────────────────────────────
+// ── TopBar ─────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final String name;
   final double speed;
@@ -489,16 +498,9 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onBack, onPip, onSpeed, onSubToggle, onSubLoad, onEmbeddedSubs, onInfo;
 
   const _TopBar({
-    required this.name,
-    required this.speed,
-    required this.subtitlesOn,
-    required this.onBack,
-    required this.onPip,
-    required this.onSpeed,
-    required this.onSubToggle,
-    required this.onSubLoad,
-    required this.onEmbeddedSubs,
-    required this.onInfo,
+    required this.name, required this.speed, required this.subtitlesOn,
+    required this.onBack, required this.onPip, required this.onSpeed,
+    required this.onSubToggle, required this.onSubLoad, required this.onEmbeddedSubs, required this.onInfo,
   });
 
   @override
@@ -516,13 +518,19 @@ class _TopBar extends StatelessWidget {
         ),
         child: SafeArea(
           child: Row(children: [
-            IconButton(icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white), onPressed: onBack),
+            IconButton(
+              icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white),
+              onPressed: onBack,
+            ),
             Expanded(
               child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
             ),
-            IconButton(icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70),
-                onPressed: onPip, tooltip: 'نافذة عائمة'),
+            IconButton(
+              icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70),
+              onPressed: onPip,
+              tooltip: 'نافذة عائمة',
+            ),
             GestureDetector(
               onTap: onSpeed,
               child: Container(
@@ -536,17 +544,27 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            IconButton(icon: const Icon(Symbols.subtitles_rounded, color: Colors.white70),
-                onPressed: onEmbeddedSubs, tooltip: 'اختيار الترجمة المدمجة'),
             IconButton(
-              icon: Icon(subtitlesOn ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,
-                  color: subtitlesOn ? Colors.lightBlue : Colors.white54),
+              icon: const Icon(Symbols.subtitles_rounded, color: Colors.white70),
+              onPressed: onEmbeddedSubs,
+              tooltip: 'اختيار الترجمة المدمجة',
+            ),
+            IconButton(
+              icon: Icon(
+                subtitlesOn ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,
+                color: subtitlesOn ? Colors.lightBlue : Colors.white54,
+              ),
               onPressed: onSubToggle,
             ),
-            IconButton(icon: const Icon(Symbols.upload_file_rounded, color: Colors.white54),
-                onPressed: onSubLoad, tooltip: 'تحميل ترجمة SRT'),
-            IconButton(icon: const Icon(Symbols.info_rounded, color: Colors.white54),
-                onPressed: onInfo),
+            IconButton(
+              icon: const Icon(Symbols.upload_file_rounded, color: Colors.white54),
+              onPressed: onSubLoad,
+              tooltip: 'تحميل ترجمة SRT',
+            ),
+            IconButton(
+              icon: const Icon(Symbols.info_rounded, color: Colors.white54),
+              onPressed: onInfo,
+            ),
           ]),
         ),
       ),
