@@ -46,8 +46,17 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Locate APK
+        if: always()
+        run: |
+          echo "=== البحث عن ملف APK ==="
+          find . -name "*.apk" -type f
+          echo "=== نهاية البحث ==="
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sr-player-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            android/app/build/outputs/apk/release/app-release.apk
