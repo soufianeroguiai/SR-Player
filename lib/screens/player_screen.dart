@@ -48,10 +48,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
-  // القيم من النظام (0.0 – 1.0)
   double _volume = 0.8;
   double _brightness = 0.7;
-  double? _originalSystemBrightness;
 
   String? _dragAxis;
   bool _dragIsLeftSide = false;
@@ -118,7 +116,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       await _player.open(Media(widget.video.path), play: settings.autoPlay);
       _player.setRate(_speed);
       
-      // الصوت : نقرأه من النظام ونستمع لتغيراته
+      // الصوت: قراءة من النظام
       try {
         _volume = await VolumeController.instance.getVolume();
       } catch (_) {
@@ -128,10 +126,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (mounted) setState(() => _volume = vol);
       });
 
-      // السطوع : نأخذ سطوع النظام الحالي ونطبقه
+      // السطوع: تعيين سطوع التطبيق فقط (بدون طلب صلاحيات النظام)
       try {
-        _originalSystemBrightness = await ScreenBrightness.instance.system;
-        await ScreenBrightness.instance.setSystemScreenBrightness(_brightness);
+        _brightness = await ScreenBrightness.instance.current;
+        await ScreenBrightness.instance.setScreenBrightness(_brightness);
       } catch (_) {}
 
       _player.stream.position.listen((pos) {
@@ -230,7 +228,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  // مؤشر عائم زجاجي (صوت/سطوع)
   Widget _buildFloatingIndicator({
     required IconData icon,
     required double value,
@@ -318,7 +315,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // ── الإيماءات ────────────────────────────────
   void _onPanStart(DragStartDetails details) {
     if (_isLocked) return;
     _hideTimer?.cancel();
@@ -374,14 +370,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _scheduleHide();
   }
 
-  void _handleVerticalGesture(double dy) {
+  void _handleVerticalGesture(double dy) async {
     final delta = -dy / 200;
 
     if (_dragIsLeftSide) {
-      // سطوع النظام (قوي وفوري)
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
       try {
-        ScreenBrightness.instance.setSystemScreenBrightness(newBrightness);
+        await ScreenBrightness.instance.setScreenBrightness(newBrightness);
         setState(() {
           _brightness = newBrightness;
           _showBrightnessIndicator = true;
@@ -389,7 +384,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         });
       } catch (_) {}
     } else {
-      // صوت النظام (حقيقي وفوري)
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
       VolumeController.instance.setVolume(newVolume);
       setState(() {
@@ -398,6 +392,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _showBrightnessIndicator = false;
       });
     }
+    
     _indicatorTimer?.cancel();
     _indicatorTimer = Timer(const Duration(seconds: 1), () {
       if (mounted) {
@@ -431,15 +426,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
-  // ── قوائم الترجمة والصوت (Dialog لحل مشكلة خروج المشغل) ──
   Future<void> _showSubtitleMenu() async {
     final cs = Theme.of(context).colorScheme;
     
-    // إزالة التكرار
     final seen = <String>{};
     final uniqueTracks = <SubtitleTrack>[];
     for (final track in _subtitleTracks) {
-      final key = track.title ?? track.language ?? 'unknown';
+      final key = track.id; 
       if (!seen.contains(key)) {
         seen.add(key);
         uniqueTracks.add(track);
@@ -461,31 +454,45 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 activeColor: Colors.lightBlue,
                 title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة', style: const TextStyle(color: Colors.white)),
                 value: _showSubtitles,
-                onChanged: (v) {
-                  setState(() => _showSubtitles = v);
-                  if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
-                  Navigator.pop(ctx);
+                onChanged: (v) async {
+                  try {
+                    if (!v) {
+                      await _player.setSubtitleTrack(SubtitleTrack.no());
+                    } else if (uniqueTracks.isNotEmpty) {
+                      await _player.setSubtitleTrack(uniqueTracks.first);
+                    }
+                    if (mounted) setState(() => _showSubtitles = v);
+                  } catch (e) {
+                    debugPrint("Error toggling subtitles: $e");
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
                 },
               ),
               const Divider(color: Colors.white24),
               ...uniqueTracks.map((track) {
-                String name = track.title ?? track.language ?? 'ترجمة';
+                String name = track.title ?? track.language ?? 'ترجمة (${track.id})';
                 String? lang = track.language;
+                final isSelected = _player.state.track.subtitle.id == track.id;
+
                 return ListTile(
                   title: Text(name, style: const TextStyle(color: Colors.white)),
                   subtitle: lang != null ? Text(lang, style: const TextStyle(color: Colors.white54)) : null,
-                  trailing: _player.state.track.subtitle == track ? Icon(Icons.check, color: cs.primary) : null,
-                  onTap: () {
-                    _player.setSubtitleTrack(track);
-                    setState(() => _showSubtitles = true);
-                    Navigator.pop(ctx);
+                  trailing: isSelected ? Icon(Icons.check, color: cs.primary) : null,
+                  onTap: () async {
+                    try {
+                      await _player.setSubtitleTrack(track);
+                      if (mounted) setState(() => _showSubtitles = true);
+                    } catch (e) {
+                      debugPrint("Error setting subtitle track: $e");
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
                   },
                 );
               }),
               const Divider(color: Colors.white24),
               ListTile(
                 leading: const Icon(Icons.upload, color: Colors.white),
-                title: const Text('تحميل ترجمة', style: TextStyle(color: Colors.white)),
+                title: const Text('تحميل ترجمة خارجية', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickSubtitle();
@@ -501,11 +508,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Future<void> _showAudioMenu() async {
     final cs = Theme.of(context).colorScheme;
     
-    // إزالة التكرار
     final seen = <String>{};
     final uniqueAudio = <AudioTrack>[];
     for (final track in _audioTracks) {
-      final key = track.title ?? track.language ?? 'unknown';
+      final key = track.id;
       if (!seen.contains(key)) {
         seen.add(key);
         uniqueAudio.add(track);
@@ -524,15 +530,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             mainAxisSize: MainAxisSize.min,
             children: [
               ...uniqueAudio.map((track) {
-                String name = track.title ?? track.language ?? 'مسار صوتي';
+                String name = track.title ?? track.language ?? 'مسار صوتي (${track.id})';
                 String? lang = track.language;
+                final isSelected = _player.state.track.audio.id == track.id;
+
                 return ListTile(
                   title: Text(name, style: const TextStyle(color: Colors.white)),
                   subtitle: lang != null ? Text(lang, style: const TextStyle(color: Colors.white54)) : null,
-                  trailing: _player.state.track.audio == track ? Icon(Icons.check, color: cs.primary) : null,
-                  onTap: () {
-                    _player.setAudioTrack(track);
-                    Navigator.pop(ctx);
+                  trailing: isSelected ? Icon(Icons.check, color: cs.primary) : null,
+                  onTap: () async {
+                    try {
+                      await _player.setAudioTrack(track);
+                    } catch (e) {
+                      debugPrint("Error setting audio track: $e");
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
                   },
                 );
               }),
@@ -590,10 +602,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
 
     return PopScope(
-      canPop: !_isLocked,
+      canPop: false, // تم التعديل لمنع الخروج التلقائي
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop && !_isLocked) await _enterPip();
-        if (_isLocked) setState(() => _isLocked = false);
+        if (didPop) return;
+
+        if (_isLocked) {
+          setState(() => _isLocked = false);
+          return;
+        }
+
+        try {
+          await PipService.enter();
+        } catch (_) {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -679,7 +703,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent])),
                         child: SafeArea(
                           child: Row(children: [
-                            IconButton(icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                            IconButton(icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white), onPressed: () {
+                              // إذا كان الخروج يدوياً من زر الرجوع في الواجهة
+                              Navigator.pop(context);
+                            }),
                             Expanded(child: Text(widget.video.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
                             IconButton(icon: Icon(_isLocked ? Symbols.lock_rounded : Symbols.lock_open_rounded, color: _isLocked ? Colors.orange : Colors.white54), onPressed: _toggleLock),
                             IconButton(icon: Icon(_isLandscape ? Symbols.screen_rotation_rounded : Symbols.stay_current_portrait_rounded, color: Colors.white70), onPressed: _toggleOrientation),
@@ -742,12 +769,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _indicatorTimer?.cancel();
-    VolumeController.instance.removeListener();
-    if (_originalSystemBrightness != null) {
-      try {
-        ScreenBrightness.instance.setSystemScreenBrightness(_originalSystemBrightness!);
-      } catch (_) {}
-    }
+    
+    // إعادة ضبط السطوع ليعود لسطوع النظام الافتراضي
+    try {
+      ScreenBrightness.instance.resetScreenBrightness();
+    } catch (_) {}
+    
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
