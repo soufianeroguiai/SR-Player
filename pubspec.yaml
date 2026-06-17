@@ -13,33 +13,33 @@ dependencies:
 
   # 🎬 Stable Video Stack
   media_kit: ^1.2.6
-  media_kit_video: ^1.2.0
+  media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
 
   # 📁 File & Media
-  file_picker: ^8.3.7
-  photo_manager: ^3.6.0
-  path_provider: ^2.1.5
+  file_picker: ^11.0.2
+  photo_manager: ^3.9.0
+  path_provider: ^2.1.6
 
   # 🔐 Permissions
-  permission_handler: ^11.4.0
+  permission_handler: ^12.0.3
 
   # 📦 State
-  provider: ^6.1.2
-  shared_preferences: ^2.4.0
+  provider: ^6.1.5+1
+  shared_preferences: ^2.5.5
 
   # 🎨 UI
-  material_symbols_icons: ^4.2719.1
+  material_symbols_icons: ^4.2951.0
 
   # ⚙️ Utilities
-  share_plus: ^10.1.0
-  wakelock_plus: ^1.4.0
-  volume_controller: ^3.4.4
+  share_plus: ^13.1.0
+  wakelock_plus: ^1.6.1
+  volume_controller: ^3.6.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
