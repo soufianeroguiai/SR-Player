@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:media_kit/media_kit.dart';
 import '../models/video_item.dart';
 
 class LibraryProvider extends ChangeNotifier {
@@ -22,7 +23,6 @@ class LibraryProvider extends ChangeNotifier {
     return map;
   }
 
-  // بناء VideoItem واحد من asset — معزولة باش تقدر تتنفذ بالتوازي
   Future<VideoItem?> _buildVideoItem(AssetEntity asset, String albumName) async {
     try {
       final mediaUrl = await asset.getMediaUrl();
@@ -56,7 +56,6 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // طلب الصلاحية
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth && !ps.hasAccess) {
         _error = 'لم يتم منح الإذن للوصول إلى الوسائط.\nالرجاء منح الصلاحية من إعدادات التطبيق.';
@@ -65,11 +64,9 @@ class LibraryProvider extends ChangeNotifier {
         return;
       }
 
-      // جلب ألبومات الفيديو
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
 
-      // معالجة الأصول على دفعات متوازية بدل واحد بواحد (كانت سبب البطء الشديد)
       const batchSize = 12;
       for (final album in albums) {
         final count = await album.assetCountAsync;
@@ -92,19 +89,17 @@ class LibraryProvider extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
-    _loadThumbnails(); // تحميل الصور المصغرة بعد نجاح المسح
+    _loadThumbnails(); // تحميل الصور المصغرة
   }
 
   Future<void> _loadThumbnails() async {
-    // نعمل على نسخة من القائمة الحالية
     final videosToProcess = List<VideoItem>.from(_videos);
     if (videosToProcess.isEmpty) return;
 
     try {
-      // نبني خريطة (id -> asset) مرة واحدة فقط، بدل ما نبحث من جديد لكل فيديو
-      // (هاد البحث المتكرر كان السبب الرئيسي فالبطء)
+      // نحصل على أصول الفيديوهات مرة واحدة فقط
+      final assetMap = <String, AssetEntity>{};
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
-      final Map<String, AssetEntity> assetMap = {};
       for (final album in albums) {
         final count = await album.assetCountAsync;
         final assets = await album.getAssetListRange(start: 0, end: count);
@@ -113,31 +108,58 @@ class LibraryProvider extends ChangeNotifier {
         }
       }
 
-      // معالجة الصور المصغرة على دفعات متوازية
-      const batchSize = 10;
-      for (var i = 0; i < videosToProcess.length; i += batchSize) {
-        final batch = videosToProcess.skip(i).take(batchSize);
-        await Future.wait(batch.map((video) async {
-          if (!_videos.contains(video)) return; // الفيديو أُزيل أثناء التحميل
+      // نعالج كل فيديو على حدة
+      for (final video in videosToProcess) {
+        if (!_videos.contains(video)) continue;
 
-          final asset = assetMap[video.id];
-          // لا يوجد asset مطابق؟ نتجاوزه فقط — بلا أي fallback خاطئ
-          // (كان قبل كيرجع أول عنصر فالقائمة، وهاد سبب الصور الغلط/غير المستقرة)
-          if (asset == null) return;
+        final asset = assetMap[video.id];
+        if (asset == null) {
+          // إذا لم نجد الأصل، نستخدم MediaKit كخطة بديلة
+          await _generateThumbnailFromVideo(video);
+          continue;
+        }
 
-          try {
-            final thumb = await asset.thumbnailDataWithSize(
-              const ThumbnailSize(180, 120),
-              quality: 75,
-            );
-            if (thumb != null) video.thumbnail = thumb.toList();
-          } catch (_) {
-            // فشل تحميل هذه الصورة – تجاهل وتابع
+        try {
+          // محاولة جلب صورة مصغرة من photo_manager
+          final thumb = await asset.thumbnailDataWithSize(
+            const ThumbnailSize(180, 120),
+            quality: 75,
+          );
+          if (thumb != null && thumb.isNotEmpty) {
+            video.thumbnail = thumb.toList();
+            notifyListeners();
+            continue;
           }
-        }));
-        notifyListeners(); // إشعار واحد لكل دفعة، بدل كل صورة وحدة (كان كيسبب بطء وتقطيع)
+        } catch (_) {
+          // فشل photo_manager، نجرب MediaKit
+        }
+
+        // Fallback: استخراج صورة من الفيديو مباشرة
+        await _generateThumbnailFromVideo(video);
       }
     } catch (_) {}
+  }
+
+  /// يستخدم MediaKit لالتقاط إطار من الفيديو كصورة مصغرة
+  Future<void> _generateThumbnailFromVideo(VideoItem video) async {
+    try {
+      final player = Player();
+      await player.open(Media(video.path), play: false);
+
+      // ننتظر قليلاً حتى يتم تحميل الفيديو
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // نلتقط لقطة شاشة
+      final screenshot = await player.screenshot(format: 'image/jpeg');
+      if (screenshot != null && screenshot.isNotEmpty) {
+        video.thumbnail = screenshot.toList();
+        notifyListeners();
+      }
+
+      await player.dispose();
+    } catch (e) {
+      debugPrint('فشل استخراج صورة مصغرة بالفيديو: $e');
+    }
   }
 
   Future<void> loadRecent() async {
