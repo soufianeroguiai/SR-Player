@@ -37,15 +37,14 @@ flutter {
     source = "../.."
 }
 
-// ✅ نسخ APK الناتج إلى المسار الذي يتوقعه Flutter تلقائياً
-tasks.whenTaskAdded { task ->
-    if (task.name == "assembleRelease") {
-        task.doLast {
+// ✅ نسخ APK الناتج إلى المسار الذي يتوقعه Flutter بعد اكتمال التجميع
+gradle.projectsEvaluated {
+    tasks.matching { it.name == "assembleRelease" }.all {
+        doLast {
             val src = file("${buildDir}/outputs/apk/release/app-release.apk")
-            val destDir = file("${rootProject.buildDir}/app/outputs/flutter-apk")
-            val dest = file("${destDir}/app-release.apk")
+            val dest = file("${rootProject.projectDir}/build/app/outputs/flutter-apk/app-release.apk")
             if (src.exists()) {
-                destDir.mkdirs()
+                dest.parentFile.mkdirs()
                 src.copyTo(dest, overwrite = true)
                 println("✅ تم نسخ APK إلى: ${dest.absolutePath}")
             } else {
