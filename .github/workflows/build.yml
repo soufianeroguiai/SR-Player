@@ -61,12 +61,6 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation
 
-      - name: Copy APK to Flutter expected path
-        run: |
-          mkdir -p build/app/outputs/flutter-apk
-          cp android/app/build/outputs/apk/release/app-release.apk build/app/outputs/flutter-apk/app-release.apk
-          echo "✅ تم نسخ APK إلى المسار الذي يتوقعه Flutter"
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
