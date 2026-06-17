@@ -1,6 +1,7 @@
 name: sr_player
-description: SR Player - Stable Video Player
+description: SR Player - Advanced Video Player
 publish_to: 'none'
+
 version: 1.0.0+1
 
 environment:
@@ -10,34 +11,35 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # 🎬 VIDEO ENGINE (STABLE SET)
+  # 🎬 Stable Video Stack
   media_kit: 1.2.6
   media_kit_video: 1.2.6
   media_kit_libs_video: 1.0.7
 
-  # 📁 FILE ACCESS (safe versions)
-  file_picker: 8.3.7
-  path_provider: 2.1.5
+  # 📁 File & Media
+  file_picker: ^8.3.7
+  photo_manager: ^3.6.0
+  path_provider: ^2.1.5
 
-  # 🔐 PERMISSIONS (stable)
-  permission_handler: 11.4.0
+  # 🔐 Permissions
+  permission_handler: ^11.4.0
 
-  # 📦 STATE
-  provider: 6.1.2
-  shared_preferences: 2.4.0
+  # 📦 State
+  provider: ^6.1.2
+  shared_preferences: ^2.4.0
 
   # 🎨 UI
-  material_symbols_icons: 4.2719.1
+  material_symbols_icons: ^4.2719.1
 
-  # ⚙️ UTILITIES
-  share_plus: 10.1.0
-  wakelock_plus: 1.4.0
-  volume_controller: 3.4.4
+  # ⚙️ Utilities
+  share_plus: ^10.1.0
+  wakelock_plus: ^1.4.0
+  volume_controller: ^3.4.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: 4.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
