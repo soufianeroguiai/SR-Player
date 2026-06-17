@@ -54,7 +54,7 @@ class LibraryProvider extends ChangeNotifier {
             id: asset.id,
             path: mediaUrl,
             name: asset.title ?? 'فيديو ${asset.id}',
-            size: asset.size,
+            size: (await asset.file)?.lengthSync() ?? 0,
             modified: asset.modifiedDateTime,
             folder: album.name,
             duration: asset.videoDuration,
