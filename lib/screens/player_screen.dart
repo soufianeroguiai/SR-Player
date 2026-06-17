@@ -124,7 +124,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       // ☀️ السطوع (API 2.1.11)
       try {
-        _brightness = await ScreenBrightness.instance.system;   // ← تم التصحيح
+        _brightness = await ScreenBrightness.instance.system;
       } catch (_) {
         _brightness = 1.0;
       }
@@ -205,12 +205,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (isLeft) {
       // ☀️ سطوع
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
-      ScreenBrightness.instance.setSystemScreenBrightness(newBrightness);
-      setState(() {
-        _brightness = newBrightness;
-        _showBrightnessIndicator = true;
-        _showVolumeIndicator = false;
-      });
+      try {
+        ScreenBrightness.instance.setSystemScreenBrightness(newBrightness);
+        setState(() {
+          _brightness = newBrightness;
+          _showBrightnessIndicator = true;
+          _showVolumeIndicator = false;
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('يجب منح صلاحية "تعديل إعدادات النظام" لتغيير السطوع'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
     } else {
       // 🔊 صوت
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
@@ -253,41 +264,75 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
-  // ── الترجمة المدمجة ─────────────────────────────────
-  Future<void> _selectEmbeddedSubtitle() async {
-    final tracks = _player.state.tracks.subtitle;
-    if (tracks.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا توجد ترجمات مدمجة')));
-      }
-      return;
-    }
+  // ── قائمة الترجمة الموحدة ─────────────────────
+  Future<void> _showSubtitleMenu() async {
     final cs = Theme.of(context).colorScheme;
+    final tracks = _player.state.tracks.subtitle;
+    final hasEmbedded = tracks.isNotEmpty;
+
     showModalBottomSheet(context: context, builder: (_) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-          child: Text('اختيار الترجمة', style: TextStyle(
+          child: Text('الترجمة', style: TextStyle(
               color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
         const Divider(height: 1),
-        ...tracks.map((track) => ListTile(
-          title: Text(track.title ?? track.language ?? 'غير معروف'),
-          subtitle: Text(track.language ?? ''),
-          trailing: _player.state.track.subtitle == track
-              ? Icon(Symbols.check_rounded, color: cs.primary) : null,
-          onTap: () {
-            _player.setSubtitleTrack(track);
-            Navigator.pop(context);
-          },
-        )),
-        ListTile(
-          leading: const Icon(Icons.clear),
-          title: const Text('إيقاف الترجمة'),
-          onTap: () {
-            _player.setSubtitleTrack(SubtitleTrack.no());
+
+        // تشغيل / إيقاف
+        SwitchListTile(
+          secondary: Icon(
+            _showSubtitles ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,
+            color: _showSubtitles ? Colors.lightBlue : cs.onSurfaceVariant,
+          ),
+          title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة'),
+          value: _showSubtitles,
+          onChanged: (v) {
+            setState(() => _showSubtitles = v);
+            if (!v) {
+              _player.setSubtitleTrack(SubtitleTrack.no());
+            }
             Navigator.pop(context);
           },
         ),
+
+        // اختيار ترجمة مدمجة (إن وجدت)
+        if (hasEmbedded) ...[
+          const Divider(height: 1),
+          ...tracks.map((track) => ListTile(
+            title: Text(track.title ?? track.language ?? 'غير معروف'),
+            subtitle: Text(track.language ?? ''),
+            trailing: _player.state.track.subtitle == track
+                ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+            onTap: () {
+              _player.setSubtitleTrack(track);
+              setState(() => _showSubtitles = true);
+              Navigator.pop(context);
+            },
+          )),
+        ],
+
+        // تحميل ترجمة خارجية
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Symbols.upload_file_rounded),
+          title: const Text('تحميل ترجمة من ملف...'),
+          onTap: () {
+            Navigator.pop(context);
+            _pickSubtitle();
+          },
+        ),
+
+        // إيقاف الترجمة المدمجة
+        if (hasEmbedded)
+          ListTile(
+            leading: const Icon(Icons.clear),
+            title: const Text('إيقاف الترجمة المدمجة'),
+            onTap: () {
+              _player.setSubtitleTrack(SubtitleTrack.no());
+              setState(() => _showSubtitles = false);
+              Navigator.pop(context);
+            },
+          ),
       ]),
     ));
   }
@@ -376,9 +421,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onBack: () => Navigator.pop(context),
                       onPip: _enterPip,
                       onSpeed: _showSpeedSheet,
-                      onSubToggle: () => setState(() => _showSubtitles = !_showSubtitles),
-                      onSubLoad: _pickSubtitle,
-                      onEmbeddedSubs: _selectEmbeddedSubtitle,
+                      onSubtitles: _showSubtitleMenu,
                       onInfo: () => Navigator.push(context, MaterialPageRoute(
                         builder: (_) => InfoScreen(video: widget.video))),
                     ),
@@ -490,17 +533,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ── TopBar ─────────────────────────────────────────────
+// ── TopBar ────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final String name;
   final double speed;
   final bool subtitlesOn;
-  final VoidCallback onBack, onPip, onSpeed, onSubToggle, onSubLoad, onEmbeddedSubs, onInfo;
+  final VoidCallback onBack, onPip, onSpeed, onSubtitles, onInfo;
 
   const _TopBar({
-    required this.name, required this.speed, required this.subtitlesOn,
-    required this.onBack, required this.onPip, required this.onSpeed,
-    required this.onSubToggle, required this.onSubLoad, required this.onEmbeddedSubs, required this.onInfo,
+    required this.name,
+    required this.speed,
+    required this.subtitlesOn,
+    required this.onBack,
+    required this.onPip,
+    required this.onSpeed,
+    required this.onSubtitles,
+    required this.onInfo,
   });
 
   @override
@@ -545,21 +593,12 @@ class _TopBar extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Symbols.subtitles_rounded, color: Colors.white70),
-              onPressed: onEmbeddedSubs,
-              tooltip: 'اختيار الترجمة المدمجة',
-            ),
-            IconButton(
               icon: Icon(
                 subtitlesOn ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,
                 color: subtitlesOn ? Colors.lightBlue : Colors.white54,
               ),
-              onPressed: onSubToggle,
-            ),
-            IconButton(
-              icon: const Icon(Symbols.upload_file_rounded, color: Colors.white54),
-              onPressed: onSubLoad,
-              tooltip: 'تحميل ترجمة SRT',
+              onPressed: onSubtitles,
+              tooltip: 'الترجمة',
             ),
             IconButton(
               icon: const Icon(Symbols.info_rounded, color: Colors.white54),

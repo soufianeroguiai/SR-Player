@@ -28,7 +28,7 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // طلب الصلاحية من photo_manager (تتعامل مع Android 13+ تلقائياً)
+      // طلب الصلاحية
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth && !ps.hasAccess) {
         _error = 'لم يتم منح الإذن للوصول إلى الوسائط.\nالرجاء منح الصلاحية من إعدادات التطبيق.';
@@ -37,24 +37,35 @@ class LibraryProvider extends ChangeNotifier {
         return;
       }
 
-      // جلب ألبومات الفيديو فقط
+      // جلب ألبومات الفيديو
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
 
       for (final album in albums) {
         final count = await album.assetCountAsync;
-        // استخدام getAssetListPaged لتحميل تدريجي (أحدث وأكفأ)
-        final assets = await album.getAssetListPaged(page: 0, size: count);
+        // استخدام getAssetListRange (مضمون)
+        final assets = await album.getAssetListRange(start: 0, end: count);
         for (final asset in assets) {
-          // استخدام getMediaUrl للحصول على مسار يمكن قراءته (content://)
+          // استخدام getMediaUrl للحصول على رابط المحتوى
           final mediaUrl = await asset.getMediaUrl();
           if (mediaUrl == null) continue;
+
+          // الحصول على الحجم الحقيقي (بالبايت)
+          int fileSize = 0;
+          try {
+            final file = await asset.file;
+            if (file != null) {
+              fileSize = file.lengthSync();
+            }
+          } catch (_) {
+            fileSize = 0;
+          }
 
           result.add(VideoItem(
             id: asset.id,
             path: mediaUrl,
             name: asset.title ?? 'فيديو ${asset.id}',
-            size: (await asset.file)?.lengthSync() ?? 0,
+            size: fileSize,
             modified: asset.modifiedDateTime,
             folder: album.name,
             duration: asset.videoDuration,
@@ -70,20 +81,30 @@ class LibraryProvider extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
-    _loadThumbnails();
+    _loadThumbnails(); // تحميل الصور المصغرة بعد نجاح المسح
   }
 
   Future<void> _loadThumbnails() async {
+    // نعمل على نسخة من القائمة الحالية
     final videosToProcess = List<VideoItem>.from(_videos);
     try {
-      for (final album in await PhotoManager.getAssetPathList(type: RequestType.video)) {
+      // نعيد استخدام getAssetPathList لجلب الأصول مرة واحدة
+      final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
+      for (final album in albums) {
         final count = await album.assetCountAsync;
-        final assets = await album.getAssetListPaged(page: 0, size: count);
+        // نستخدم getAssetListRange (نفس الطريقة الموثوقة)
+        final assets = await album.getAssetListRange(start: 0, end: count);
+
         for (final video in videosToProcess) {
-          if (!_videos.contains(video)) continue;
+          if (!_videos.contains(video)) continue; // الفيديو أُزيل أثناء التحميل
+
           try {
-            final asset = assets.firstWhere((a) => a.id == video.id,
-                orElse: () => assets.first);
+            final asset = assets.firstWhere(
+              (a) => a.id == video.id,
+              orElse: () => assets.isNotEmpty ? assets.first : null as dynamic,
+            );
+            if (asset == null) continue;
+
             final thumb = await asset.thumbnailDataWithSize(
               const ThumbnailSize(180, 120),
               quality: 75,
@@ -92,7 +113,9 @@ class LibraryProvider extends ChangeNotifier {
               video.thumbnail = thumb.toList();
               notifyListeners();
             }
-          } catch (_) {}
+          } catch (_) {
+            // فشل تحميل هذه الصورة – تجاهل وتابع
+          }
         }
       }
     } catch (_) {}
