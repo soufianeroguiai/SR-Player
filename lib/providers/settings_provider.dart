@@ -26,6 +26,16 @@ class SettingsProvider extends ChangeNotifier {
   bool _sortDesc = true;
   bool get sortDesc => _sortDesc;
 
+  // 📝 تخصيص الترجمة
+  double _subtitleFontSize = 19.0;
+  double get subtitleFontSize => _subtitleFontSize;
+
+  int _subtitleColorValue = 0xFFFFFFFF; // أبيض افتراضياً
+  Color get subtitleColor => Color(_subtitleColorValue);
+
+  double _subtitleBgOpacity = 0.6;
+  double get subtitleBgOpacity => _subtitleBgOpacity;
+
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
@@ -43,6 +53,9 @@ class SettingsProvider extends ChangeNotifier {
       _gridView = p.getBool('gridView') ?? false;
       _sortBy = p.getString('sortBy') ?? 'date';
       _sortDesc = p.getBool('sortDesc') ?? true;
+      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 19.0;
+      _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
+      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.6;
       notifyListeners();
     } catch (e) {
       // في حال فشل القراءة، نبقى على الإعدادات الافتراضية
@@ -60,6 +73,9 @@ class SettingsProvider extends ChangeNotifier {
     await p.setBool('gridView', _gridView);
     await p.setString('sortBy', _sortBy);
     await p.setBool('sortDesc', _sortDesc);
+    await p.setDouble('subtitleFontSize', _subtitleFontSize);
+    await p.setInt('subtitleColorValue', _subtitleColorValue);
+    await p.setDouble('subtitleBgOpacity', _subtitleBgOpacity);
   }
 
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
@@ -70,4 +86,7 @@ class SettingsProvider extends ChangeNotifier {
   void setGridView(bool v) { _gridView = v; notifyListeners(); _save(); }
   void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
   void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
+  void setSubtitleFontSize(double v) { _subtitleFontSize = v; notifyListeners(); _save(); }
+  void setSubtitleColor(Color c) { _subtitleColorValue = c.value; notifyListeners(); _save(); }
+  void setSubtitleBgOpacity(double v) { _subtitleBgOpacity = v; notifyListeners(); _save(); }
 }

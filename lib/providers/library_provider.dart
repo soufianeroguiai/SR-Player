@@ -22,6 +22,34 @@ class LibraryProvider extends ChangeNotifier {
     return map;
   }
 
+  // بناء VideoItem واحد من asset — معزولة باش تقدر تتنفذ بالتوازي
+  Future<VideoItem?> _buildVideoItem(AssetEntity asset, String albumName) async {
+    try {
+      final mediaUrl = await asset.getMediaUrl();
+      if (mediaUrl == null) return null;
+
+      int fileSize = 0;
+      try {
+        final file = await asset.file;
+        if (file != null) fileSize = file.lengthSync();
+      } catch (_) {
+        fileSize = 0;
+      }
+
+      return VideoItem(
+        id: asset.id,
+        path: mediaUrl,
+        name: asset.title ?? 'فيديو ${asset.id}',
+        size: fileSize,
+        modified: asset.modifiedDateTime,
+        folder: albumName,
+        duration: asset.videoDuration,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> scan() async {
     _loading = true;
     _error = null;
@@ -41,35 +69,18 @@ class LibraryProvider extends ChangeNotifier {
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
 
+      // معالجة الأصول على دفعات متوازية بدل واحد بواحد (كانت سبب البطء الشديد)
+      const batchSize = 12;
       for (final album in albums) {
         final count = await album.assetCountAsync;
-        // استخدام getAssetListRange (مضمون)
         final assets = await album.getAssetListRange(start: 0, end: count);
-        for (final asset in assets) {
-          // استخدام getMediaUrl للحصول على رابط المحتوى
-          final mediaUrl = await asset.getMediaUrl();
-          if (mediaUrl == null) continue;
 
-          // الحصول على الحجم الحقيقي (بالبايت)
-          int fileSize = 0;
-          try {
-            final file = await asset.file;
-            if (file != null) {
-              fileSize = file.lengthSync();
-            }
-          } catch (_) {
-            fileSize = 0;
-          }
-
-          result.add(VideoItem(
-            id: asset.id,
-            path: mediaUrl,
-            name: asset.title ?? 'فيديو ${asset.id}',
-            size: fileSize,
-            modified: asset.modifiedDateTime,
-            folder: album.name,
-            duration: asset.videoDuration,
-          ));
+        for (var i = 0; i < assets.length; i += batchSize) {
+          final batch = assets.skip(i).take(batchSize);
+          final items = await Future.wait(
+            batch.map((asset) => _buildVideoItem(asset, album.name)),
+          );
+          result.addAll(items.whereType<VideoItem>());
         }
       }
 
@@ -87,36 +98,44 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> _loadThumbnails() async {
     // نعمل على نسخة من القائمة الحالية
     final videosToProcess = List<VideoItem>.from(_videos);
+    if (videosToProcess.isEmpty) return;
+
     try {
-      // نعيد استخدام getAssetPathList لجلب الأصول مرة واحدة
+      // نبني خريطة (id -> asset) مرة واحدة فقط، بدل ما نبحث من جديد لكل فيديو
+      // (هاد البحث المتكرر كان السبب الرئيسي فالبطء)
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
+      final Map<String, AssetEntity> assetMap = {};
       for (final album in albums) {
         final count = await album.assetCountAsync;
-        // نستخدم getAssetListRange (نفس الطريقة الموثوقة)
         final assets = await album.getAssetListRange(start: 0, end: count);
+        for (final asset in assets) {
+          assetMap[asset.id] = asset;
+        }
+      }
 
-        for (final video in videosToProcess) {
-          if (!_videos.contains(video)) continue; // الفيديو أُزيل أثناء التحميل
+      // معالجة الصور المصغرة على دفعات متوازية
+      const batchSize = 10;
+      for (var i = 0; i < videosToProcess.length; i += batchSize) {
+        final batch = videosToProcess.skip(i).take(batchSize);
+        await Future.wait(batch.map((video) async {
+          if (!_videos.contains(video)) return; // الفيديو أُزيل أثناء التحميل
+
+          final asset = assetMap[video.id];
+          // لا يوجد asset مطابق؟ نتجاوزه فقط — بلا أي fallback خاطئ
+          // (كان قبل كيرجع أول عنصر فالقائمة، وهاد سبب الصور الغلط/غير المستقرة)
+          if (asset == null) return;
 
           try {
-            final asset = assets.firstWhere(
-              (a) => a.id == video.id,
-              orElse: () => assets.isNotEmpty ? assets.first : null as dynamic,
-            );
-            if (asset == null) continue;
-
             final thumb = await asset.thumbnailDataWithSize(
               const ThumbnailSize(180, 120),
               quality: 75,
             );
-            if (thumb != null) {
-              video.thumbnail = thumb.toList();
-              notifyListeners();
-            }
+            if (thumb != null) video.thumbnail = thumb.toList();
           } catch (_) {
             // فشل تحميل هذه الصورة – تجاهل وتابع
           }
-        }
+        }));
+        notifyListeners(); // إشعار واحد لكل دفعة، بدل كل صورة وحدة (كان كيسبب بطء وتقطيع)
       }
     } catch (_) {}
   }

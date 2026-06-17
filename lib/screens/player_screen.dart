@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -33,10 +34,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isPip = false;
   Timer? _hideTimer;
 
-  // Subtitle
-  List<SubtitleEntry> _subtitles = [];
-  SubtitleEntry? _currentSub;
+  // الترجمة (تعتمد كليا على مشغل media_kit/mpv الآن — تدعم المدمجة والخارجية بنفس الطريقة)
   bool _showSubtitles = true;
+  List<SubtitleTrack> _subtitleTracks = [];
+  List<AudioTrack> _audioTracks = [];
+  double _audioBoost = 100.0;
 
   // Speed
   double _speed = 1.0;
@@ -54,6 +56,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showVolumeIndicator = false;
   Timer? _indicatorTimer;
   StreamSubscription? _brightnessSubscription;
+
+  // جاستر السحب (يمين/يسار = تقديم/تأخير، فوق/تحت = صوت/سطوع)
+  String? _dragAxis; // 'h' أو 'v'
+  bool _dragIsLeftSide = false;
+  Offset _dragStartGlobal = Offset.zero;
+  Duration _dragStartPosition = Duration.zero;
+  Duration _seekPreview = Duration.zero;
+  bool _showSeekIndicator = false;
 
   @override
   void initState() {
@@ -101,7 +111,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (pos.inSeconds % 5 == 0 && settings.rememberPosition) {
           context.read<LibraryProvider>().savePosition(widget.video.path, pos);
         }
-        _updateSubtitle(pos);
       });
 
       _player.stream.duration.listen((dur) {
@@ -110,6 +119,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       _player.stream.playing.listen((playing) {
         if (mounted) setState(() => _isPlaying = playing);
+      });
+
+      // 🎞️ مسارات الترجمة والصوت — استماع تفاعلي بدل قراءة لحظة واحدة
+      // (هادشي كيحل مشكلة "ما كيتعرفش على الترجمة المدمجة" لي كانت بسبب
+      // قراءة القائمة قبل ما libmpv يخلص يحلل الملف، خاصة فملفات hevc الكبيرة)
+      _player.stream.tracks.listen((tracks) {
+        if (!mounted) return;
+        setState(() {
+          _subtitleTracks = tracks.subtitle;
+          _audioTracks = tracks.audio;
+        });
       });
 
       // 🔊 الصوت (Singleton)
@@ -150,22 +170,24 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  void _updateSubtitle(Duration pos) {
-    if (_subtitles.isEmpty) return;
-    SubtitleEntry? found;
-    for (final s in _subtitles) {
-      if (pos >= s.start && pos <= s.end) { found = s; break; }
-    }
-    if (found != _currentSub) setState(() => _currentSub = found);
-  }
-
   Future<void> _loadSrtFile(String path) async {
-    final subs = await SubtitleService.load(path);
-    setState(() => _subtitles = subs);
-    if (mounted && subs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('✅ تم تحميل ${subs.length} سطر ترجمة'),
-      ));
+    try {
+      // نستعمل نفس محرك mpv (SubtitleTrack.data) بدل المحلل اليدوي القديم
+      // — هادشي كيضمن نفس الجودة، التزامن، والتخصيص (خط/حجم/لون) لي كاين فالترجمة المدمجة
+      final content = await File(path).readAsString();
+      await _player.setSubtitleTrack(SubtitleTrack.data(content, title: 'ترجمة خارجية'));
+      if (mounted) {
+        setState(() => _showSubtitles = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم تحميل الترجمة الخارجية')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحميل الترجمة: $e')),
+        );
+      }
     }
   }
 
@@ -198,11 +220,53 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ── الإيماءات ────────────────────────────────
-  void _onVerticalDragUpdate(DragUpdateDetails details, double screenWidth) {
-    final isLeft = details.localPosition.dx < screenWidth / 2;
-    final delta = -details.delta.dy / 200;
+  // فلاتر ما كيسمحش بدمج onVerticalDragUpdate و onHorizontalDragUpdate فنفس
+  // GestureDetector (كيعطي خطأ)، فاستعملنا onPan* وحددنا المحور (أفقي/عمودي)
+  // عند أول حركة، حسب الاتجاه الغالب.
+  void _onPanStart(DragStartDetails details) {
+    _dragAxis = null;
+    _dragStartGlobal = details.globalPosition;
+    _dragStartPosition = _position;
+    _dragIsLeftSide = details.localPosition.dx < MediaQuery.of(context).size.width / 2;
+  }
 
-    if (isLeft) {
+  void _onPanUpdate(DragUpdateDetails details, double screenWidth) {
+    final totalDx = details.globalPosition.dx - _dragStartGlobal.dx;
+    final totalDy = details.globalPosition.dy - _dragStartGlobal.dy;
+
+    // عتبة صغيرة (12px) قبل ما نقرر المحور، باش نتجنبو الحساسية الزايدة
+    _dragAxis ??= (totalDx.abs() > 12 || totalDy.abs() > 12)
+        ? (totalDx.abs() > totalDy.abs() ? 'h' : 'v')
+        : null;
+    if (_dragAxis == null) return;
+
+    if (_dragAxis == 'h') {
+      // سحب يمين/يسار = تقديم/تأخير، عرض الشاشة الكامل ≈ 90 ثانية
+      final seekSeconds = (totalDx / screenWidth) * 90;
+      var target = _dragStartPosition + Duration(seconds: seekSeconds.round());
+      if (target < Duration.zero) target = Duration.zero;
+      if (_duration > Duration.zero && target > _duration) target = _duration;
+      setState(() {
+        _seekPreview = target;
+        _showSeekIndicator = true;
+      });
+    } else {
+      _handleVerticalGesture(details.delta.dy);
+    }
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    if (_dragAxis == 'h') {
+      _player.seek(_seekPreview);
+      setState(() => _showSeekIndicator = false);
+    }
+    _dragAxis = null;
+  }
+
+  void _handleVerticalGesture(double dy) {
+    final delta = -dy / 200;
+
+    if (_dragIsLeftSide) {
       // ☀️ سطوع
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
       try {
@@ -267,8 +331,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // ── قائمة الترجمة الموحدة ─────────────────────
   Future<void> _showSubtitleMenu() async {
     final cs = Theme.of(context).colorScheme;
-    final tracks = _player.state.tracks.subtitle;
-    final hasEmbedded = tracks.isNotEmpty;
+    final hasEmbedded = _subtitleTracks.isNotEmpty;
 
     showModalBottomSheet(context: context, builder: (_) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -298,7 +361,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         // اختيار ترجمة مدمجة (إن وجدت)
         if (hasEmbedded) ...[
           const Divider(height: 1),
-          ...tracks.map((track) => ListTile(
+          ..._subtitleTracks.map((track) => ListTile(
             title: Text(track.title ?? track.language ?? 'غير معروف'),
             subtitle: Text(track.language ?? ''),
             trailing: _player.state.track.subtitle == track
@@ -309,7 +372,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               Navigator.pop(context);
             },
           )),
-        ],
+        ] else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+            child: Text(
+              'ماكاينة أي ترجمة مدمجة فهاد الفيديو. إلى كنتي متأكد بلي كاينة، تسنى ثانية وحاول من جديد (كيتأخر شوية فالملفات الكبيرة).',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5),
+            ),
+          ),
 
         // تحميل ترجمة خارجية
         const Divider(height: 1),
@@ -319,6 +389,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           onTap: () {
             Navigator.pop(context);
             _pickSubtitle();
+          },
+        ),
+
+        // تخصيص المظهر (خط، حجم، لون، خلفية)
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Symbols.format_size_rounded),
+          title: const Text('تخصيص مظهر الترجمة'),
+          subtitle: const Text('الحجم، اللون، الخلفية'),
+          onTap: () {
+            Navigator.pop(context);
+            _showSubtitleStyleSheet();
           },
         ),
 
@@ -337,6 +419,152 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
+  // ── تخصيص مظهر الترجمة ─────────────────────
+  void _showSubtitleStyleSheet() {
+    final cs = Theme.of(context).colorScheme;
+    final presetColors = <Color>[
+      Colors.white, Colors.yellowAccent, Colors.cyanAccent,
+      Colors.lightGreenAccent, Colors.redAccent,
+    ];
+
+    showModalBottomSheet(context: context, builder: (_) => Consumer<SettingsProvider>(
+      builder: (ctx, s, __) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('تخصيص مظهر الترجمة', style: TextStyle(
+              color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(height: 18),
+
+          Text('حجم الخط — ${s.subtitleFontSize.round()}',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+          Slider(
+            value: s.subtitleFontSize, min: 12, max: 34, divisions: 22,
+            onChanged: s.setSubtitleFontSize,
+          ),
+
+          const SizedBox(height: 6),
+          Text('شفافية الخلفية — ${(s.subtitleBgOpacity * 100).round()}%',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+          Slider(
+            value: s.subtitleBgOpacity, min: 0, max: 1,
+            onChanged: s.setSubtitleBgOpacity,
+          ),
+
+          const SizedBox(height: 10),
+          Text('لون الخط', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+          const SizedBox(height: 10),
+          Row(children: presetColors.map((c) => Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => s.setSubtitleColor(c),
+              child: Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: c, shape: BoxShape.circle,
+                  border: Border.all(
+                    color: s.subtitleColor.value == c.value ? cs.primary : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+            ),
+          )).toList()),
+
+          const SizedBox(height: 16),
+          // معاينة مباشرة
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(s.subtitleBgOpacity),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('معاينة الترجمة', style: TextStyle(
+                  color: s.subtitleColor, fontSize: s.subtitleFontSize, fontWeight: FontWeight.w600,
+                )),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    ));
+  }
+
+  // ── قائمة الصوت المدمج ─────────────────────
+  Future<void> _showAudioMenu() async {
+    final cs = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(context: context, builder: (_) => Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+          child: Text('الصوت', style: TextStyle(
+              color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
+        const Divider(height: 1),
+
+        if (_audioTracks.length > 1) ...[
+          ..._audioTracks.map((track) => ListTile(
+            title: Text(track.title ?? track.language ?? 'مسار غير معروف'),
+            subtitle: track.language != null ? Text(track.language!) : null,
+            trailing: _player.state.track.audio == track
+                ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+            onTap: () {
+              _player.setAudioTrack(track);
+              Navigator.pop(context);
+            },
+          )),
+          const Divider(height: 1),
+        ] else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+            child: Text('هاد الفيديو فيه مسار صوت واحد فقط.',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
+          ),
+
+        ListTile(
+          leading: const Icon(Symbols.graphic_eq_rounded),
+          title: const Text('تكبير الصوت (Boost)'),
+          subtitle: Text('${_audioBoost.round()}%'),
+          onTap: () {
+            Navigator.pop(context);
+            _showAudioBoostSheet();
+          },
+        ),
+      ]),
+    ));
+  }
+
+  void _showAudioBoostSheet() {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(context: context, builder: (_) => StatefulBuilder(
+      builder: (ctx, setSheetState) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('تكبير الصوت', style: TextStyle(
+              color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(height: 6),
+          Text('${_audioBoost.round()}%', style: TextStyle(
+              color: cs.primary, fontWeight: FontWeight.w700, fontSize: 24)),
+          Slider(
+            value: _audioBoost, min: 50, max: 200, divisions: 30,
+            label: '${_audioBoost.round()}%',
+            onChanged: (v) {
+              setSheetState(() {});
+              setState(() => _audioBoost = v);
+              _player.setVolume(v);
+            },
+          ),
+          Text('تجاوز 100% كيكبر الصوت داخليا، وقد يسبب تشويش فبعض الفيديوهات.',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11.5), textAlign: TextAlign.center),
+        ]),
+      ),
+    ));
+  }
+
   String _fmt(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -348,6 +576,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
+    final settings = context.watch<SettingsProvider>();
 
     if (_isPip) {
       return Scaffold(
@@ -369,33 +598,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : GestureDetector(
                 onTap: _toggleControls,
-                onVerticalDragUpdate: (details) => _onVerticalDragUpdate(details, screenWidth),
+                onPanStart: _onPanStart,
+                onPanUpdate: (details) => _onPanUpdate(details, screenWidth),
+                onPanEnd: _onPanEnd,
                 child: Stack(children: [
                   Video(
                     controller: _controller,
                     controls: NoVideoControls,
-                  ),
-
-                  // الترجمة
-                  if (_showSubtitles && _currentSub != null)
-                    Positioned(
-                      bottom: 72, left: 20, right: 20,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.65),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          _currentSub!.text,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white, fontSize: 17, height: 1.4,
-                            shadows: [Shadow(offset: Offset(1, 1), blurRadius: 3, color: Colors.black)],
-                          ),
-                        ),
+                    subtitleViewConfiguration: SubtitleViewConfiguration(
+                      style: TextStyle(
+                        height: 1.3,
+                        fontSize: settings.subtitleFontSize,
+                        color: settings.subtitleColor,
+                        fontWeight: FontWeight.w600,
+                        backgroundColor: Colors.black.withOpacity(settings.subtitleBgOpacity),
                       ),
+                      textAlign: TextAlign.center,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 56),
                     ),
+                  ),
 
                   // مؤشر السطوع
                   if (_showBrightnessIndicator)
@@ -413,6 +634,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       child: _buildIndicator(Icons.volume_up, '${(_volume * 100).round()}%', cs.primary),
                     ),
 
+                  // مؤشر التقديم/التأخير بالسحب يمين/يسار
+                  if (_showSeekIndicator)
+                    Center(
+                      child: _buildIndicator(
+                        _seekPreview >= _dragStartPosition
+                            ? Symbols.fast_forward_rounded
+                            : Symbols.fast_rewind_rounded,
+                        '${_fmt(_seekPreview)}  '
+                        '(${_seekPreview >= _dragStartPosition ? '+' : ''}'
+                        '${(_seekPreview - _dragStartPosition).inSeconds}s)',
+                        cs.primary,
+                      ),
+                    ),
+
                   if (_showControls) ...[
                     _TopBar(
                       name: widget.video.name,
@@ -422,6 +657,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onPip: _enterPip,
                       onSpeed: _showSpeedSheet,
                       onSubtitles: _showSubtitleMenu,
+                      onAudio: _showAudioMenu,
                       onInfo: () => Navigator.push(context, MaterialPageRoute(
                         builder: (_) => InfoScreen(video: widget.video))),
                     ),
@@ -538,7 +774,7 @@ class _TopBar extends StatelessWidget {
   final String name;
   final double speed;
   final bool subtitlesOn;
-  final VoidCallback onBack, onPip, onSpeed, onSubtitles, onInfo;
+  final VoidCallback onBack, onPip, onSpeed, onSubtitles, onAudio, onInfo;
 
   const _TopBar({
     required this.name,
@@ -548,6 +784,7 @@ class _TopBar extends StatelessWidget {
     required this.onPip,
     required this.onSpeed,
     required this.onSubtitles,
+    required this.onAudio,
     required this.onInfo,
   });
 
@@ -578,6 +815,11 @@ class _TopBar extends StatelessWidget {
               icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70),
               onPressed: onPip,
               tooltip: 'نافذة عائمة',
+            ),
+            IconButton(
+              icon: const Icon(Symbols.graphic_eq_rounded, color: Colors.white70),
+              onPressed: onAudio,
+              tooltip: 'الصوت',
             ),
             GestureDetector(
               onTap: onSpeed,
