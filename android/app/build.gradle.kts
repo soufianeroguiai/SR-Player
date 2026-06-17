@@ -26,15 +26,9 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        debug {
-            // يستخدم مفتاح التوقيع الافتراضي للـ debug
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug   // 👈 يستخدم signingConfigs المعرّف
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
