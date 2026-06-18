@@ -401,12 +401,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _indicatorTimer = Timer(const Duration(seconds: 1), () => setState(() { _showBrightnessIndicator = false; _showVolumeIndicator = false; }));
   }
 
-  // ── قائمة الترجمة المنسدلة (تظهر أسفل الأيقونة) ──
-  void _showSubtitleMenu() {
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final buttonPosition = RelativeRect.fromLTRB(size.width - 160, 80, size.width - 60, 130);
+  void _showSpeedSheet() {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(context: context, builder: (_) => Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12), child: Text('سرعة التشغيل', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
+        const Divider(height: 1),
+        ..._speeds.map((sp) => ListTile(title: Text('${sp}x'), trailing: _speed == sp ? Icon(Symbols.check_rounded, color: cs.primary) : null, selected: _speed == sp, onTap: () { setState(() => _speed = sp); _player.setRate(sp); Navigator.pop(context); })),
+      ]),
+    ));
+  }
 
+  // ── قائمة الترجمة (Dialog آمنة) ──
+  void _showSubtitleMenu() {
+    final cs = Theme.of(context).colorScheme;
     final seen = <String>{};
     final uniqueTracks = <SubtitleTrack>[];
     for (final t in _subtitleTracks) {
@@ -414,86 +423,81 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       if (!seen.contains(k)) { seen.add(k); uniqueTracks.add(t); }
     }
 
-    showMenu<String>(
+    showDialog(
       context: context,
-      position: buttonPosition,
-      color: Colors.black87,
-      elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      items: [
-        PopupMenuItem<String>(
-          enabled: false,
-          child: SwitchListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            activeColor: Colors.lightBlue,
-            title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة', style: const TextStyle(color: Colors.white)),
-            value: _showSubtitles,
-            onChanged: (v) {
-              setState(() => _showSubtitles = v);
-              if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
-              Navigator.pop(context);
-            },
-          ),
-        ),
-        if (uniqueTracks.isNotEmpty) ...[
-          const PopupMenuDivider(),
-          ...uniqueTracks.map((track) {
-            String name = track.title ?? track.language ?? 'ترجمة';
-            return PopupMenuItem<String>(
-              value: track.id,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                title: Text(name, style: const TextStyle(color: Colors.white)),
-                subtitle: track.language != null ? Text(track.language!, style: TextStyle(color: Colors.white54)) : null,
-                trailing: _player.state.track.subtitle == track ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
-              ),
-              onTap: () {
-                _player.setSubtitleTrack(track);
-                setState(() => _showSubtitles = true);
-                Navigator.pop(context);
+      barrierColor: Colors.transparent,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(16),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            SwitchListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              activeColor: Colors.lightBlue,
+              title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة', style: const TextStyle(color: Colors.white)),
+              value: _showSubtitles,
+              onChanged: (v) {
+                setState(() => _showSubtitles = v);
+                if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
+                Navigator.pop(ctx);
               },
-            );
-          }),
-        ],
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'load',
-          child: const ListTile(leading: Icon(Icons.upload_file, color: Colors.white), title: Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white))),
-          onTap: () {
-            Navigator.pop(context);
-            _pickSubtitle();
-          },
+            ),
+            if (uniqueTracks.isNotEmpty) ...[
+              const Divider(color: Colors.white24),
+              ...uniqueTracks.map((track) {
+                String name = track.title ?? track.language ?? 'ترجمة';
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(name, style: const TextStyle(color: Colors.white)),
+                  subtitle: track.language != null ? Text(track.language!, style: TextStyle(color: Colors.white54)) : null,
+                  trailing: _player.state.track.subtitle == track ? Icon(Icons.check, color: cs.primary) : null,
+                  onTap: () {
+                    _player.setSubtitleTrack(track);
+                    setState(() => _showSubtitles = true);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.upload_file, color: Colors.white),
+              title: const Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickSubtitle();
+              },
+            ),
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.settings, color: Colors.white),
+              title: const Text('إعدادات الترجمة', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showSyncSpeedPaletteSheet();
+              },
+            ),
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.palette, color: Colors.white),
+              title: const Text('تخصيص الترجمة', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showSubtitleSettingsSheet();
+              },
+            ),
+          ]),
         ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'sync',
-          child: const ListTile(leading: Icon(Icons.settings, color: Colors.white), title: Text('إعدادات الترجمة', style: TextStyle(color: Colors.white))),
-          onTap: () {
-            Navigator.pop(context);
-            _showSyncSpeedPaletteSheet();
-          },
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'customize',
-          child: const ListTile(leading: Icon(Icons.palette, color: Colors.white), title: Text('تخصيص الترجمة', style: TextStyle(color: Colors.white))),
-          onTap: () {
-            Navigator.pop(context);
-            _showSubtitleSettingsSheet();
-          },
-        ),
-      ],
+      ),
     );
   }
 
-  // ── قائمة الصوت المنسدلة (تظهر أسفل الأيقونة) ──
+  // ── قائمة الصوت (Dialog آمنة) ──
   Future<void> _showAudioMenu() async {
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final buttonPosition = RelativeRect.fromLTRB(size.width - 220, 80, size.width - 120, 130);
-
+    final cs = Theme.of(context).colorScheme;
     final seen = <String>{};
     final uniqueAudio = <AudioTrack>[];
     for (final t in _audioTracks) {
@@ -501,44 +505,42 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       if (!seen.contains(k)) { seen.add(k); uniqueAudio.add(t); }
     }
 
-    showMenu<String>(
+    showDialog(
       context: context,
-      position: buttonPosition,
-      color: Colors.black87,
-      elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      items: [
-        ...uniqueAudio.map((track) {
-          String name = track.title ?? track.language ?? 'مسار صوتي';
-          return PopupMenuItem<String>(
-            value: track.id,
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: Text(name, style: const TextStyle(color: Colors.white)),
-              subtitle: track.language != null ? Text(track.language!, style: TextStyle(color: Colors.white54)) : null,
-              trailing: _player.state.track.audio == track ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+      barrierColor: Colors.transparent,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(16),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ...uniqueAudio.map((track) {
+              String name = track.title ?? track.language ?? 'مسار صوتي';
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(name, style: const TextStyle(color: Colors.white)),
+                subtitle: track.language != null ? Text(track.language!, style: const TextStyle(color: Colors.white54)) : null,
+                trailing: _player.state.track.audio == track ? Icon(Icons.check, color: cs.primary) : null,
+                onTap: () {
+                  _player.setAudioTrack(track);
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.volume_up, color: Colors.white),
+              title: const Text('رفع الصوت (Boost)', style: TextStyle(color: Colors.white)),
+              subtitle: Text('${_audioBoost.round()}%', style: const TextStyle(color: Colors.white54)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showAudioBoostSheet();
+              },
             ),
-            onTap: () {
-              _player.setAudioTrack(track);
-              Navigator.pop(context);
-            },
-          );
-        }),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'boost',
-          child: ListTile(
-            leading: const Icon(Icons.volume_up, color: Colors.white),
-            title: const Text('رفع الصوت (Boost)', style: TextStyle(color: Colors.white)),
-            subtitle: Text('${_audioBoost.round()}%', style: const TextStyle(color: Colors.white54)),
-          ),
-          onTap: () {
-            Navigator.pop(context);
-            _showAudioBoostSheet();
-          },
+          ]),
         ),
-      ],
+      ),
     );
   }
 
@@ -691,18 +693,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         ],
       ),
     );
-  }
-
-  void _showSpeedSheet() {
-    final cs = Theme.of(context).colorScheme;
-    showModalBottomSheet(context: context, builder: (_) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12), child: Text('سرعة التشغيل', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
-        const Divider(height: 1),
-        ..._speeds.map((sp) => ListTile(title: Text('${sp}x'), trailing: _speed == sp ? Icon(Symbols.check_rounded, color: cs.primary) : null, selected: _speed == sp, onTap: () { setState(() => _speed = sp); _player.setRate(sp); Navigator.pop(context); })),
-      ]),
-    ));
   }
 
   String _fmt(Duration d) {

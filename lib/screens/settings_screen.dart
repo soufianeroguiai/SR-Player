@@ -81,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
           _choice(context, icon: Symbols.folder_open_rounded, title: 'مجلد الترجمة',
               subtitle: s.subtitleFolder.isEmpty ? 'غير محدد' : s.subtitleFolder,
               onTap: () async {
-                final result = await FilePicker.platform.getDirectoryPath();
+                final result = await FilePicker.getDirectoryPath();
                 if (result != null) s.setSubtitleFolder(result);
               }),
           _divider(),
@@ -100,7 +100,7 @@ class SettingsScreen extends StatelessWidget {
           _choice(context, icon: Symbols.folder_rounded, title: 'مجلد الخطوط',
               subtitle: s.subtitleFontsFolder.isEmpty ? 'افتراضي' : s.subtitleFontsFolder,
               onTap: () async {
-                final result = await FilePicker.platform.getDirectoryPath();
+                final result = await FilePicker.getDirectoryPath();
                 if (result != null) s.setSubtitleFontsFolder(result);
               }),
           _divider(),
