@@ -1,9 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:media_kit/media_kit.dart';
 
+/// ─────────────────────────────────────────────
+///  VideoThumbnailLoader – نسخة محسّنة
+///  يستخدم photo_manager (متاح بالفعل) بدل
+///  video_thumbnail الذي يفشل على أجهزة كثيرة
+/// ─────────────────────────────────────────────
 class VideoThumbnailLoader extends StatefulWidget {
   final String videoPath;
   final double width;
@@ -21,65 +26,93 @@ class VideoThumbnailLoader extends StatefulWidget {
 }
 
 class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
-  String? _thumbnailPath;
-  bool _isLoading = true;
+  Uint8List? _bytes;
+  bool _loading = true;
+
+  // ─── Cache مشترك بين كل instances ───────────
+  static final Map<String, Uint8List?> _memCache = {};
+  static final Map<String, Future<Uint8List?>> _pending = {};
 
   @override
   void initState() {
     super.initState();
-    _generateThumbnail();
+    _load();
   }
 
-  Future<void> _generateThumbnail() async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final fileName = widget.videoPath.hashCode.toString();
-      final targetPath = '${tempDir.path}/$fileName.png';
-      final file = File(targetPath);
+  Future<void> _load() async {
+    final key = widget.videoPath;
 
-      // 1. استخدام المخبأ إن وجد
-      if (await file.exists()) {
-        if (mounted) setState(() { _thumbnailPath = targetPath; _isLoading = false; });
-        return;
+    // 1. من الذاكرة مباشرة
+    if (_memCache.containsKey(key)) {
+      if (mounted) {
+        setState(() {
+          _bytes = _memCache[key];
+          _loading = false;
+        });
       }
-
-      // 2. محاولة video_thumbnail
-      String? thumbPath;
-      try {
-        thumbPath = await VideoThumbnail.thumbnailFile(
-          video: widget.videoPath,
-          thumbnailPath: tempDir.path,
-          imageFormat: ImageFormat.PNG,
-          maxHeight: 250,
-          quality: 50,
-        );
-      } catch (_) {}
-
-      if (thumbPath != null && File(thumbPath).existsSync()) {
-        // نجحت video_thumbnail
-        if (mounted) setState(() { _thumbnailPath = thumbPath; _isLoading = false; });
-        return;
-      }
-
-      // 3. fallback: استخراج إطار باستخدام media_kit
-      final player = Player();
-      await player.open(Media(widget.videoPath), play: false);
-      await Future.delayed(const Duration(milliseconds: 500));
-      final screenshot = await player.screenshot(format: 'image/png');
-      await player.dispose();
-
-      if (screenshot != null && screenshot.isNotEmpty) {
-        await file.writeAsBytes(screenshot);
-        if (mounted) setState(() { _thumbnailPath = targetPath; _isLoading = false; });
-        return;
-      }
-
-      // فشل كل المحاولات
-      if (mounted) setState(() => _isLoading = false);
-    } catch (e) {
-      debugPrint("فشل استخراج الصورة المصغرة: $e");
-      if (mounted) setState(() => _isLoading = false);
+      return;
     }
+
+    // 2. إذا طلب مسبق جارٍ، انتظره
+    if (_pending.containsKey(key)) {
+      final result = await _pending[key];
+      if (mounted) setState(() { _bytes = result; _loading = false; });
+      return;
+    }
+
+    // 3. ابدأ طلب جديد
+    final future = _generate(key);
+    _pending[key] = future;
+
+    final result = await future;
+    _pending.remove(key);
+    _memCache[key] = result;
+
+    if (mounted) setState(() { _bytes = result; _loading = false; });
+  }
+
+  /// الطريقة الرئيسية: القرص → photo_manager → null
+  static Future<Uint8List?> _generate(String videoPath) async {
+    // ─── أ. كاش على القرص ─────────────────────
+    try {
+      final dir = await getTemporaryDirectory();
+      final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
+      if (await cacheFile.exists()) {
+        return await cacheFile.readAsBytes();
+      }
+    } catch (_) {}
+
+    // ─── ب. photo_manager (الأموثوق) ──────────
+    try {
+      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+        type: RequestType.video,
+      );
+      for (final album in albums) {
+        final count = await album.assetCountAsync;
+        final assets = await album.getAssetListRange(start: 0, end: count);
+        for (final asset in assets) {
+          final file = await asset.file;
+          if (file != null && file.path == videoPath) {
+            final thumb = await asset.thumbnailDataWithSize(
+              const ThumbnailSize(320, 200),
+              quality: 80,
+              format: ThumbnailFormat.jpeg,
+            );
+            if (thumb != null) {
+              // احفظ على القرص
+              try {
+                final dir = await getTemporaryDirectory();
+                final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
+                await cacheFile.writeAsBytes(thumb);
+              } catch (_) {}
+              return thumb;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   @override
@@ -89,26 +122,32 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
       height: widget.height,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: _isLoading
-            ? Container(
-                color: Colors.grey[900],
-                child: const Center(
-                  child: SizedBox(width: 24, height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54)),
-                ),
-              )
-            : _thumbnailPath != null
-                ? Image.file(File(_thumbnailPath!), fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => _fallbackIcon())
-                : _fallbackIcon(),
+        child: _loading
+            ? _shimmer()
+            : _bytes != null
+                ? Image.memory(
+                    _bytes!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder(),
+                  )
+                : _placeholder(),
       ),
     );
   }
 
-  Widget _fallbackIcon() {
+  Widget _shimmer() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.4, end: 0.9),
+      duration: const Duration(milliseconds: 900),
+      builder: (_, v, __) => Container(color: Colors.grey[900]!.withValues(alpha: v)),
+      onEnd: () => setState(() {}), // يكرر الأنيميشن
+    );
+  }
+
+  Widget _placeholder() {
     return Container(
       color: Colors.grey[900],
-      child: const Icon(Icons.video_file, color: Colors.white54, size: 40),
+      child: const Icon(Icons.video_file_rounded, color: Colors.white30, size: 36),
     );
   }
 }

@@ -19,7 +19,7 @@ import '../services/subtitle_service.dart';
 import '../services/pip_service.dart';
 import 'info_screen.dart';
 
-// أوضاع ملء الشاشة
+// ─── وضع ملء الشاشة ─────────────────────────────
 enum VideoFitMode { contain, cover, fill }
 
 BoxFit getBoxFit(VideoFitMode mode) {
@@ -51,6 +51,7 @@ class VideoFitSettings {
   }
 }
 
+// ════════════════════════════════════════════════
 class PlayerScreen extends StatefulWidget {
   final VideoItem video;
   const PlayerScreen({super.key, required this.video});
@@ -73,7 +74,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showSubtitles = true;
   List<SubtitleTrack> _subtitleTracks = [];
   List<AudioTrack> _audioTracks = [];
+
+  // ─── الصوت: نفصل volume الجهاز عن boost ────────
+  /// نسبة الجيستشر (0.0 → 1.0) – تمثّل 0–100% حجم الجهاز
+  double _gestureVolume = 0.8;
+
+  /// boost 50–200% يُضرب في gestureVolume لإعطاء media_kit setVolume
   double _audioBoost = 100.0;
+
+  /// القيمة الفعلية التي تُرسل لـ media_kit (0–200)
+  double get _effectiveVolume => (_gestureVolume * _audioBoost).clamp(0, 200);
 
   double _speed = 1.0;
   final _speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
@@ -82,7 +92,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
-  double _volume = 0.8;
   double _brightness = 0.7;
 
   String? _dragAxis;
@@ -106,6 +115,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _subtitleSpeed = 1.0;
   bool _autoSubtitleSelected = false;
 
+  // ─── init ────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -116,7 +126,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final settings = context.read<SettingsProvider>();
     _showSubtitles = settings.showSubtitlesByDefault;
     _speed = settings.defaultSpeed;
-    _audioBoost = settings.defaultAudioBoost;
+    _audioBoost = settings.defaultAudioBoost.clamp(50.0, 200.0);
     _subtitleSync = settings.defaultSubtitleSync;
 
     _player = Player();
@@ -175,13 +185,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  // ─── init player ────────────────────────────
   Future<void> _initPlayer() async {
     final settings = context.read<SettingsProvider>();
 
     try {
       await _player.open(Media(widget.video.path), play: settings.autoPlay);
       _player.setRate(_speed);
-      _player.setVolume(_audioBoost);
+      _player.setVolume(_effectiveVolume);
 
       if (settings.rememberPosition) {
         try {
@@ -196,9 +207,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (settings.rememberPosition) {
           _saveTimer?.cancel();
           _saveTimer = Timer(const Duration(seconds: 5), () {
-            if (mounted) {
-              context.read<LibraryProvider>().savePosition(widget.video.path, _position);
-            }
+            if (mounted) context.read<LibraryProvider>().savePosition(widget.video.path, _position);
           });
         }
       });
@@ -242,6 +251,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
+  // ─── subtitle loading ────────────────────────
   Future<void> _loadSubtitleFromPreferredFolder(SettingsProvider s) async {
     if (s.subtitleFolder.isEmpty) {
       final srtPath = SubtitleService.findSrt(widget.video.path);
@@ -255,21 +265,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       await for (final file in folder.list()) {
         if (file is File) {
           final fileName = file.path.split('/').last;
-          if (fileName.startsWith(videoName) && (fileName.endsWith('.srt') || fileName.endsWith('.SRT') || fileName.endsWith('.ssa') || fileName.endsWith('.ass'))) {
+          if (fileName.startsWith(videoName) &&
+              (fileName.endsWith('.srt') || fileName.endsWith('.SRT') ||
+               fileName.endsWith('.ssa') || fileName.endsWith('.ass'))) {
             await _loadSrtFile(file.path, s.subtitleEncoding);
             return;
           }
         }
       }
     }
-
     final srtPath = SubtitleService.findSrt(widget.video.path);
     if (srtPath != null) await _loadSrtFile(srtPath, s.subtitleEncoding);
   }
 
   void _applyPreferredSubtitleLanguage(SettingsProvider s) {
     if (_autoSubtitleSelected || _subtitleTracks.isEmpty) return;
-    
     for (final track in _subtitleTracks) {
       if (track.language == s.preferredSubtitleLanguage) {
         _player.setSubtitleTrack(track);
@@ -278,35 +288,31 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         return;
       }
     }
-    
     _autoSubtitleSelected = true;
   }
 
   Future<void> _loadSrtFile(String path, [String encoding = 'UTF-8']) async {
     try {
       final entries = await SubtitleService.load(path);
-      
       if (entries.isEmpty) return;
-      
+
       final srtContent = StringBuffer();
       for (int i = 0; i < entries.length; i++) {
         final e = entries[i];
-        final start = _formatSrtTime(e.start);
-        final end = _formatSrtTime(e.end);
         srtContent.writeln('${i + 1}');
-        srtContent.writeln('$start --> $end');
+        srtContent.writeln('${_formatSrtTime(e.start)} --> ${_formatSrtTime(e.end)}');
         srtContent.writeln(e.text);
         srtContent.writeln();
       }
-      
+
       await _player.setSubtitleTrack(
         SubtitleTrack.data(srtContent.toString(), title: 'ترجمة خارجية'),
       );
-      
+
       if (mounted) {
         setState(() => _showSubtitles = true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم تحميل الترجمة الخارجية')),
+          const SnackBar(content: Text('✅ تم تحميل الترجمة')),
         );
       }
     } catch (e) {
@@ -319,21 +325,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   String _formatSrtTime(Duration d) {
-    final hours = d.inHours.toString().padLeft(2, '0');
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final millis = (d.inMilliseconds.remainder(1000)).toString().padLeft(3, '0');
-    return '$hours:$minutes:$seconds,$millis';
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final ms = (d.inMilliseconds.remainder(1000)).toString().padLeft(3, '0');
+    return '$h:$m:$s,$ms';
   }
 
   Future<void> _pickSubtitle() async {
-    final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
+    final result = await FilePicker.pickFiles(
+        type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
     if (result?.files.single.path != null) {
       final settings = context.read<SettingsProvider>();
       await _loadSrtFile(result!.files.single.path!, settings.subtitleEncoding);
     }
   }
 
+  // ─── controls visibility ────────────────────
   void _scheduleHide() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 3), () {
@@ -351,66 +359,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try { await PipService.enter(); } catch (_) {}
   }
 
+  // ─── gestures ───────────────────────────────
   void _onDoubleTapDown(TapDownDetails details) {
     if (_isLocked) return;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isRight = details.localPosition.dx > screenWidth / 2;
-    final seekAmount = const Duration(seconds: 10);
-    if (isRight) {
-      final target = _position + seekAmount;
-      _player.seek(target > _duration ? _duration : target);
-    } else {
-      final target = _position - seekAmount;
-      _player.seek(target < Duration.zero ? Duration.zero : target);
-    }
-  }
-
-  Widget _buildFloatingIndicator({required IconData icon, required double value, required Color color}) {
-    return AnimatedOpacity(
-      opacity: 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        width: 52,
-        height: 180,
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)]),
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(icon, color: Colors.white, size: 22),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: RotatedBox(
-                    quarterTurns: -1,
-                    child: SliderTheme(
-                      data: SliderThemeData(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                          activeTrackColor: color, inactiveTrackColor: Colors.white24,
-                          thumbColor: Colors.white, overlayColor: color.withOpacity(0.2)),
-                      child: Slider(value: value.clamp(0.0, 1.0), onChanged: (v) {}, min: 0, max: 1),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('${(value * 100).round()}%', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500)),
-              ]),
-            ),
-          ),
-        ),
-      ),
-    );
+    final isRight = details.localPosition.dx > MediaQuery.of(context).size.width / 2;
+    final target = isRight
+        ? (_position + const Duration(seconds: 10))
+        : (_position - const Duration(seconds: 10));
+    _player.seek(target.isNegative ? Duration.zero : (target > _duration ? _duration : target));
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -429,7 +385,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final totalDy = details.globalPosition.dy - _dragStartGlobal.dy;
 
     _dragAxis ??= (totalDx.abs() > 12 || totalDy.abs() > 12)
-        ? (totalDx.abs() > totalDy.abs() ? 'h' : 'v') : null;
+        ? (totalDx.abs() > totalDy.abs() ? 'h' : 'v')
+        : null;
     if (_dragAxis == null) return;
 
     if (_dragAxis == 'h') {
@@ -437,50 +394,182 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       var target = _dragStartPosition + Duration(seconds: seekSeconds.round());
       if (target < Duration.zero) target = Duration.zero;
       if (_duration > Duration.zero && target > _duration) target = _duration;
-      setState(() { _seekPreview = target; _showSeekIndicator = true; _showBrightnessIndicator = false; _showVolumeIndicator = false; });
+      setState(() {
+        _seekPreview = target;
+        _showSeekIndicator = true;
+        _showBrightnessIndicator = false;
+        _showVolumeIndicator = false;
+      });
     } else {
       _handleVerticalGesture(details.delta.dy);
     }
   }
 
   void _onPanEnd(DragEndDetails details) {
-    if (_dragAxis == 'h') { _player.seek(_seekPreview); setState(() => _showSeekIndicator = false); }
-    else if (_dragAxis == 'v') { _resetIndicatorTimer(); }
+    if (_dragAxis == 'h') {
+      _player.seek(_seekPreview);
+      setState(() => _showSeekIndicator = false);
+    } else if (_dragAxis == 'v') {
+      _resetIndicatorTimer();
+    }
     _dragAxis = null;
     _scheduleHide();
   }
 
+  // ─── الجيستشر العمودي الرئيسي ────────────────
+  // يسار → سطوع (0–100%)
+  // يمين → صوت (0–100% من الـ gestureVolume)
+  //         القيمة الحقيقية للمشغل = gestureVolume × audioBoost
   void _handleVerticalGesture(double dy) {
-    final delta = -dy / 200;
+    // كل 200px = تغيير 100% (أي 1.0)
+    final delta = -dy / 200.0;
+
     if (_dragIsLeftSide) {
+      // ─── السطوع ─────────────────────────────
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
       try {
         ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
-        setState(() { _brightness = newBrightness; _showBrightnessIndicator = true; _showVolumeIndicator = false; });
+        setState(() {
+          _brightness = newBrightness;
+          _showBrightnessIndicator = true;
+          _showVolumeIndicator = false;
+        });
       } catch (_) {}
     } else {
-      final newVolume = (_volume + delta).clamp(0.0, 1.0);
-      _player.setVolume(newVolume * _audioBoost);
-      setState(() { _volume = newVolume; _showVolumeIndicator = true; _showBrightnessIndicator = false; });
+      // ─── الصوت ──────────────────────────────
+      final newGestureVol = (_gestureVolume + delta).clamp(0.0, 1.0);
+      _gestureVolume = newGestureVol;
+      _player.setVolume(_effectiveVolume);
+      setState(() {
+        _showVolumeIndicator = true;
+        _showBrightnessIndicator = false;
+      });
     }
     _resetIndicatorTimer();
   }
 
   void _resetIndicatorTimer() {
     _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(const Duration(seconds: 1), () => setState(() { _showBrightnessIndicator = false; _showVolumeIndicator = false; }));
+    _indicatorTimer = Timer(const Duration(seconds: 1, milliseconds: 500), () {
+      if (mounted) setState(() { _showBrightnessIndicator = false; _showVolumeIndicator = false; });
+    });
   }
 
+  // ─── الـ Indicator البصري المحسّن ────────────
+  /// [displayValue] : 0.0 → 1.0 دائماً للشريط
+  /// [labelText]    : النص المعروض (مثلاً "85%" أو "150%")
+  Widget _buildFloatingIndicator({
+    required IconData icon,
+    required double displayValue,
+    required String labelText,
+    required Color color,
+  }) {
+    return AnimatedOpacity(
+      opacity: 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: Container(
+        width: 52,
+        height: 200,
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.18),
+                    Colors.white.withValues(alpha: 0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white, size: 20),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: RotatedBox(
+                      quarterTurns: -1,
+                      child: SliderTheme(
+                        data: SliderThemeData(
+                          trackHeight: 3,
+                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                          activeTrackColor: color,
+                          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+                          thumbColor: Colors.white,
+                          overlayColor: color.withValues(alpha: 0.2),
+                        ),
+                        child: Slider(
+                          value: displayValue.clamp(0.0, 1.0),
+                          onChanged: null, // للعرض فقط
+                          min: 0,
+                          max: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    labelText,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Menus ──────────────────────────────────
   void _showSpeedSheet() {
     final cs = Theme.of(context).colorScheme;
-    showModalBottomSheet(context: context, builder: (_) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(24, 4, 24, 12), child: Text('سرعة التشغيل', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
-        const Divider(height: 1),
-        ..._speeds.map((sp) => ListTile(title: Text('${sp}x'), trailing: _speed == sp ? Icon(Symbols.check_rounded, color: cs.primary) : null, selected: _speed == sp, onTap: () { setState(() => _speed = sp); _player.setRate(sp); Navigator.pop(context); })),
-      ]),
-    ));
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+            child: Text('سرعة التشغيل',
+                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+          ),
+          const Divider(height: 1),
+          ..._speeds.map((sp) => ListTile(
+                title: Text('${sp}x'),
+                trailing: _speed == sp ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+                selected: _speed == sp,
+                onTap: () {
+                  setState(() => _speed = sp);
+                  _player.setRate(sp);
+                  Navigator.pop(context);
+                },
+              )),
+        ]),
+      ),
+    );
   }
 
   void _showSubtitleMenu() {
@@ -505,7 +594,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               dense: true,
               contentPadding: EdgeInsets.zero,
               activeColor: Colors.lightBlue,
-              title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة', style: const TextStyle(color: Colors.white)),
+              title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة',
+                  style: const TextStyle(color: Colors.white)),
               value: _showSubtitles,
               onChanged: (v) {
                 setState(() => _showSubtitles = v);
@@ -516,13 +606,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             if (uniqueTracks.isNotEmpty) ...[
               const Divider(color: Colors.white24),
               ...uniqueTracks.map((track) {
-                String name = track.title ?? track.language ?? 'ترجمة';
+                final name = track.title ?? track.language ?? 'ترجمة';
                 return ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(name, style: const TextStyle(color: Colors.white)),
-                  subtitle: track.language != null ? Text(track.language!, style: TextStyle(color: Colors.white54)) : null,
-                  trailing: _player.state.track.subtitle == track ? Icon(Icons.check, color: cs.primary) : null,
+                  subtitle: track.language != null
+                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
+                      : null,
+                  trailing: _player.state.track.subtitle == track
+                      ? Icon(Icons.check, color: cs.primary)
+                      : null,
                   onTap: () {
                     _player.setSubtitleTrack(track);
                     setState(() => _showSubtitles = true);
@@ -535,28 +629,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ListTile(
               leading: const Icon(Icons.upload_file, color: Colors.white),
               title: const Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickSubtitle();
-              },
+              onTap: () { Navigator.pop(ctx); _pickSubtitle(); },
             ),
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.white),
-              title: const Text('إعدادات الترجمة', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showSyncSpeedPaletteSheet();
-              },
+              title: const Text('مزامنة وإعدادات', style: TextStyle(color: Colors.white)),
+              onTap: () { Navigator.pop(ctx); _showSyncSpeedPaletteSheet(); },
             ),
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.palette, color: Colors.white),
-              title: const Text('تخصيص الترجمة', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showSubtitleSettingsSheet();
-              },
+              title: const Text('تخصيص المظهر', style: TextStyle(color: Colors.white)),
+              onTap: () { Navigator.pop(ctx); _showSubtitleSettingsSheet(); },
             ),
           ]),
         ),
@@ -582,28 +667,33 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         contentPadding: const EdgeInsets.all(16),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ...uniqueAudio.map((track) {
-              String name = track.title ?? track.language ?? 'مسار صوتي';
-              return ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(name, style: const TextStyle(color: Colors.white)),
-                subtitle: track.language != null ? Text(track.language!, style: const TextStyle(color: Colors.white54)) : null,
-                trailing: _player.state.track.audio == track ? Icon(Icons.check, color: cs.primary) : null,
-                onTap: () {
-                  _player.setAudioTrack(track);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-            const Divider(color: Colors.white24),
-            ListTile(
-              leading: const Icon(Icons.volume_up, color: Colors.white),
-              title: const Text('رفع الصوت (Boost)', style: TextStyle(color: Colors.white)),
-              subtitle: Text('${_audioBoost.round()}%', style: const TextStyle(color: Colors.white54)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showAudioBoostSheet();
+            if (uniqueAudio.isNotEmpty) ...[
+              const Text('المسارات الصوتية',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 8),
+              ...uniqueAudio.map((track) {
+                final name = track.title ?? track.language ?? 'مسار صوتي';
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(name, style: const TextStyle(color: Colors.white)),
+                  subtitle: track.language != null
+                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
+                      : null,
+                  trailing: _player.state.track.audio == track
+                      ? Icon(Icons.check, color: cs.primary)
+                      : null,
+                  onTap: () { _player.setAudioTrack(track); Navigator.pop(ctx); },
+                );
+              }),
+              const Divider(color: Colors.white24),
+            ],
+            // ─── Audio Boost مباشرة في نفس القائمة ─
+            _AudioBoostSection(
+              boost: _audioBoost,
+              onChanged: (v) {
+                setState(() => _audioBoost = v);
+                _player.setVolume(_effectiveVolume);
               },
             ),
           ]),
@@ -613,36 +703,26 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _showAudioBoostSheet() {
-    final cs = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) => AlertDialog(
-          backgroundColor: Colors.black87,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('تكبير الصوت', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Text('${_audioBoost.round()}%', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700, fontSize: 24)),
-            Slider(
-              value: _audioBoost,
-              min: 50,
-              max: 200,
+        builder: (context, setSheetState) {
+          final cs = Theme.of(context).colorScheme;
+          return AlertDialog(
+            backgroundColor: Colors.black87,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            content: _AudioBoostSection(
+              boost: _audioBoost,
               onChanged: (v) {
                 setSheetState(() {});
                 setState(() => _audioBoost = v);
-                _player.setVolume(v);
+                _player.setVolume(_effectiveVolume);
               },
             ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('موافق', style: TextStyle(color: Colors.white70)),
-            ),
-          ]),
-        ),
+          );
+        },
       ),
     );
   }
@@ -658,7 +738,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         contentPadding: const EdgeInsets.all(16),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('إعدادات الترجمة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('إعدادات الترجمة',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const Divider(color: Colors.white24),
             ListTile(
               dense: true,
@@ -685,39 +766,40 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 max: 2.0,
                 divisions: 15,
                 label: '${_subtitleSpeed}x',
-                onChanged: (v) {
-                  setState(() => _subtitleSpeed = v);
-                },
+                onChanged: (v) => setState(() => _subtitleSpeed = v),
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
             ),
             const Divider(color: Colors.white24),
-            const Text('اللوحة السريعة', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const Text('ألوان سريعة', style: TextStyle(color: Colors.white70, fontSize: 13)),
             const SizedBox(height: 10),
             Wrap(spacing: 10, runSpacing: 10, children: [
-              _buildColorChip(Colors.white, 'أبيض'),
-              _buildColorChip(Colors.yellowAccent, 'أصفر'),
-              _buildColorChip(Colors.cyanAccent, 'سماوي'),
-              _buildColorChip(Colors.lightGreenAccent, 'أخضر'),
-              _buildColorChip(Colors.redAccent, 'أحمر'),
+              _colorChip(Colors.white, 'أبيض'),
+              _colorChip(Colors.yellowAccent, 'أصفر'),
+              _colorChip(Colors.cyanAccent, 'سماوي'),
+              _colorChip(Colors.lightGreenAccent, 'أخضر'),
+              _colorChip(Colors.redAccent, 'أحمر'),
             ]),
             const SizedBox(height: 12),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق', style: TextStyle(color: Colors.white70))),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إغلاق', style: TextStyle(color: Colors.white70))),
           ]),
         ),
       ),
     );
   }
 
-  Widget _buildColorChip(Color color, String label) {
+  Widget _colorChip(Color color, String label) {
     return GestureDetector(
-      onTap: () {
-        context.read<SettingsProvider>().setSubtitleColor(color);
-        Navigator.pop(context);
-      },
+      onTap: () { context.read<SettingsProvider>().setSubtitleColor(color); Navigator.pop(context); },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: color.withOpacity(0.3), borderRadius: BorderRadius.circular(20), border: Border.all(color: color, width: 1)),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color, width: 1),
+        ),
         child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
       ),
     );
@@ -732,7 +814,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(16),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('تخصيص الترجمة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text('تخصيص الترجمة',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           const Divider(color: Colors.white24),
           _buildSettingsContent(),
         ])),
@@ -742,19 +825,61 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Widget _buildSettingsContent() {
     final s = context.watch<SettingsProvider>();
+    final cs = Theme.of(context).colorScheme;
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(dense: true, title: const Text('حجم الخط', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleFontSize, min: 10, max: 50, onChanged: (v) => s.setSubtitleFontSize(v), activeColor: Theme.of(context).colorScheme.primary)),
-      ListTile(dense: true, title: const Text('نوع الخط', style: TextStyle(color: Colors.white)), trailing: Text(s.fontFamily, style: const TextStyle(color: Colors.white54)), onTap: () { Navigator.pop(context); _showFontFamilyPicker(); }),
-      ListTile(dense: true, title: const Text('لون النص', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.subtitleColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleColor, (c) => s.setSubtitleColor(c)); }),
-      SwitchListTile(dense: true, title: const Text('تفعيل الخلفية', style: TextStyle(color: Colors.white)), value: s.subtitleBgOpacity > 0, onChanged: (v) { s.setSubtitleBgOpacity(v ? 0.4 : 0.0); }, activeColor: Colors.lightBlue),
+      ListTile(
+          dense: true,
+          title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
+          subtitle: Slider(
+              value: s.subtitleFontSize, min: 10, max: 50,
+              onChanged: (v) => s.setSubtitleFontSize(v), activeColor: cs.primary)),
+      ListTile(
+          dense: true,
+          title: const Text('نوع الخط', style: TextStyle(color: Colors.white)),
+          trailing: Text(s.fontFamily, style: const TextStyle(color: Colors.white54)),
+          onTap: () { Navigator.pop(context); _showFontFamilyPicker(); }),
+      ListTile(
+          dense: true,
+          title: const Text('لون النص', style: TextStyle(color: Colors.white)),
+          trailing: CircleAvatar(backgroundColor: s.subtitleColor, radius: 12),
+          onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleColor, (c) => s.setSubtitleColor(c)); }),
+      SwitchListTile(
+          dense: true,
+          title: const Text('تفعيل الخلفية', style: TextStyle(color: Colors.white)),
+          value: s.subtitleBgOpacity > 0,
+          onChanged: (v) => s.setSubtitleBgOpacity(v ? 0.4 : 0.0),
+          activeColor: Colors.lightBlue),
       if (s.subtitleBgOpacity > 0) ...[
-        ListTile(dense: true, title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.subtitleBgColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleBgColor, (c) => s.setSubtitleBgColor(c)); }),
-        ListTile(dense: true, title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleBgOpacity, min: 0, max: 1, onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: Theme.of(context).colorScheme.primary)),
+        ListTile(
+            dense: true,
+            title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
+            trailing: CircleAvatar(backgroundColor: s.subtitleBgColor, radius: 12),
+            onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleBgColor, (c) => s.setSubtitleBgColor(c)); }),
+        ListTile(
+            dense: true,
+            title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)),
+            subtitle: Slider(
+                value: s.subtitleBgOpacity, min: 0, max: 1,
+                onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: cs.primary)),
       ],
-      SwitchListTile(dense: true, title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)), value: s.shadowEnabled, onChanged: (v) => s.setShadowEnabled(v), activeColor: Colors.lightBlue),
+      SwitchListTile(
+          dense: true,
+          title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)),
+          value: s.shadowEnabled,
+          onChanged: (v) => s.setShadowEnabled(v),
+          activeColor: Colors.lightBlue),
       if (s.shadowEnabled) ...[
-        ListTile(dense: true, title: const Text('لون الظل', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.shadowColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.shadowColor, (c) => s.setShadowColor(c)); }),
-        ListTile(dense: true, title: const Text('توهج الظل', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.shadowBlurRadius, min: 0, max: 20, onChanged: (v) => s.setShadowBlurRadius(v), activeColor: Theme.of(context).colorScheme.primary)),
+        ListTile(
+            dense: true,
+            title: const Text('لون الظل', style: TextStyle(color: Colors.white)),
+            trailing: CircleAvatar(backgroundColor: s.shadowColor, radius: 12),
+            onTap: () { Navigator.pop(context); _showColorPicker(context, s.shadowColor, (c) => s.setShadowColor(c)); }),
+        ListTile(
+            dense: true,
+            title: const Text('توهج الظل', style: TextStyle(color: Colors.white)),
+            subtitle: Slider(
+                value: s.shadowBlurRadius, min: 0, max: 20,
+                onChanged: (v) => s.setShadowBlurRadius(v), activeColor: cs.primary)),
       ],
     ]);
   }
@@ -767,12 +892,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         title: const Text('اختر نوع الخط'),
         content: SingleChildScrollView(
           child: Column(children: fonts.map((font) => ListTile(
-            title: Text(font),
-            onTap: () {
-              context.read<SettingsProvider>().setFontFamily(font);
-              Navigator.pop(ctx);
-            },
-          )).toList()),
+                title: Text(font),
+                onTap: () { context.read<SettingsProvider>().setFontFamily(font); Navigator.pop(ctx); },
+              )).toList()),
         ),
       ),
     );
@@ -787,14 +909,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         content: ColorPicker(color: tempColor, onColorChanged: (c) => tempColor = c),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () { onSave(tempColor); Navigator.pop(context); }, child: const Text('موافق')),
+          ElevatedButton(
+              onPressed: () { onSave(tempColor); Navigator.pop(context); },
+              child: const Text('موافق')),
         ],
       ),
     );
   }
 
+  // ─── helpers ────────────────────────────────
   String _fmt(Duration d) {
-    final h = d.inHours; final m = d.inMinutes.remainder(60).toString().padLeft(2, '0'); final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
@@ -808,6 +935,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
+  // ─── BUILD ───────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -822,8 +950,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       fontWeight: _getFontWeight(s.fontWeightIndex),
       fontFamily: s.fontFamily,
       fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-      backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-      shadows: s.shadowEnabled ? [Shadow(color: s.shadowColor, blurRadius: s.shadowBlurRadius, offset: Offset(s.shadowOffsetX, s.shadowOffsetY))] : null,
+      backgroundColor: s.subtitleBgColor.withValues(alpha: s.subtitleBgOpacity),
+      shadows: s.shadowEnabled
+          ? [Shadow(color: s.shadowColor, blurRadius: s.shadowBlurRadius,
+              offset: Offset(s.shadowOffsetX, s.shadowOffsetY))]
+          : null,
     );
 
     return PopScope(
@@ -834,7 +965,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: !_initialized ? Center(child: CircularProgressIndicator(color: cs.primary)) : Stack(children: [
+        body: !_initialized
+            ? Center(child: CircularProgressIndicator(color: cs.primary))
+            : Stack(children: [
+
+          // ─── الفيديو ────────────────────────
           GestureDetector(
             onTap: _toggleControls,
             onDoubleTapDown: _isLocked ? null : _onDoubleTapDown,
@@ -852,32 +987,191 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
           ),
-          if (_fitOverlayText != null) Positioned(top: 100, left: 0, right: 0, child: Center(child: AnimatedOpacity(opacity: 1.0, duration: const Duration(milliseconds: 300), child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)), child: Text(_fitOverlayText!, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)))))),
-          if (_showVolumeIndicator) Positioned(left: 24, top: MediaQuery.of(context).size.height * 0.3, child: _buildFloatingIndicator(icon: Icons.volume_up, value: _volume.clamp(0.0, 1.0), color: cs.primary)),
-          if (_showBrightnessIndicator) Positioned(right: 24, top: MediaQuery.of(context).size.height * 0.3, child: _buildFloatingIndicator(icon: Icons.brightness_6, value: _brightness, color: cs.secondary)),
+
+          // ─── Fit overlay ────────────────────
+          if (_fitOverlayText != null)
+            Positioned(top: 100, left: 0, right: 0,
+              child: Center(child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(_fitOverlayText!,
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+              ))),
+
+          // ─── Seek indicator ─────────────────
+          if (_showSeekIndicator)
+            Center(child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _fmt(_seekPreview),
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            )),
+
+          // ─── Volume indicator (يمين) ─────────
+          if (_showVolumeIndicator)
+            Positioned(
+              right: 24,
+              top: MediaQuery.of(context).size.height * 0.25,
+              child: _buildFloatingIndicator(
+                icon: _gestureVolume == 0 ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                displayValue: _gestureVolume,
+                // النص يعرض النسبة الفعلية = gestureVolume × audioBoost
+                labelText: '${(_gestureVolume * _audioBoost).round()}%',
+                color: cs.primary,
+              ),
+            ),
+
+          // ─── Brightness indicator (يسار) ────
+          if (_showBrightnessIndicator)
+            Positioned(
+              left: 24,
+              top: MediaQuery.of(context).size.height * 0.25,
+              child: _buildFloatingIndicator(
+                icon: _brightness < 0.15 ? Icons.brightness_low_rounded : Icons.brightness_6_rounded,
+                displayValue: _brightness,
+                labelText: '${(_brightness * 100).round()}%',
+                color: cs.secondary,
+              ),
+            ),
+
+          // ─── Lock icon فقط ──────────────────
+          if (_isLocked)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: SafeArea(child: GestureDetector(
+                onTap: _toggleLock,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Symbols.lock_rounded, color: Colors.white, size: 22),
+                ),
+              )),
+            ),
+
+          // ─── Controls overlay ───────────────
           if (_showControls && !_isLocked) ...[
-            Positioned(top: 0, left: 0, right: 0, child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent])), child: SafeArea(child: Row(children: [
-              IconButton(icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
-              Expanded(child: Text(widget.video.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
-              IconButton(icon: Icon(_isLocked ? Symbols.lock_rounded : Symbols.lock_open_rounded, color: _isLocked ? Colors.orange : Colors.white54), onPressed: _toggleLock),
-              IconButton(icon: const Icon(Symbols.aspect_ratio_rounded, color: Colors.white70), onPressed: _toggleFit, tooltip: 'تغيير وضع الملء'),
-              IconButton(icon: Icon(_isLandscape ? Symbols.screen_rotation_rounded : Symbols.stay_current_portrait_rounded, color: Colors.white70), onPressed: _toggleOrientation),
-              IconButton(icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70), onPressed: _enterPip),
-              IconButton(icon: const Icon(Symbols.graphic_eq_rounded, color: Colors.white70), onPressed: _showAudioMenu),
-              IconButton(icon: Icon(_showSubtitles ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded, color: _showSubtitles ? Colors.lightBlue : Colors.white54), onPressed: _showSubtitleMenu),
-            ])))),
-            Positioned(bottom: 0, left: 0, right: 0, child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.85), Colors.transparent])), child: SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(12, 0, 12, 8), child: Row(children: [
-              Text(_fmt(_position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              Expanded(child: SliderTheme(data: SliderThemeData(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), activeTrackColor: cs.primary, inactiveTrackColor: Colors.white24, thumbColor: cs.primary, overlayColor: cs.primary.withOpacity(0.2)), child: Slider(value: _duration.inMilliseconds > 0 ? (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0) : 0.0, onChanged: (v) => _player.seek(Duration(milliseconds: (v * _duration.inMilliseconds).toInt()))))),
-              Text(_fmt(_duration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            ]))))),
+
+            // TopBar
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Row(children: [
+                    IconButton(
+                        icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white),
+                        onPressed: () => Navigator.pop(context)),
+                    Expanded(child: Text(widget.video.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
+                    IconButton(
+                        icon: Icon(_isLocked ? Symbols.lock_rounded : Symbols.lock_open_rounded,
+                            color: _isLocked ? Colors.orange : Colors.white54),
+                        onPressed: _toggleLock),
+                    IconButton(
+                        icon: const Icon(Symbols.aspect_ratio_rounded, color: Colors.white70),
+                        onPressed: _toggleFit),
+                    IconButton(
+                        icon: Icon(_isLandscape ? Symbols.screen_rotation_rounded : Symbols.stay_current_portrait_rounded,
+                            color: Colors.white70),
+                        onPressed: _toggleOrientation),
+                    IconButton(
+                        icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70),
+                        onPressed: _enterPip),
+                    IconButton(
+                        icon: const Icon(Symbols.graphic_eq_rounded, color: Colors.white70),
+                        onPressed: _showAudioMenu),
+                    IconButton(
+                        icon: Icon(_showSubtitles ? Symbols.subtitles_rounded : Symbols.subtitles_off_rounded,
+                            color: _showSubtitles ? Colors.lightBlue : Colors.white54),
+                        onPressed: _showSubtitleMenu),
+                  ]),
+                ),
+              ),
+            ),
+
+            // BottomBar
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    child: Row(children: [
+                      Text(_fmt(_position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                            activeTrackColor: cs.primary,
+                            inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+                            thumbColor: cs.primary,
+                            overlayColor: cs.primary.withValues(alpha: 0.2),
+                          ),
+                          child: Slider(
+                            value: _duration.inMilliseconds > 0
+                                ? (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0)
+                                : 0.0,
+                            onChanged: (v) => _player.seek(
+                                Duration(milliseconds: (v * _duration.inMilliseconds).toInt())),
+                          ),
+                        ),
+                      ),
+                      Text(_fmt(_duration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+
+            // Center controls
             Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              _CtrlBtn(Symbols.replay_10_rounded, () => _player.seek(_position - const Duration(seconds: 10))),
+              _CtrlBtn(Symbols.replay_10_rounded,
+                  () => _player.seek(_position - const Duration(seconds: 10))),
               const SizedBox(width: 28),
-              GestureDetector(onTap: () => _isPlaying ? _player.pause() : _player.play(), child: Container(width: 68, height: 68, decoration: BoxDecoration(color: cs.primaryContainer.withOpacity(0.9), shape: BoxShape.circle), child: Icon(_isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 38))),
+              GestureDetector(
+                onTap: () => _isPlaying ? _player.pause() : _player.play(),
+                child: Container(
+                  width: 68, height: 68,
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(_isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
+                      color: cs.onPrimaryContainer, size: 38),
+                ),
+              ),
               const SizedBox(width: 28),
-              _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
+              _CtrlBtn(Symbols.forward_10_rounded,
+                  () => _player.seek(_position + const Duration(seconds: 10))),
             ])),
+
           ],
         ]),
       ),
@@ -900,9 +1194,148 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-class _CtrlBtn extends StatelessWidget {
-  final IconData icon; final VoidCallback onTap;
-  const _CtrlBtn(this.icon, this.onTap);
+// ════════════════════════════════════════════════
+/// شريط Audio Boost المحسّن – يصل 200% مع عرض بصري واضح
+class _AudioBoostSection extends StatefulWidget {
+  final double boost;
+  final ValueChanged<double> onChanged;
+
+  const _AudioBoostSection({required this.boost, required this.onChanged});
+
   @override
-  Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 28)));
+  State<_AudioBoostSection> createState() => _AudioBoostSectionState();
+}
+
+class _AudioBoostSectionState extends State<_AudioBoostSection> {
+  late double _local;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.boost;
+  }
+
+  Color _boostColor(double v) {
+    if (v <= 100) return Colors.lightBlue;
+    if (v <= 150) return Colors.orange;
+    return Colors.redAccent;
+  }
+
+  String _boostLabel(double v) {
+    if (v <= 100) return 'طبيعي';
+    if (v <= 130) return 'مرتفع';
+    if (v <= 160) return 'عالٍ جداً';
+    return '⚠️ تشويه محتمل';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _boostColor(_local);
+
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        const Text('تكبير الصوت', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        Text(_boostLabel(_local), style: TextStyle(color: color, fontSize: 11)),
+      ]),
+      const SizedBox(height: 6),
+
+      // ─── الرقم الكبير ────────────────────────
+      AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
+        style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 36),
+        child: Text('${_local.round()}%'),
+      ),
+
+      // ─── شريط التمرير 50–200% ─────────────────
+      SliderTheme(
+        data: SliderThemeData(
+          trackHeight: 5,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+          activeTrackColor: color,
+          inactiveTrackColor: Colors.white12,
+          thumbColor: color,
+          overlayColor: color.withValues(alpha: 0.2),
+          // علامات عند 100% و 150% و 200%
+          tickMarkShape: const RoundSliderTickMarkShape(tickMarkRadius: 2),
+          activeTickMarkColor: Colors.white30,
+          inactiveTickMarkColor: Colors.white12,
+        ),
+        child: Slider(
+          value: _local,
+          min: 50,
+          max: 200,
+          divisions: 30, // كل 5%
+          onChanged: (v) {
+            setState(() => _local = v);
+            widget.onChanged(v);
+          },
+        ),
+      ),
+
+      // ─── أزرار سريعة ─────────────────────────
+      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+        for (final val in [100.0, 130.0, 160.0, 200.0])
+          _QuickBtn(
+            label: '${val.toInt()}%',
+            active: (_local - val).abs() < 2,
+            color: _boostColor(val),
+            onTap: () { setState(() => _local = val); widget.onChanged(val); },
+          ),
+      ]),
+
+      const SizedBox(height: 4),
+      Text(
+        'الجيستشر (السحب يمين): ${(_local).round()}%',
+        style: const TextStyle(color: Colors.white38, fontSize: 10),
+      ),
+    ]);
+  }
+}
+
+class _QuickBtn extends StatelessWidget {
+  final String label;
+  final bool active;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickBtn({required this.label, required this.active, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? color : Colors.white24),
+        ),
+        child: Text(label,
+            style: TextStyle(color: active ? color : Colors.white54,
+                fontSize: 11, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+}
+
+// ─── زر التحكم ──────────────────────────────────
+class _CtrlBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CtrlBtn(this.icon, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 50, height: 50,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 28),
+        ),
+      );
 }

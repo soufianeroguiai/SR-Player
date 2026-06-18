@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color _seed = Color(0xFF1B6CA8);
+  // 🟠 اللون البرتقالي الرئيسي
+  static const Color _seed = Color(0xFFE8640A);
 
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData dark()  => _build(Brightness.dark);
   static ThemeData light() => _build(Brightness.light);
 
   static ThemeData _build(Brightness brightness) {
@@ -30,12 +31,13 @@ class AppTheme {
         iconTheme: IconThemeData(color: cs.onSurfaceVariant),
       ),
 
-      // ✅ FIXED
-      tabBarTheme: const TabBarThemeData(
-        labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      tabBarTheme: TabBarThemeData(
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        labelColor: cs.primary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        indicatorColor: cs.primary,
       ),
 
-      // ❌ FIXED
       cardTheme: CardThemeData(
         color: cs.surfaceContainerLow,
         elevation: 0,
@@ -89,6 +91,31 @@ class AppTheme {
         color: cs.outlineVariant,
         thickness: 1,
         space: 1,
+      ),
+
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: cs.surfaceContainerHigh,
+        indicatorColor: cs.primaryContainer,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: cs.onPrimaryContainer);
+          }
+          return IconThemeData(color: cs.onSurfaceVariant);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: cs.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          return TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          );
+        }),
       ),
     );
   }
