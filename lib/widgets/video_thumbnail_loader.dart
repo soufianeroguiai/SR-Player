@@ -58,19 +58,23 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
 
   static Future<Uint8List?> _generate(String videoPath) async {
     try {
+      // 1. Disk cache
       final dir = await getTemporaryDirectory();
       final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
       if (await cacheFile.exists()) {
         return await cacheFile.readAsBytes();
       }
 
+      // 2. Extract frame using media_kit (works with all formats)
       final player = Player();
       await player.open(Media(videoPath), play: false);
       await Future.delayed(const Duration(milliseconds: 500));
-      final screenshot = await player.screenshot(format: 'image/jpeg', quality: 70);
+      // Note: 'quality' not supported in media_kit 1.2.6, so we remove it
+      final screenshot = await player.screenshot(format: 'image/jpeg');
       await player.dispose();
 
       if (screenshot != null && screenshot.isNotEmpty) {
+        // Save to disk
         try {
           await cacheFile.writeAsBytes(screenshot);
         } catch (_) {}
