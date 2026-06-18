@@ -19,6 +19,7 @@ import '../services/subtitle_service.dart';
 import '../services/pip_service.dart';
 import 'info_screen.dart';
 
+// أوضاع ملء الشاشة
 enum VideoFitMode { contain, cover, fill }
 
 BoxFit getBoxFit(VideoFitMode mode) {
@@ -182,8 +183,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _player.setRate(_speed);
       _player.setVolume(_audioBoost);
 
-      _applyAudioSettings(settings);
-
       if (settings.rememberPosition) {
         try {
           final saved = await context.read<LibraryProvider>().getPosition(widget.video.path);
@@ -241,29 +240,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         Navigator.pop(context);
       }
     }
-  }
-
-  void _applyAudioSettings(SettingsProvider s) {
-    try {
-      if (s.audioOutput != 'auto') {
-        _player.setProperty('audio-device', s.audioOutput);
-      }
-      if (s.bluetoothAudioDelayMs > 0) {
-        _player.setProperty('audio-delay', s.bluetoothAudioDelayMs / 1000.0);
-      }
-      if (s.audioPassthrough) {
-        _player.setProperty('audio-passthrough', true);
-      }
-      if (s.audioRate != 1.0) {
-        _player.setRate(s.audioRate);
-      }
-      if (s.fadeInStart) {
-        _player.setProperty('volume', 0);
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _player.setVolume(_audioBoost);
-        });
-      }
-    } catch (_) {}
   }
 
   Future<void> _loadSubtitleFromPreferredFolder(SettingsProvider s) async {
@@ -326,10 +302,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       await _player.setSubtitleTrack(
         SubtitleTrack.data(srtContent.toString(), title: 'ترجمة خارجية'),
       );
-      
-      try {
-        await _player.setProperty('sub-delay', _subtitleSync);
-      } catch (_) {}
       
       if (mounted) {
         setState(() => _showSubtitles = true);
@@ -699,7 +671,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 label: '${_subtitleSync.toStringAsFixed(1)}s',
                 onChanged: (v) {
                   setState(() => _subtitleSync = v);
-                  try { _player.setProperty('sub-delay', v); } catch (_) {}
                   settings.setDefaultSubtitleSync(v);
                 },
                 activeColor: Theme.of(context).colorScheme.primary,
@@ -716,7 +687,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 label: '${_subtitleSpeed}x',
                 onChanged: (v) {
                   setState(() => _subtitleSpeed = v);
-                  try { _player.setProperty('sub-speed', v); } catch (_) {}
                 },
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
