@@ -26,29 +26,25 @@ class SettingsProvider extends ChangeNotifier {
   bool _sortDesc = true;
   bool get sortDesc => _sortDesc;
 
-  // 📝 تخصيص الترجمة
   double _subtitleFontSize = 20.0;
   double get subtitleFontSize => _subtitleFontSize;
 
-  int _subtitleColorValue = 0xFFFFFFFF; // أبيض
+  int _subtitleColorValue = 0xFFFFFFFF;
   Color get subtitleColor => Color(_subtitleColorValue);
 
   double _subtitleBgOpacity = 0.4;
   double get subtitleBgOpacity => _subtitleBgOpacity;
 
-  // 🔊 صوت المشغل الداخلي
   double _defaultVolume = 1.0;
   double get defaultVolume => _defaultVolume;
 
-  // ☀️ سطوع التطبيق
   double _defaultBrightness = 0.7;
   double get defaultBrightness => _defaultBrightness;
 
-  // 🎨 إعدادات الترجمة المتقدمة
-  Color _subtitleBgColor = const Color(0xFF000000); // أسود
+  Color _subtitleBgColor = const Color(0xFF000000);
   Color get subtitleBgColor => _subtitleBgColor;
 
-  Color _outlineColor = const Color(0xFF000000); // أسود
+  Color _outlineColor = const Color(0xFF000000);
   Color get outlineColor => _outlineColor;
 
   double _outlineWidth = 2.0;
@@ -57,7 +53,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _shadowEnabled = false;
   bool get shadowEnabled => _shadowEnabled;
 
-  Color _shadowColor = const Color(0xFF000000); // أسود
+  Color _shadowColor = const Color(0xFF000000);
   Color get shadowColor => _shadowColor;
 
   double _shadowBlurRadius = 4.0;
@@ -77,6 +73,10 @@ class SettingsProvider extends ChangeNotifier {
 
   double _horizontalMargin = 24.0;
   double get horizontalMargin => _horizontalMargin;
+
+  // 🆕 نوع الخط
+  String _fontFamily = 'Roboto';
+  String get fontFamily => _fontFamily;
 
   // --- Load ---
   Future<void> load() async {
@@ -112,6 +112,7 @@ class SettingsProvider extends ChangeNotifier {
       _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
       _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
       _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
+      _fontFamily = p.getString('fontFamily') ?? 'Roboto';
 
       notifyListeners();
     } catch (e) {
@@ -135,7 +136,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('subtitleBgOpacity', _subtitleBgOpacity);
     await p.setDouble('defaultVolume', _defaultVolume);
     await p.setDouble('defaultBrightness', _defaultBrightness);
-
     await p.setInt('subtitleBgColor', _subtitleBgColor.value);
     await p.setInt('outlineColor', _outlineColor.value);
     await p.setDouble('outlineWidth', _outlineWidth);
@@ -147,6 +147,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setInt('fontWeightIndex', _fontWeightIndex);
     await p.setDouble('bottomPadding', _bottomPadding);
     await p.setDouble('horizontalMargin', _horizontalMargin);
+    await p.setString('fontFamily', _fontFamily);
   }
 
   // Setters
@@ -172,4 +173,5 @@ class SettingsProvider extends ChangeNotifier {
   void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
   void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }
   void setHorizontalMargin(double v) { _horizontalMargin = v; notifyListeners(); _save(); }
+  void setFontFamily(String v) { _fontFamily = v; notifyListeners(); _save(); }
 }

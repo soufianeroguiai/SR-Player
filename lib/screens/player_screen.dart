@@ -498,11 +498,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // ──────────────────────────────────────────────────────────
   Future<void> _showAudioMenu() async {
     final cs = Theme.of(context).colorScheme;
-    final seen = <String>{}; 
+    final seen = <String>{};
     final uniqueAudio = <AudioTrack>[];
     for (final t in _audioTracks) {
       final k = t.title ?? t.language ?? 'unknown';
-      if (!seen.contains(k)) { seen.add(k); uniqueAudio.add(t); }
+      if (!seen.contains(k)) {
+        seen.add(k);
+        uniqueAudio.add(t);
+      }
     }
 
     final renderBox = context.findRenderObject() as RenderBox;
@@ -556,9 +559,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text('تكبير الصوت', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700)),
-        Slider(value: _audioBoost, min: 50, max: 200, onChanged: (v) { 
-          setSheetState(() {}); 
-          setState(() => _audioBoost = v); 
+        Slider(value: _audioBoost, min: 50, max: 200, onChanged: (v) {
+          setSheetState(() {});
+          setState(() => _audioBoost = v);
           _player.setVolume(v);
         }),
       ]),
@@ -687,7 +690,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       ListTile(
         dense: true,
         title: const Text('نوع الخط', style: TextStyle(color: Colors.white)),
-        trailing: const Icon(Icons.arrow_drop_down, color: Colors.white54),
+        trailing: Text(s.fontFamily, style: const TextStyle(color: Colors.white54)),
         onTap: () {
           Navigator.pop(context);
           _showFontFamilyPicker();
