@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  // --- إعداداتك الأصلية ---
   ThemeMode _themeMode = ThemeMode.dark;
   ThemeMode get themeMode => _themeMode;
 
@@ -27,53 +26,56 @@ class SettingsProvider extends ChangeNotifier {
   bool _sortDesc = true;
   bool get sortDesc => _sortDesc;
 
-  double _subtitleFontSize = 19.0;
+  // 📝 تخصيص الترجمة
+  double _subtitleFontSize = 20.0;
   double get subtitleFontSize => _subtitleFontSize;
 
-  int _subtitleColorValue = 0xFFFFFFFF;
+  int _subtitleColorValue = 0xFFFFFFFF; // أبيض
   Color get subtitleColor => Color(_subtitleColorValue);
 
-  double _subtitleBgOpacity = 0.6;
+  double _subtitleBgOpacity = 0.4;
   double get subtitleBgOpacity => _subtitleBgOpacity;
 
+  // 🔊 صوت المشغل الداخلي
   double _defaultVolume = 1.0;
   double get defaultVolume => _defaultVolume;
 
+  // ☀️ سطوع التطبيق
   double _defaultBrightness = 0.7;
   double get defaultBrightness => _defaultBrightness;
 
-  // --- إضافات جديدة للمشغل (لـ Color Picker) ---
-  Color _subtitleBgColor = Colors.black;
+  // 🎨 إعدادات الترجمة المتقدمة
+  Color _subtitleBgColor = const Color(0xFF000000); // أسود
   Color get subtitleBgColor => _subtitleBgColor;
 
-  Color _outlineColor = Colors.black;
+  Color _outlineColor = const Color(0xFF000000); // أسود
   Color get outlineColor => _outlineColor;
 
-  double _outlineWidth = 1.0;
+  double _outlineWidth = 2.0;
   double get outlineWidth => _outlineWidth;
 
-  bool _shadowEnabled = true;
+  bool _shadowEnabled = false;
   bool get shadowEnabled => _shadowEnabled;
 
-  Color _shadowColor = Colors.black;
+  Color _shadowColor = const Color(0xFF000000); // أسود
   Color get shadowColor => _shadowColor;
 
-  double _shadowBlurRadius = 5.0;
+  double _shadowBlurRadius = 4.0;
   double get shadowBlurRadius => _shadowBlurRadius;
 
-  double _shadowOffsetX = 2.0;
+  double _shadowOffsetX = 1.0;
   double get shadowOffsetX => _shadowOffsetX;
 
-  double _shadowOffsetY = 2.0;
+  double _shadowOffsetY = 1.0;
   double get shadowOffsetY => _shadowOffsetY;
 
-  int _fontWeightIndex = 1;
+  int _fontWeightIndex = 2;
   int get fontWeightIndex => _fontWeightIndex;
 
-  double _bottomPadding = 50.0;
+  double _bottomPadding = 48.0;
   double get bottomPadding => _bottomPadding;
 
-  double _horizontalMargin = 20.0;
+  double _horizontalMargin = 24.0;
   double get horizontalMargin => _horizontalMargin;
 
   // --- Load ---
@@ -93,23 +95,23 @@ class SettingsProvider extends ChangeNotifier {
       _gridView = p.getBool('gridView') ?? false;
       _sortBy = p.getString('sortBy') ?? 'date';
       _sortDesc = p.getBool('sortDesc') ?? true;
-      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 19.0;
+      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 20.0;
       _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
-      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.6;
+      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.4;
       _defaultVolume = p.getDouble('defaultVolume') ?? 1.0;
       _defaultBrightness = p.getDouble('defaultBrightness') ?? 0.7;
-      
-      // تحميل الإضافات الجديدة
-      _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? Colors.black.value);
-      _outlineColor = Color(p.getInt('outlineColor') ?? Colors.black.value);
-      _outlineWidth = p.getDouble('outlineWidth') ?? 1.0;
-      _shadowEnabled = p.getBool('shadowEnabled') ?? true;
-      _shadowColor = Color(p.getInt('shadowColor') ?? Colors.black.value);
-      _shadowBlurRadius = p.getDouble('shadowBlurRadius') ?? 5.0;
-      _shadowOffsetX = p.getDouble('shadowOffsetX') ?? 2.0;
-      _shadowOffsetY = p.getDouble('shadowOffsetY') ?? 2.0;
-      _fontWeightIndex = p.getInt('fontWeightIndex') ?? 1;
-      _bottomPadding = p.getDouble('bottomPadding') ?? 50.0;
+
+      _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
+      _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
+      _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
+      _shadowEnabled = p.getBool('shadowEnabled') ?? false;
+      _shadowColor = Color(p.getInt('shadowColor') ?? 0xFF000000);
+      _shadowBlurRadius = p.getDouble('shadowBlurRadius') ?? 4.0;
+      _shadowOffsetX = p.getDouble('shadowOffsetX') ?? 1.0;
+      _shadowOffsetY = p.getDouble('shadowOffsetY') ?? 1.0;
+      _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
+      _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
+      _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
 
       notifyListeners();
     } catch (e) {
@@ -133,8 +135,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('subtitleBgOpacity', _subtitleBgOpacity);
     await p.setDouble('defaultVolume', _defaultVolume);
     await p.setDouble('defaultBrightness', _defaultBrightness);
-    
-    // حفظ الإضافات الجديدة
+
     await p.setInt('subtitleBgColor', _subtitleBgColor.value);
     await p.setInt('outlineColor', _outlineColor.value);
     await p.setDouble('outlineWidth', _outlineWidth);
@@ -145,9 +146,10 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('shadowOffsetY', _shadowOffsetY);
     await p.setInt('fontWeightIndex', _fontWeightIndex);
     await p.setDouble('bottomPadding', _bottomPadding);
+    await p.setDouble('horizontalMargin', _horizontalMargin);
   }
 
-  // --- Setters الأصلية ---
+  // Setters
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
@@ -161,8 +163,6 @@ class SettingsProvider extends ChangeNotifier {
   void setSubtitleBgOpacity(double v) { _subtitleBgOpacity = v; notifyListeners(); _save(); }
   void setDefaultVolume(double v) { _defaultVolume = v; notifyListeners(); _save(); }
   void setDefaultBrightness(double v) { _defaultBrightness = v; notifyListeners(); _save(); }
-
-  // --- Setters الجديدة ---
   void setSubtitleBgColor(Color c) { _subtitleBgColor = c; notifyListeners(); _save(); }
   void setOutlineColor(Color c) { _outlineColor = c; notifyListeners(); _save(); }
   void setOutlineWidth(double v) { _outlineWidth = v; notifyListeners(); _save(); }
@@ -171,4 +171,5 @@ class SettingsProvider extends ChangeNotifier {
   void setShadowBlurRadius(double v) { _shadowBlurRadius = v; notifyListeners(); _save(); }
   void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
   void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }
+  void setHorizontalMargin(double v) { _horizontalMargin = v; notifyListeners(); _save(); }
 }

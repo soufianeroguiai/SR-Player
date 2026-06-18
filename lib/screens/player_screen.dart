@@ -7,7 +7,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:volume_controller/volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
@@ -50,9 +49,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
+  // الصوت الداخلي (0.0 - 1.0 للواجهة، داخليًا 0 - 100)
   double _volume = 0.8;
+  // سطوع التطبيق (0.0 - 1.0)
   double _brightness = 0.7;
-  double? _originalSystemBrightness;
+  double? _originalApplicationBrightness;
 
   String? _dragAxis;
   bool _dragIsLeftSide = false;
@@ -66,6 +67,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Timer? _indicatorTimer;
 
   bool _isLandscape = true;
+
+  int _fitIndex = 0;
+  final _fits = [BoxFit.contain, BoxFit.cover, BoxFit.fill];
+  final _fitIcons = [Symbols.fit_screen_rounded, Symbols.crop_rounded, Symbols.stretch_rounded];
+  final _fitLabels = ['ملاءمة', 'قص', 'تمديد'];
 
   @override
   void initState() {
@@ -112,12 +118,30 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  void _toggleFit() {
+    setState(() {
+      _fitIndex = (_fitIndex + 1) % _fits.length;
+      _controller.setFit(_fits[_fitIndex]);
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_fitLabels[_fitIndex]),
+          duration: const Duration(milliseconds: 800),
+          backgroundColor: Colors.black54,
+        ),
+      );
+    }
+  }
+
   Future<void> _initPlayer() async {
     final settings = context.read<SettingsProvider>();
 
     try {
       await _player.open(Media(widget.video.path), play: settings.autoPlay);
       _player.setRate(_speed);
+      // تعيين الصوت الداخلي (0-100)
+      _player.setVolume(_volume * 100);
 
       if (settings.rememberPosition) {
         try {
@@ -155,19 +179,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         });
       });
 
+      // سطوع التطبيق
       try {
-        _volume = await VolumeController.instance.getVolume();
+        _brightness = await ScreenBrightness.instance.application;
+        await ScreenBrightness.instance.setApplicationScreenBrightness(_brightness);
       } catch (_) {
-        _volume = 0.8;
+        _brightness = 0.7;
       }
-      VolumeController.instance.addListener((vol) {
-        if (mounted) setState(() => _volume = vol);
-      });
-
-      try {
-        _originalSystemBrightness = await ScreenBrightness.instance.system;
-        await ScreenBrightness.instance.setSystemScreenBrightness(_brightness);
-      } catch (_) {}
 
       setState(() => _initialized = true);
       _scheduleHide();
@@ -331,14 +349,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _handleVerticalGesture(double dy) {
     final delta = -dy / 200;
     if (_dragIsLeftSide) {
+      // سطوع التطبيق (بدون صلاحيات)
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
-      try { 
-        ScreenBrightness.instance.setSystemScreenBrightness(newBrightness); 
-        setState(() { _brightness = newBrightness; _showBrightnessIndicator = true; _showVolumeIndicator = false; }); 
+      try {
+        ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
+        setState(() { _brightness = newBrightness; _showBrightnessIndicator = true; _showVolumeIndicator = false; });
       } catch (_) {}
     } else {
+      // صوت المشغل الداخلي (0-100)
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
-      VolumeController.instance.setVolume(newVolume);
+      _player.setVolume(newVolume * 100);
       setState(() { _volume = newVolume; _showVolumeIndicator = true; _showBrightnessIndicator = false; });
     }
     _resetIndicatorTimer();
@@ -596,6 +616,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               IconButton(icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
               Expanded(child: Text(widget.video.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
               IconButton(icon: Icon(_isLocked ? Symbols.lock_rounded : Symbols.lock_open_rounded, color: _isLocked ? Colors.orange : Colors.white54), onPressed: _toggleLock),
+              IconButton(icon: Icon(_fitIcons[_fitIndex], color: Colors.white70), onPressed: _toggleFit, tooltip: _fitLabels[_fitIndex]),
               IconButton(icon: Icon(_isLandscape ? Symbols.screen_rotation_rounded : Symbols.stay_current_portrait_rounded, color: Colors.white70), onPressed: _toggleOrientation),
               IconButton(icon: const Icon(Symbols.picture_in_picture_rounded, color: Colors.white70), onPressed: _enterPip),
               IconButton(icon: const Icon(Symbols.graphic_eq_rounded, color: Colors.white70), onPressed: _showAudioMenu),
@@ -626,9 +647,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _hideTimer?.cancel();
     _saveTimer?.cancel();
     _indicatorTimer?.cancel();
-    VolumeController.instance.removeListener();
-    if (_originalSystemBrightness != null) {
-      try { ScreenBrightness.instance.setSystemScreenBrightness(_originalSystemBrightness!); } catch (_) {}
+    // إعادة سطوع التطبيق الأصلي
+    if (_originalApplicationBrightness != null) {
+      try { ScreenBrightness.instance.setApplicationScreenBrightness(_originalApplicationBrightness!); } catch (_) {}
     }
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
