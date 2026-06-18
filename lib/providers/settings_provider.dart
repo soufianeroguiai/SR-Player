@@ -32,7 +32,8 @@ class SettingsProvider extends ChangeNotifier {
   int _subtitleColorValue = 0xFFFFFFFF;
   Color get subtitleColor => Color(_subtitleColorValue);
 
-  double _subtitleBgOpacity = 0.4;
+  // 👈 تم تغييرها إلى 0.0 (بلا خلفية)
+  double _subtitleBgOpacity = 0.0;
   double get subtitleBgOpacity => _subtitleBgOpacity;
 
   Color _subtitleBgColor = const Color(0xFF000000);
@@ -92,7 +93,8 @@ class SettingsProvider extends ChangeNotifier {
   bool _subtitleItalic = false;
   bool get subtitleItalic => _subtitleItalic;
 
-  bool _subtitleRTL = true;
+  // 👈 تم تغييرها إلى false (محاذاة وسط)
+  bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
 
   String _audioPlayerEngine = 'media_kit';
@@ -131,6 +133,7 @@ class SettingsProvider extends ChangeNotifier {
   double _audioRate = 1.0;
   double get audioRate => _audioRate;
 
+  // --- Load & Save (بدون تغيير) ---
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
@@ -147,7 +150,7 @@ class SettingsProvider extends ChangeNotifier {
       _sortDesc = p.getBool('sortDesc') ?? true;
       _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 30.0;
       _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
-      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.4;
+      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.0;          // 0.0
       _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
       _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
       _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
@@ -167,7 +170,7 @@ class SettingsProvider extends ChangeNotifier {
       _subtitleHwAcceleration = p.getBool('subtitleHwAcceleration') ?? false;
       _subtitleFontsFolder = p.getString('subtitleFontsFolder') ?? '';
       _subtitleItalic = p.getBool('subtitleItalic') ?? false;
-      _subtitleRTL = p.getBool('subtitleRTL') ?? true;
+      _subtitleRTL = p.getBool('subtitleRTL') ?? false;                       // false
       _audioPlayerEngine = p.getString('audioPlayerEngine') ?? 'media_kit';
       _audioOutput = p.getString('audioOutput') ?? 'auto';
       _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
@@ -233,6 +236,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('audioRate', _audioRate);
   }
 
+  // Setters (بدون تغيير) ...
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
