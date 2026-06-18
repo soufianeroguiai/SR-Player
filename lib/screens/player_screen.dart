@@ -349,9 +349,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     ));
   }
 
-  // ────────────────────────────────────────────────────────────
-  // 🌟 قائمة الترجمة المنسدلة (PopupMenu)
-  // ────────────────────────────────────────────────────────────
   Future<void> _showSubtitleMenu() async {
     final cs = Theme.of(context).colorScheme;
     final seen = <String>{}; 
@@ -363,12 +360,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
-    final buttonPosition = RelativeRect.fromLTRB(
-      size.width - 160, // من اليسار
-      80,              // من الأعلى
-      size.width - 60, // من اليمين
-      130,             // من الأسفل
-    );
+    final buttonPosition = RelativeRect.fromLTRB(size.width - 160, 80, size.width - 60, 130);
 
     showMenu<String>(
       context: context,
@@ -423,9 +415,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // ────────────────────────────────────────────────────────────
-  // 🌟 قائمة الصوت المنسدلة (PopupMenu)
-  // ────────────────────────────────────────────────────────────
   Future<void> _showAudioMenu() async {
     final cs = Theme.of(context).colorScheme;
     final seen = <String>{}; 
@@ -437,12 +426,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
-    final buttonPosition = RelativeRect.fromLTRB(
-      size.width - 220,
-      80,
-      size.width - 120,
-      130,
-    );
+    final buttonPosition = RelativeRect.fromLTRB(size.width - 220, 80, size.width - 120, 130);
 
     showMenu<String>(
       context: context,
@@ -496,18 +480,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     )));
   }
 
-  // ────────────────────────────────────────────────────────────
-  // 🌟 إعدادات الترجمة المنسدلة (PopupMenu) – تضغط على أيقونة الإعدادات
-  // ────────────────────────────────────────────────────────────
   void _showSubtitleSettingsSheet() {
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
-    final buttonPosition = RelativeRect.fromLTRB(
-      size.width - 100,
-      80,
-      size.width - 20,
-      130,
-    );
+    final buttonPosition = RelativeRect.fromLTRB(size.width - 100, 80, size.width - 20, 130);
 
     showMenu<String>(
       context: context,
@@ -516,19 +492,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       elevation: 10,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       items: [
-        // العناصر كثيرة، نضعها داخل PopupMenuItem واحد قابل للتمرير
         PopupMenuItem<String>(
           enabled: false,
           padding: EdgeInsets.zero,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 350, maxWidth: 250),
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildSettingsContent(),
-                ],
-              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [_buildSettingsContent()]),
             ),
           ),
         ),
@@ -536,87 +506,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // محتوى إعدادات الترجمة (مستخرج لتسهيل الصيانة)
   Widget _buildSettingsContent() {
     final s = context.watch<SettingsProvider>();
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('إعدادات الترجمة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          const Divider(color: Colors.white24),
-          ListTile(
-            dense: true,
-            title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
-            subtitle: Slider(
-              value: s.subtitleFontSize,
-              min: 10,
-              max: 50,
-              onChanged: (v) => s.setSubtitleFontSize(v),
-              activeColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          ListTile(
-            dense: true,
-            title: const Text('لون النص', style: TextStyle(color: Colors.white)),
-            trailing: CircleAvatar(backgroundColor: s.subtitleColor, radius: 12),
-            onTap: () {
-              Navigator.pop(context);
-              _showColorPicker(context, s.subtitleColor, (c) => s.setSubtitleColor(c));
-            },
-          ),
-          ListTile(
-            dense: true,
-            title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
-            trailing: CircleAvatar(backgroundColor: s.subtitleBgColor, radius: 12),
-            onTap: () {
-              Navigator.pop(context);
-              _showColorPicker(context, s.subtitleBgColor, (c) => s.setSubtitleBgColor(c));
-            },
-          ),
-          ListTile(
-            dense: true,
-            title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)),
-            subtitle: Slider(
-              value: s.subtitleBgOpacity,
-              min: 0,
-              max: 1,
-              onChanged: (v) => s.setSubtitleBgOpacity(v),
-              activeColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          SwitchListTile(
-            dense: true,
-            title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)),
-            value: s.shadowEnabled,
-            onChanged: (v) => s.setShadowEnabled(v),
-            activeColor: Colors.lightBlue,
-          ),
-          if (s.shadowEnabled) ...[
-            ListTile(
-              dense: true,
-              title: const Text('لون الظل', style: TextStyle(color: Colors.white)),
-              trailing: CircleAvatar(backgroundColor: s.shadowColor, radius: 12),
-              onTap: () {
-                Navigator.pop(context);
-                _showColorPicker(context, s.shadowColor, (c) => s.setShadowColor(c));
-              },
-            ),
-            ListTile(
-              dense: true,
-              title: const Text('توهج الظل', style: TextStyle(color: Colors.white)),
-              subtitle: Slider(
-                value: s.shadowBlurRadius,
-                min: 0,
-                max: 20,
-                onChanged: (v) => s.setShadowBlurRadius(v),
-                activeColor: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ],
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('إعدادات الترجمة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        const Divider(color: Colors.white24),
+        ListTile(dense: true, title: const Text('حجم الخط', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleFontSize, min: 10, max: 50, onChanged: (v) => s.setSubtitleFontSize(v), activeColor: Theme.of(context).colorScheme.primary)),
+        ListTile(dense: true, title: const Text('لون النص', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.subtitleColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleColor, (c) => s.setSubtitleColor(c)); }),
+        ListTile(dense: true, title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.subtitleBgColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.subtitleBgColor, (c) => s.setSubtitleBgColor(c)); }),
+        ListTile(dense: true, title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleBgOpacity, min: 0, max: 1, onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: Theme.of(context).colorScheme.primary)),
+        SwitchListTile(dense: true, title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)), value: s.shadowEnabled, onChanged: (v) => s.setShadowEnabled(v), activeColor: Colors.lightBlue),
+        if (s.shadowEnabled) ...[
+          ListTile(dense: true, title: const Text('لون الظل', style: TextStyle(color: Colors.white)), trailing: CircleAvatar(backgroundColor: s.shadowColor, radius: 12), onTap: () { Navigator.pop(context); _showColorPicker(context, s.shadowColor, (c) => s.setShadowColor(c)); }),
+          ListTile(dense: true, title: const Text('توهج الظل', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.shadowBlurRadius, min: 0, max: 20, onChanged: (v) => s.setShadowBlurRadius(v), activeColor: Theme.of(context).colorScheme.primary)),
         ],
-      ),
+      ]),
     );
   }
 
@@ -676,7 +582,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
         ])),
       ],
-    ]))));
+    ])));
   }
 
   @override
