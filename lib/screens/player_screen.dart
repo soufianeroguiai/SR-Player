@@ -51,6 +51,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   double _volume = 0.8;
   double _brightness = 0.7;
+  double? _originalSystemBrightness;
 
   String? _dragAxis;
   bool _dragIsLeftSide = false;
@@ -157,9 +158,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (mounted) setState(() => _volume = vol);
       });
 
-      // تعديل السطوع على مستوى التطبيق بدلاً من النظام لتفادي أخطاء الصلاحيات
       try {
-        await ScreenBrightness.instance.setScreenBrightness(_brightness);
+        _originalSystemBrightness = await ScreenBrightness.instance.system;
+        await ScreenBrightness.instance.setSystemScreenBrightness(_brightness);
       } catch (_) {}
 
       setState(() => _initialized = true);
@@ -197,7 +198,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _pickSubtitle() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['srt', 'SRT']);
+    final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['srt', 'SRT']);
     if (result?.files.single.path != null) {
       await _loadSrtFile(result!.files.single.path!);
     }
@@ -326,13 +327,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (_dragIsLeftSide) {
       final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
       try { 
-        ScreenBrightness.instance.setScreenBrightness(newBrightness); 
+        ScreenBrightness.instance.setSystemScreenBrightness(newBrightness); 
         setState(() { _brightness = newBrightness; _showBrightnessIndicator = true; _showVolumeIndicator = false; }); 
       } catch (_) {}
     } else {
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
-      // 🔥 تعديل: إخفاء بار صوت النظام عند السحب على الشاشة
-      VolumeController.instance.setVolume(newVolume, showSystemUI: false);
+      VolumeController.instance.setVolume(newVolume);
       setState(() { _volume = newVolume; _showVolumeIndicator = true; _showBrightnessIndicator = false; });
     }
     _resetIndicatorTimer();
@@ -404,7 +404,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             onTap: () {
               _player.setSubtitleTrack(track);
               setState(() => _showSubtitles = true);
-              // 🔥 تم حذف Navigator.pop لقفل القائمة بشكل طبيعي دون إغلاق الفيديو
             },
           );
         }),
@@ -413,7 +412,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           value: 'load',
           child: const ListTile(leading: Icon(Icons.upload, color: Colors.white), title: Text('تحميل ترجمة', style: TextStyle(color: Colors.white))),
           onTap: () {
-            Navigator.pop(context); // هنا مسموح للإغلاق لفتح منتقي الملفات
+            Navigator.pop(context);
             _pickSubtitle();
           },
         ),
@@ -454,7 +453,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
             onTap: () {
               _player.setAudioTrack(track);
-              // 🔥 تم حذف Navigator.pop لمنع إغلاق الشاشة بالخطأ
             },
           );
         }),
@@ -484,8 +482,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         Slider(value: _audioBoost, min: 50, max: 200, onChanged: (v) { 
           setSheetState(() {}); 
           setState(() => _audioBoost = v); 
-          // 🔥 تعديل: تحويل الصوت لنسبة مئوية وإخفاء واجهة النظام
-          VolumeController.instance.setVolume(v / 100, showSystemUI: false); 
+          VolumeController.instance.setVolume(v / 100); 
         }),
       ]),
     )));
@@ -559,36 +556,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     if (_isPip) return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
 
-    // 🔥 تعديل: تغليف الواجهة بـ KeyboardListener لـ صامت التقاط نقرات أزرار الهاتف الجانبية وحجب البار المزعج
-    return KeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: true,
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.audioVolumeUp) {
-            final newVolume = (_volume + 0.05).clamp(0.0, 1.0);
-            VolumeController.instance.setVolume(newVolume, showSystemUI: false);
-            setState(() { _volume = newVolume; _showVolumeIndicator = true; _showBrightnessIndicator = false; });
-            _resetIndicatorTimer();
-          } else if (event.logicalKey == LogicalKeyboardKey.audioVolumeDown) {
-            final newVolume = (_volume - 0.05).clamp(0.0, 1.0);
-            VolumeController.instance.setVolume(newVolume, showSystemUI: false);
-            setState(() { _volume = newVolume; _showVolumeIndicator = true; _showBrightnessIndicator = false; });
-            _resetIndicatorTimer();
-          }
-        }
-      },
-      child: PopScope(
-        canPop: !_isLocked, 
-        onPopInvokedWithResult: (didPop, result) async {
-          if (!didPop && !_isLocked) await _enterPip();
-          if (_isLocked) setState(() => _isLocked = false);
-        }, 
-        child: Scaffold(
-          backgroundColor: Colors.black, 
-          body: !_initialized 
-              ? Center(child: CircularProgressIndicator(color: cs.primary)) 
-              : Stack(children: [
+    return PopScope(
+      canPop: !_isLocked, 
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && !_isLocked) await _enterPip();
+        if (_isLocked) setState(() => _isLocked = false);
+      }, 
+      child: Scaffold(
+        backgroundColor: Colors.black, 
+        body: !_initialized 
+            ? Center(child: CircularProgressIndicator(color: cs.primary)) 
+            : Stack(children: [
           GestureDetector(
             onTap: _toggleControls, 
             onDoubleTapDown: _isLocked ? null : _onDoubleTapDown, 
@@ -631,7 +609,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
             ])),
           ],
-        ]))
+        ])
       ),
     );
   }
@@ -642,8 +620,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _hideTimer?.cancel();
     _indicatorTimer?.cancel();
     VolumeController.instance.removeListener();
-    // 🔥 إعادة ضبط سطوع الشاشة لـ الوضع الطبيعي عند الخروج بصيغة آمنة
-    try { ScreenBrightness.instance.resetScreenBrightness(); } catch (_) {}
+    if (_originalSystemBrightness != null) {
+      try { ScreenBrightness.instance.setSystemScreenBrightness(_originalSystemBrightness!); } catch (_) {}
+    }
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

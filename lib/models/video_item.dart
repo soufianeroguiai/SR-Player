@@ -6,6 +6,7 @@ class VideoItem {
   final DateTime modified;
   final String folder;
   final Duration duration;
+  List<int>? thumbnail;
   String? thumbnailPath;
 
   VideoItem({
@@ -16,19 +17,16 @@ class VideoItem {
     required this.modified,
     required this.folder,
     required this.duration,
+    this.thumbnail,
     this.thumbnailPath,
   });
 
   String get extension => path.split('.').last.toLowerCase();
 
   String get formattedSize {
-    if (size < 1024 * 1024) {
-      return '${(size / 1024).toStringAsFixed(0)} KB';
-    } else if (size < 1024 * 1024 * 1024) {
-      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-    } else {
-      return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-    }
+    if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(0)} KB';
+    if (size < 1024 * 1024 * 1024) return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
   String get formattedDuration {
@@ -38,25 +36,33 @@ class VideoItem {
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'path': path,
-        'name': name,
-        'size': size,
-        'modified': modified.millisecondsSinceEpoch,
-        'folder': folder,
-        'duration': duration.inMilliseconds,
-        'thumbnailPath': thumbnailPath,
-      };
+  String get formattedDate {
+    return '${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')}';
+  }
 
-  factory VideoItem.fromJson(Map<String, dynamic> json) => VideoItem(
-        id: json['id'],
-        path: json['path'],
-        name: json['name'],
-        size: json['size'],
-        modified: DateTime.fromMillisecondsSinceEpoch(json['modified']),
-        folder: json['folder'],
-        duration: Duration(milliseconds: json['duration']),
-        thumbnailPath: json['thumbnailPath'],
-      );
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'path': path,
+      'name': name,
+      'size': size,
+      'modified': modified.millisecondsSinceEpoch,
+      'folder': folder,
+      'duration': duration.inMilliseconds,
+      'thumbnailPath': thumbnailPath,
+    };
+  }
+
+  factory VideoItem.fromJson(Map<String, dynamic> json) {
+    return VideoItem(
+      id: json['id'] as String,
+      path: json['path'] as String,
+      name: json['name'] as String,
+      size: json['size'] as int,
+      modified: DateTime.fromMillisecondsSinceEpoch(json['modified'] as int),
+      folder: json['folder'] as String,
+      duration: Duration(milliseconds: json['duration'] as int),
+      thumbnailPath: json['thumbnailPath'] as String?,
+    );
+  }
 }
