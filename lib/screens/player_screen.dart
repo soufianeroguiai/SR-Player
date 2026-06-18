@@ -1,3 +1,4 @@
+cat > lib/screens/player_screen.dart << 'ENDOFFILE'
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -498,3 +499,4 @@ class _CtrlBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 28)));
 }
+ENDOFFILE
