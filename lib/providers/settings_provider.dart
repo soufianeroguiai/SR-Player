@@ -26,8 +26,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _sortDesc = true;
   bool get sortDesc => _sortDesc;
 
-  // 📝 تخصيص الترجمة
-  double _subtitleFontSize = 20.0;
+  double _subtitleFontSize = 30.0;
   double get subtitleFontSize => _subtitleFontSize;
 
   int _subtitleColorValue = 0xFFFFFFFF;
@@ -72,7 +71,6 @@ class SettingsProvider extends ChangeNotifier {
   String _fontFamily = 'Roboto';
   String get fontFamily => _fontFamily;
 
-  // 🆕 إعدادات ترجمة متقدمة
   String _subtitleFolder = '';
   String get subtitleFolder => _subtitleFolder;
 
@@ -97,7 +95,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _subtitleRTL = true;
   bool get subtitleRTL => _subtitleRTL;
 
-  // 🔊 إعدادات الصوت
   String _audioPlayerEngine = 'media_kit';
   String get audioPlayerEngine => _audioPlayerEngine;
 
@@ -134,16 +131,13 @@ class SettingsProvider extends ChangeNotifier {
   double _audioRate = 1.0;
   double get audioRate => _audioRate;
 
-  // --- Load ---
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
-
       final themeIndex = p.getInt('themeMode') ?? 1;
       _themeMode = themeIndex >= 0 && themeIndex < ThemeMode.values.length
           ? ThemeMode.values[themeIndex]
           : ThemeMode.dark;
-
       _rememberPosition = p.getBool('rememberPosition') ?? true;
       _autoPlay = p.getBool('autoPlay') ?? true;
       _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
@@ -151,7 +145,7 @@ class SettingsProvider extends ChangeNotifier {
       _gridView = p.getBool('gridView') ?? false;
       _sortBy = p.getString('sortBy') ?? 'date';
       _sortDesc = p.getBool('sortDesc') ?? true;
-      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 20.0;
+      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 30.0;
       _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
       _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.4;
       _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
@@ -166,7 +160,6 @@ class SettingsProvider extends ChangeNotifier {
       _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
       _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
       _fontFamily = p.getString('fontFamily') ?? 'Roboto';
-
       _subtitleFolder = p.getString('subtitleFolder') ?? '';
       _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
       _preferredSubtitleLanguage = p.getString('preferredSubtitleLanguage') ?? 'ara';
@@ -175,7 +168,6 @@ class SettingsProvider extends ChangeNotifier {
       _subtitleFontsFolder = p.getString('subtitleFontsFolder') ?? '';
       _subtitleItalic = p.getBool('subtitleItalic') ?? false;
       _subtitleRTL = p.getBool('subtitleRTL') ?? true;
-
       _audioPlayerEngine = p.getString('audioPlayerEngine') ?? 'media_kit';
       _audioOutput = p.getString('audioOutput') ?? 'auto';
       _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
@@ -188,14 +180,12 @@ class SettingsProvider extends ChangeNotifier {
       _bluetoothAudioDelayMs = p.getDouble('bluetoothAudioDelayMs') ?? 0.0;
       _audioPassthrough = p.getBool('audioPassthrough') ?? false;
       _audioRate = p.getDouble('audioRate') ?? 1.0;
-
       notifyListeners();
     } catch (e) {
       debugPrint('Settings load error: $e');
     }
   }
 
-  // --- Save ---
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('themeMode', _themeMode.index);
@@ -221,7 +211,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('bottomPadding', _bottomPadding);
     await p.setDouble('horizontalMargin', _horizontalMargin);
     await p.setString('fontFamily', _fontFamily);
-
     await p.setString('subtitleFolder', _subtitleFolder);
     await p.setString('subtitleEncoding', _subtitleEncoding);
     await p.setString('preferredSubtitleLanguage', _preferredSubtitleLanguage);
@@ -230,7 +219,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setString('subtitleFontsFolder', _subtitleFontsFolder);
     await p.setBool('subtitleItalic', _subtitleItalic);
     await p.setBool('subtitleRTL', _subtitleRTL);
-
     await p.setString('audioPlayerEngine', _audioPlayerEngine);
     await p.setString('audioOutput', _audioOutput);
     await p.setDouble('defaultAudioBoost', _defaultAudioBoost);
@@ -245,7 +233,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('audioRate', _audioRate);
   }
 
-  // Setters
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }

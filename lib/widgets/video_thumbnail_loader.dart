@@ -1,14 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:media_kit/media_kit.dart';
 
-/// ─────────────────────────────────────────────
-///  VideoThumbnailLoader – نسخة محسّنة
-///  يستخدم photo_manager (متاح بالفعل) بدل
-///  video_thumbnail الذي يفشل على أجهزة كثيرة
-/// ─────────────────────────────────────────────
 class VideoThumbnailLoader extends StatefulWidget {
   final String videoPath;
   final double width;
@@ -29,7 +24,6 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
   Uint8List? _bytes;
   bool _loading = true;
 
-  // ─── Cache مشترك بين كل instances ───────────
   static final Map<String, Uint8List?> _memCache = {};
   static final Map<String, Future<Uint8List?>> _pending = {};
 
@@ -42,28 +36,19 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
   Future<void> _load() async {
     final key = widget.videoPath;
 
-    // 1. من الذاكرة مباشرة
     if (_memCache.containsKey(key)) {
-      if (mounted) {
-        setState(() {
-          _bytes = _memCache[key];
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() { _bytes = _memCache[key]; _loading = false; });
       return;
     }
 
-    // 2. إذا طلب مسبق جارٍ، انتظره
     if (_pending.containsKey(key)) {
       final result = await _pending[key];
       if (mounted) setState(() { _bytes = result; _loading = false; });
       return;
     }
 
-    // 3. ابدأ طلب جديد
     final future = _generate(key);
     _pending[key] = future;
-
     final result = await future;
     _pending.remove(key);
     _memCache[key] = result;
@@ -71,48 +56,32 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
     if (mounted) setState(() { _bytes = result; _loading = false; });
   }
 
-  /// الطريقة الرئيسية: القرص → photo_manager → null
   static Future<Uint8List?> _generate(String videoPath) async {
-    // ─── أ. كاش على القرص ─────────────────────
     try {
       final dir = await getTemporaryDirectory();
       final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
       if (await cacheFile.exists()) {
         return await cacheFile.readAsBytes();
       }
-    } catch (_) {}
 
-    // ─── ب. photo_manager (الأموثوق) ──────────
-    try {
-      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
-        type: RequestType.video,
-      );
-      for (final album in albums) {
-        final count = await album.assetCountAsync;
-        final assets = await album.getAssetListRange(start: 0, end: count);
-        for (final asset in assets) {
-          final file = await asset.file;
-          if (file != null && file.path == videoPath) {
-            final thumb = await asset.thumbnailDataWithSize(
-              const ThumbnailSize(320, 200),
-              quality: 80,
-              format: ThumbnailFormat.jpeg,
-            );
-            if (thumb != null) {
-              // احفظ على القرص
-              try {
-                final dir = await getTemporaryDirectory();
-                final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
-                await cacheFile.writeAsBytes(thumb);
-              } catch (_) {}
-              return thumb;
-            }
-          }
-        }
+      final player = Player();
+      await player.open(Media(videoPath), play: false);
+      await Future.delayed(const Duration(milliseconds: 500));
+      final screenshot = await player.screenshot(format: 'image/jpeg', quality: 70);
+      await player.dispose();
+
+      if (screenshot != null && screenshot.isNotEmpty) {
+        try {
+          await cacheFile.writeAsBytes(screenshot);
+        } catch (_) {}
+        return screenshot;
       }
-    } catch (_) {}
 
-    return null;
+      return null;
+    } catch (e) {
+      debugPrint('Thumbnail generation error: $e');
+      return null;
+    }
   }
 
   @override
@@ -140,7 +109,7 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
       tween: Tween(begin: 0.4, end: 0.9),
       duration: const Duration(milliseconds: 900),
       builder: (_, v, __) => Container(color: Colors.grey[900]!.withValues(alpha: v)),
-      onEnd: () => setState(() {}), // يكرر الأنيميشن
+      onEnd: () => setState(() {}),
     );
   }
 
