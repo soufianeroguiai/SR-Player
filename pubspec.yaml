@@ -18,7 +18,7 @@ dependencies:
 
   # 📁 File & Media
   file_picker: ^12.0.0-beta.5
-  photo_manager: ^3.9.0          # يُستخدم للـ thumbnails والـ scan
+  photo_manager: ^3.9.0  
   path_provider: ^2.1.6
 
   # 🔐 Permissions
@@ -30,15 +30,12 @@ dependencies:
 
   # 🎨 UI
   material_symbols_icons: ^4.2951.0
-  flex_color_picker: ^3.8.0      # ← نُقل من devDependencies (يُستخدم في player)
+  flex_color_picker: ^3.8.0    
 
   # ⚙️ Utilities
   share_plus: ^13.1.0
   wakelock_plus: ^1.6.1
   screen_brightness: ^2.1.11
-
-  # ❌ video_thumbnail    → حُذف: photo_manager يستبدله بشكل موثوق
-  # ❌ volume_controller  → حُذف: media_kit setVolume يكفي
 
 dev_dependencies:
   flutter_test:
