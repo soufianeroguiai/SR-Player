@@ -11,6 +11,8 @@ import 'package:volume_controller/volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
+import 'package:flex_color_picker/flex_color_picker.dart'; // تأكد من استيرادها
+
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
@@ -74,26 +76,34 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _initPlayer();
   }
 
-  // --- دوال المساعدة للترجمة ---
-  FontWeight _getFontWeight(int index) {
-    switch (index) {
-      case 0: return FontWeight.w300;
-      case 1: return FontWeight.normal;
-      case 2: return FontWeight.w500;
-      case 3: return FontWeight.bold;
-      default: return FontWeight.normal;
-    }
+  // --- دالة اختيار الألوان الاحترافية ---
+  Future<void> _showColorPickerDialog(BuildContext context, Color currentColor, Function(Color) onColorChanged) async {
+    Color tempColor = currentColor;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('اختر اللون'),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            color: tempColor,
+            onColorChanged: (color) => tempColor = color,
+            pickersEnabled: const {
+              ColorPickerType.both: false,
+              ColorPickerType.primary: true,
+              ColorPickerType.accent: true,
+              ColorPickerType.wheel: true,
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () { onColorChanged(tempColor); Navigator.pop(context); }, child: const Text('موافق')),
+        ],
+      ),
+    );
   }
 
-  Alignment _getAlignment(int index) {
-    switch (index) {
-      case 0: return Alignment.topCenter;
-      case 1: return Alignment.center;
-      default: return Alignment.bottomCenter;
-    }
-  }
-
-  // --- نافذة إعدادات الترجمة ---
+  // --- نافذة إعدادات الترجمة المتطورة ---
   void _showSubtitleSettingsSheet() {
     showModalBottomSheet(
       context: context,
@@ -115,23 +125,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   title: const Text('النص والخط', style: TextStyle(color: Colors.white)),
                   children: [
                     ListTile(title: const Text('حجم الخط', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleFontSize, min: 10, max: 50, onChanged: (v) => s.setSubtitleFontSize(v))),
-                    ListTile(
-                      title: const Text('وزن الخط', style: TextStyle(color: Colors.white)),
-                      trailing: DropdownButton(
-                        dropdownColor: Colors.black,
-                        value: s.fontWeightIndex,
-                        items: const [DropdownMenuItem(value: 0, child: Text('Light', style: TextStyle(color: Colors.white))), DropdownMenuItem(value: 1, child: Text('Regular', style: TextStyle(color: Colors.white))), DropdownMenuItem(value: 2, child: Text('Medium', style: TextStyle(color: Colors.white))), DropdownMenuItem(value: 3, child: Text('Bold', style: TextStyle(color: Colors.white)))],
-                        onChanged: (v) => s.setFontWeightIndex(v!),
-                      ),
-                    ),
                   ],
                 ),
 
                 ExpansionTile(
                   title: const Text('الألوان', style: TextStyle(color: Colors.white)),
                   children: [
+                    ListTile(
+                      title: const Text('لون النص', style: TextStyle(color: Colors.white)),
+                      trailing: CircleAvatar(backgroundColor: s.subtitleColor),
+                      onTap: () => _showColorPickerDialog(context, s.subtitleColor, (c) => s.setSubtitleColor(c)),
+                    ),
+                    ListTile(
+                      title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
+                      trailing: CircleAvatar(backgroundColor: s.subtitleBgColor),
+                      onTap: () => _showColorPickerDialog(context, s.subtitleBgColor, (c) => s.setSubtitleBgColor(c)),
+                    ),
                     ListTile(title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.subtitleBgOpacity, min: 0, max: 1, onChanged: (v) => s.setSubtitleBgOpacity(v))),
-                    ListTile(title: const Text('سماكة الحدود', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.outlineWidth, min: 0, max: 5, onChanged: (v) => s.setOutlineWidth(v))),
                   ],
                 ),
 
@@ -139,14 +149,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   title: const Text('الظلال', style: TextStyle(color: Colors.white)),
                   children: [
                     SwitchListTile(title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)), value: s.shadowEnabled, onChanged: (v) => s.setShadowEnabled(v)),
+                    ListTile(
+                      title: const Text('لون الظل', style: TextStyle(color: Colors.white)),
+                      trailing: CircleAvatar(backgroundColor: s.shadowColor),
+                      onTap: () => _showColorPickerDialog(context, s.shadowColor, (c) => s.setShadowColor(c)),
+                    ),
                     ListTile(title: const Text('توهج الظل', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.shadowBlurRadius, min: 0, max: 20, onChanged: (v) => s.setShadowBlurRadius(v))),
-                  ],
-                ),
-
-                ExpansionTile(
-                  title: const Text('التموضع', style: TextStyle(color: Colors.white)),
-                  children: [
-                    ListTile(title: const Text('الهامش السفلي', style: TextStyle(color: Colors.white)), subtitle: Slider(value: s.bottomPadding, min: 0, max: 200, onChanged: (v) => s.setBottomPadding(v))),
                   ],
                 ),
               ],
@@ -157,7 +165,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- باقي الكود كما هو ---
+  // --- الدالة المساعدة لوزن الخط ---
+  FontWeight _getFontWeight(int index) {
+    switch (index) {
+      case 0: return FontWeight.w300;
+      case 1: return FontWeight.normal;
+      case 2: return FontWeight.w500;
+      case 3: return FontWeight.bold;
+      default: return FontWeight.normal;
+    }
+  }
+
+  // --- بقية الدوال (موجودة في كودك الأصلي) ---
   void _enterFullscreen() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _setOrientations();
@@ -193,10 +212,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       VolumeController.instance.addListener((vol) { if (mounted) setState(() => _volume = vol); });
       try { _brightness = await ScreenBrightness.instance.current; } catch (_) {}
 
-      _player.stream.position.listen((pos) {
-        if (!mounted) return;
-        setState(() => _position = pos);
-      });
+      _player.stream.position.listen((pos) { if (!mounted) return; setState(() => _position = pos); });
       _player.stream.duration.listen((dur) => setState(() => _duration = dur));
       _player.stream.playing.listen((playing) => setState(() => _isPlaying = playing));
       _player.stream.tracks.listen((tracks) => setState(() { _subtitleTracks = tracks.subtitle; _audioTracks = tracks.audio; }));
@@ -231,12 +247,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (_showControls) _scheduleHide();
   }
 
-  // --- Build UI ---
+  // --- الـ Build الأساسي ---
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = context.watch<SettingsProvider>();
-    final screenWidth = MediaQuery.of(context).size.width;
+    final s = context.watch<SettingsProvider>(); // 👈 التحديث اللحظي
 
     return Scaffold(
       backgroundColor: Colors.black,
