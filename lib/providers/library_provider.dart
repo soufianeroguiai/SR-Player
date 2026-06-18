@@ -54,7 +54,6 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
-  // تم تعديل هذه الدالة لجلب المسار الحقيقي للملف (File Path) بدلًا من URI
   Future<VideoItem?> _buildVideoItem(AssetEntity asset, String albumName) async {
     try {
       final file = await asset.file;
@@ -62,7 +61,7 @@ class LibraryProvider extends ChangeNotifier {
 
       return VideoItem(
         id: asset.id,
-        path: file.path, // المسار الحقيقي للنظام /storage/emulated/0/...
+        path: file.path,
         name: asset.title ?? 'فيديو ${asset.id}',
         size: file.lengthSync(),
         modified: asset.modifiedDateTime,
@@ -115,64 +114,6 @@ class LibraryProvider extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
-    _loadThumbnails();
-  }
-
-  Future<void> _loadThumbnails() async {
-    final videosToProcess = List<VideoItem>.from(_videos);
-    if (videosToProcess.isEmpty) return;
-
-    try {
-      final assetMap = <String, AssetEntity>{};
-      final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
-      for (final album in albums) {
-        final count = await album.assetCountAsync;
-        final assets = await album.getAssetListRange(start: 0, end: count);
-        for (final asset in assets) {
-          assetMap[asset.id] = asset;
-        }
-      }
-
-      for (final video in videosToProcess) {
-        if (!_videos.contains(video)) continue;
-
-        final asset = assetMap[video.id];
-        if (asset == null) {
-          await _generateThumbnailFromVideo(video);
-          continue;
-        }
-
-        try {
-          final thumb = await asset.thumbnailDataWithSize(
-            const ThumbnailSize(180, 120),
-            quality: 75,
-          );
-          if (thumb != null && thumb.isNotEmpty) {
-            video.thumbnail = thumb.toList();
-            notifyListeners();
-            continue;
-          }
-        } catch (_) {}
-
-        await _generateThumbnailFromVideo(video);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _generateThumbnailFromVideo(VideoItem video) async {
-    try {
-      final player = Player();
-      await player.open(Media(video.path), play: false);
-      await Future.delayed(const Duration(milliseconds: 500));
-      final screenshot = await player.screenshot(format: 'image/jpeg');
-      if (screenshot != null && screenshot.isNotEmpty) {
-        video.thumbnail = screenshot.toList();
-        notifyListeners();
-      }
-      await player.dispose();
-    } catch (e) {
-      debugPrint('فشل استخراج صورة مصغرة بالفيديو: $e');
-    }
   }
 
   Future<void> loadRecent() async {

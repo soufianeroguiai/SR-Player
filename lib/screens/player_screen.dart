@@ -36,6 +36,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _isPip = false;
   bool _isLocked = false;
   Timer? _hideTimer;
+  Timer? _saveTimer;
 
   bool _showSubtitles = true;
   List<SubtitleTrack> _subtitleTracks = [];
@@ -128,8 +129,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _player.stream.position.listen((pos) {
         if (!mounted) return;
         setState(() => _position = pos);
-        if (pos.inSeconds % 5 == 0 && settings.rememberPosition) {
-          context.read<LibraryProvider>().savePosition(widget.video.path, pos);
+        if (settings.rememberPosition) {
+          _saveTimer?.cancel();
+          _saveTimer = Timer(const Duration(seconds: 5), () {
+            if (mounted) {
+              context.read<LibraryProvider>().savePosition(widget.video.path, _position);
+            }
+          });
         }
       });
 
@@ -482,7 +488,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         Slider(value: _audioBoost, min: 50, max: 200, onChanged: (v) { 
           setSheetState(() {}); 
           setState(() => _audioBoost = v); 
-          VolumeController.instance.setVolume(v / 100); 
+          _player.setVolume(v);
         }),
       ]),
     )));
@@ -618,6 +624,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
+    _saveTimer?.cancel();
     _indicatorTimer?.cancel();
     VolumeController.instance.removeListener();
     if (_originalSystemBrightness != null) {
