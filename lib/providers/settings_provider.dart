@@ -291,10 +291,14 @@ class SettingsProvider extends ChangeNotifier {
   void setTextShadowEnabled(bool v) { _textShadowEnabled = v; notifyListeners(); _save(); }
   void setTextShadowColor(Color c) { _textShadowColor = c; notifyListeners(); _save(); }
   void setTextShadowBlurRadius(double v) { _textShadowBlurRadius = v; notifyListeners(); _save(); }
+  void setTextShadowOffsetX(double v) { _textShadowOffsetX = v; notifyListeners(); _save(); }
+  void setTextShadowOffsetY(double v) { _textShadowOffsetY = v; notifyListeners(); _save(); }
 
   void setBoxShadowEnabled(bool v) { _boxShadowEnabled = v; notifyListeners(); _save(); }
   void setBoxShadowColor(Color c) { _boxShadowColor = c; notifyListeners(); _save(); }
   void setBoxShadowBlurRadius(double v) { _boxShadowBlurRadius = v; notifyListeners(); _save(); }
+  void setBoxShadowOffsetX(double v) { _boxShadowOffsetX = v; notifyListeners(); _save(); }
+  void setBoxShadowOffsetY(double v) { _boxShadowOffsetY = v; notifyListeners(); _save(); }
 
   void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
   void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }

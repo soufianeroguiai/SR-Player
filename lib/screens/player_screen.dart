@@ -742,7 +742,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 onChanged: (v) {
                   setState(() => _subtitleSync = v);
                   settings.setDefaultSubtitleSync(v);
-                  // ملاحظة: مزامنة الترجمة غير مدعومة في media_kit حالياً
+                  // مزامنة الترجمة غير مدعومة مباشرة في media_kit حاليًا
                 },
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
@@ -784,8 +784,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget _buildSettingsContent() {
     final s = context.watch<SettingsProvider>();
     final cs = Theme.of(context).colorScheme;
-    // استخدام Offset واحد بدلاً من x/y منفصلين
-    final currentShadowOffset = s.textShadowOffset;
 
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
@@ -857,10 +855,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           dense: true,
           title: const Text('إزاحة الظل الأفقية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
-            value: currentShadowOffset.dx, min: -10, max: 10,
-            onChanged: (v) {
-              s.setTextShadowOffset(Offset(v, currentShadowOffset.dy));
-            },
+            value: s.textShadowOffsetX, min: -10, max: 10,
+            onChanged: (v) => s.setTextShadowOffsetX(v),
             activeColor: cs.primary,
           ),
         ),
@@ -868,10 +864,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           dense: true,
           title: const Text('إزاحة الظل الرأسية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
-            value: currentShadowOffset.dy, min: -10, max: 10,
-            onChanged: (v) {
-              s.setTextShadowOffset(Offset(currentShadowOffset.dx, v));
-            },
+            value: s.textShadowOffsetY, min: -10, max: 10,
+            onChanged: (v) => s.setTextShadowOffsetY(v),
             activeColor: cs.primary,
           ),
         ),
@@ -957,7 +951,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
                   shadows: s.textShadowEnabled
                       ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
-                          offset: s.textShadowOffset)]
+                          offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
                       : null,
                 ),
                 textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
