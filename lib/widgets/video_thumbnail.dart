@@ -22,7 +22,7 @@ class VideoThumbnail extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _shimmer();
         }
-        if (snapshot.hasData && snapshot.data != null) {
+        if (snapshot.hasData && snapshot.data != null && await snapshot.data!.exists()) {
           return Image.file(
             snapshot.data!,
             fit: BoxFit.cover,
@@ -37,7 +37,7 @@ class VideoThumbnail extends StatelessWidget {
   Widget _shimmer() {
     return Container(
       color: Colors.grey[900]!.withOpacity(0.4),
-      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24)),
     );
   }
 

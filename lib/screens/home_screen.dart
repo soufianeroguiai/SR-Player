@@ -1,9 +1,10 @@
-import 'dart:async'; // ✅ إضافة استيراد Timer
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
@@ -19,14 +20,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabs;
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
   String? _selectedFolder;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLibrary());
   }
 
@@ -41,12 +41,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _refreshLibrary() async {
     await context.read<LibraryProvider>().scan();
     await context.read<LibraryProvider>().loadRecent();
-  }
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
   }
 
   Future<void> _openPlayer(VideoItem video) async {
@@ -96,35 +90,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const SizedBox(width: 10),
           const Text('SR Player'),
         ]),
-        bottom: TabBar(controller: _tabs, tabs: const [
-          Tab(text: 'الكل'), Tab(text: 'الأخيرة'), Tab(text: 'المجلدات'),
-        ]),
         actions: [
-          IconButton(
-            icon: const Icon(Symbols.search_rounded),
-            onPressed: () => showSearch(
-              context: context,
-              delegate: _SearchDelegate(context.read<LibraryProvider>().videos, _openPlayer)
-            ),
-          ),
+          IconButton(icon: const Icon(Symbols.search_rounded),
+            onPressed: () => showSearch(context: context,
+              delegate: _SearchDelegate(context.read<LibraryProvider>().videos, _openPlayer))),
           IconButton(
             icon: Icon(settings.gridView ? Symbols.view_list_rounded : Symbols.grid_view_rounded),
-            onPressed: () => settings.setGridView(!settings.gridView),
-          ),
-          IconButton(
-            icon: const Icon(Symbols.sort_rounded),
-            onPressed: () => _sortSheet(settings),
-          ),
-          // زر فتح الملف
-          IconButton(
-            icon: const Icon(Symbols.folder_open_rounded),
-            onPressed: _pickFile,
-            tooltip: 'فتح ملف',
-          ),
-          IconButton(
-            icon: const Icon(Symbols.settings_rounded),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
+            onPressed: () => settings.setGridView(!settings.gridView)),
+          IconButton(icon: const Icon(Symbols.sort_rounded), onPressed: () => _sortSheet(settings)),
+          // زر فتح الملف موجود هنا في الأعلى
+          IconButton(icon: const Icon(Symbols.folder_open_rounded), onPressed: _pickFile, tooltip: 'فتح ملف'),
+          IconButton(icon: const Icon(Symbols.settings_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
         ],
       ),
       body: Consumer<LibraryProvider>(builder: (_, lib, __) {
@@ -146,10 +123,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ]));
         }
 
-        return TabBarView(controller: _tabs, children: [
-          RefreshIndicator(
-            onRefresh: _refreshLibrary,
-            child: _AllTab(
+        // استخدام IndexedStack بدلاً من TabBarView للحفاظ على حالة القوائم
+        return IndexedStack(
+          index: _currentIndex,
+          children: [
+            _AllTab(
               videos: _sorted(lib.videos),
               selectedFolder: _selectedFolder,
               folders: lib.byFolder.keys.toSet(),
@@ -159,17 +137,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               gridView: settings.gridView,
               loading: lib.loading,
             ),
-          ),
-          RefreshIndicator(
-            onRefresh: _refreshLibrary,
-            child: _RecentTab(paths: lib.recentPaths, all: lib.videos, onOpen: _openByPath, onClear: lib.clearRecent),
-          ),
-          RefreshIndicator(
-            onRefresh: _refreshLibrary,
-            child: _FoldersTab(byFolder: lib.byFolder, onTap: (f) { setState(() => _selectedFolder = f); _tabs.animateTo(0); }),
-          ),
-        ]);
+            _RecentTab(paths: lib.recentPaths, all: lib.videos, onOpen: _openByPath, onClear: lib.clearRecent),
+            _FoldersTab(byFolder: lib.byFolder, onTap: (f) { setState(() => _selectedFolder = f); _currentIndex = 0; }),
+          ],
+        );
       }),
+      // الشريط السفلي العائم (SalomonBottomBar)
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        height: 70,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: SalomonBottomBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          itemShape: const StadiumBorder(),
+          unselectedItemColor: cs.onSurfaceVariant,
+          selectedItemColor: cs.primary,
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          itemPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          items: const [
+            SalomonBottomBarItem(icon: Icon(Symbols.home_rounded), title: Text('الكل')),
+            SalomonBottomBarItem(icon: Icon(Symbols.history_rounded), title: Text('الأخيرة')),
+            SalomonBottomBarItem(icon: Icon(Symbols.folder_rounded), title: Text('المجلدات')),
+          ],
+        ),
+      ),
+      // تم حذف FloatingActionButton لأن الزر أصبح في الأعلى
       floatingActionButton: null,
     );
   }
@@ -227,7 +226,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     child: Icon(icon, color: fg, size: 22));
 }
 
-// ------------------- باقي الـ Widgets -------------------
+// ------------------- المكونات الفرعية -------------------
+
 class _AllTab extends StatelessWidget {
   final List<VideoItem> videos;
   final String? selectedFolder;
@@ -426,7 +426,7 @@ class _Empty extends StatelessWidget {
   }
 }
 
-// ✅ _SearchDelegate بعد التصحيح
+// Search Delegate مع debounce Timer لإصلاح الأخطاء
 class _SearchDelegate extends SearchDelegate<VideoItem?> {
   final List<VideoItem> videos;
   final Future<void> Function(VideoItem) onOpen;
@@ -453,7 +453,6 @@ class _SearchDelegate extends SearchDelegate<VideoItem?> {
   Widget buildSuggestions(BuildContext context) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      // استخدام context.mounted للتحقق من أن الواجهة لا تزال موجودة
       if (context.mounted) {
         (context as Element).markNeedsBuild();
       }

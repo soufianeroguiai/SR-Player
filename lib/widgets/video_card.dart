@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../models/video_item.dart';
-import 'video_thumbnail.dart';
+import 'video_thumbnail.dart'; // تأكد من استيراد الملف أعلاه
 
 class VideoCard extends StatelessWidget {
   final VideoItem video;
@@ -22,14 +22,11 @@ class VideoCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
-                width: 90,
-                height: 64,
+                width: 90, height: 64,
                 child: Stack(fit: StackFit.expand, children: [
                   VideoThumbnail(videoPath: video.path, width: 90, height: 64),
-                  // ✅ تم حذف أيقونة التشغيل من المنتصف تماماً
                   Positioned(
-                    bottom: 4,
-                    right: 4,
+                    bottom: 4, right: 4,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
@@ -80,10 +77,8 @@ class VideoGridCard extends StatelessWidget {
               aspectRatio: 16 / 9,
               child: Stack(fit: StackFit.expand, children: [
                 VideoThumbnail(videoPath: video.path, width: double.infinity, height: double.infinity),
-                // ✅ تم حذف أيقونة التشغيل من المنتصف تماماً
                 Positioned(
-                  bottom: 6,
-                  right: 6,
+                  bottom: 6, right: 6,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(
@@ -105,7 +100,6 @@ class VideoGridCard extends StatelessWidget {
                       style: TextStyle(color: cs.onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 3),
                   Text(video.formattedSize, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10)),
-                  // ✅ عرض علامات الترجمات المحايدة هنا
                   _buildSubtitleTags(video, cs),
                 ])),
                 if (onMoreTap != null)
@@ -123,7 +117,6 @@ class VideoGridCard extends StatelessWidget {
     );
   }
 
-  // ✅ شارات محايدة (تعتمد على ألوان الواجهة، بدون لون مميز)
   Widget _buildSubtitleTags(VideoItem video, ColorScheme cs) {
     if (video.subtitleFormats.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -135,16 +128,12 @@ class VideoGridCard extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest, // خلفية رمادية محايدة
+              color: cs.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               format.toUpperCase(),
-              style: TextStyle(
-                color: cs.onSurfaceVariant, // نص رمادي محايد ومقروء
-                fontSize: 9, 
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700),
             ),
           );
         }).toList(),
@@ -170,7 +159,6 @@ class _Info extends StatelessWidget {
         const SizedBox(width: 6),
         _Tag(video.extension.toUpperCase(), cs, primary: true),
       ]),
-      // ✅ القسم الجديد: علامات الترجمات (محايدة، أسفل الحجم والامتداد)
       if (video.subtitleFormats.isNotEmpty) ...[
         const SizedBox(height: 4),
         Wrap(
@@ -185,11 +173,7 @@ class _Info extends StatelessWidget {
               ),
               child: Text(
                 format.toUpperCase(),
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontSize: 9, 
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700),
               ),
             );
           }).toList(),
