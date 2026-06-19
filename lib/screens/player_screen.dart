@@ -86,8 +86,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   double _brightness = 0.7;
 
-  // متغيرات الإيماءة الجديدة
-  double _subtitleBaseScale = 1.0;
+  // متغيرات الإيماءة المُحدثة
   double _seekPreviewMs = 0.0;
   bool _showSeekIndicator = false;
   DateTime? _lastSeekTime;
@@ -105,6 +104,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _subtitleSync = 0.0;
   double _subtitleSpeed = 1.0;
   bool _autoSubtitleSelected = false;
+
+  // متغيرات إضافية لضمان سلاسة الإيماءات ومنع التقطيع
+  double _startSubtitleSize = 24.0;
+  DateTime? _lastVolTime;
+  DateTime? _lastBrightTime;
 
   @override
   void initState() {
@@ -161,7 +165,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _toggleFit() {
     setState(() {
-      _fitMode = VideoFitMode.values[(_fitMode.index + 1) % VideoFitMode.values.length];
+      VideoFitMode.values[(_fitMode.index + 1) % VideoFitMode.values.length];
       _showFitOverlay();
     });
     VideoFitSettings.save(_fitMode);
@@ -348,7 +352,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ════════════════════════════════════════════════
-  // 🎯 الإيماءات (Live Scrubbing + Throttling)
+  // 🎯 الإيماءات المُحسّنة بالكامل (Gestures Handler)
   // ════════════════════════════════════════════════
   void _onScaleStart(ScaleStartDetails details) {
     if (_isLocked) return;
@@ -356,7 +360,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _indicatorTimer?.cancel();
 
     if (details.pointerCount == 2) {
-      _subtitleBaseScale = 1.0;
+      // حفظ حجم الخط الابتدائي لتكبير الترجمة بإصبعين فوراً
+      _startSubtitleSize = context.read<SettingsProvider>().subtitleFontSize;
     } else {
       _seekPreviewMs = _position.inMilliseconds.toDouble();
     }
@@ -365,8 +370,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
     if (_isLocked) return;
 
+    // ── جاستر الترجمة (Pinch to Zoom) ──
     if (details.pointerCount == 2) {
-      _handleSubtitleScale(details.scale);
+      final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
+      context.read<SettingsProvider>().setSubtitleFontSize(newSize);
+
       setState(() {
         _showBrightnessIndicator = false;
         _showVolumeIndicator = false;
@@ -376,79 +384,68 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
 
     final dx = details.focalPointDelta.dx;
-final dy = details.focalPointDelta.dy;
+    final dy = details.focalPointDelta.dy;
 
-    if (dx.abs() < 2 && dy.abs() < 2) return;
+    if (dx.abs() < 1.5 && dy.abs() < 1.5) return;
 
     if (dx.abs() > dy.abs()) {
-      // ➜ Live Scrubbing (أفقي)
-      final seekChangeMs = (dx / screenWidth) * _duration.inMilliseconds;
-      final newMs = (_seekPreviewMs + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
-      _seekPreviewMs = newMs;
+      // ── التمرير الحي السلس (Live Scrubbing) ──
+      final seekFactor = _duration.inMilliseconds * 0.4; 
+      final seekChangeMs = (dx / screenWidth) * seekFactor;
+      _seekPreviewMs = (_seekPreviewMs + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
 
       setState(() {
         _showSeekIndicator = true;
         _showBrightnessIndicator = false;
         _showVolumeIndicator = false;
       });
-
-      // Throttling: لا نرسل seek أكثر من مرة كل 250ms
-      final now = DateTime.now();
-      if (_lastSeekTime == null || now.difference(_lastSeekTime!) > const Duration(milliseconds: 250)) {
-        _player.seek(Duration(milliseconds: newMs.toInt()));
-        _lastSeekTime = now;
-      }
     } else {
-      // ➜ عمودي = صوت / سطوع
-      final delta = -dy / 200.0;
+      // ── الصوت والسطوع بدون تقطيع (Throttling) ──
+      final delta = -dy / 150.0;
       final isLeft = details.localFocalPoint.dx < screenWidth / 2;
+      final now = DateTime.now();
 
       if (isLeft) {
         final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
-        try {
-          ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
-          setState(() {
-            _brightness = newBrightness;
-            _showBrightnessIndicator = true;
-            _showVolumeIndicator = false;
-            _showSeekIndicator = false;
-          });
-        } catch (_) {}
+        setState(() {
+          _brightness = newBrightness;
+          _showBrightnessIndicator = true;
+          _showVolumeIndicator = false;
+          _showSeekIndicator = false;
+        });
+
+        if (_lastBrightTime == null || now.difference(_lastBrightTime!) > const Duration(milliseconds: 100)) {
+          try { ScreenBrightness.instance.setApplicationScreenBrightness(_brightness); } catch (_) {}
+          _lastBrightTime = now;
+        }
       } else {
         final newVol = (_gestureVolume + delta).clamp(0.0, 1.0);
-        _gestureVolume = newVol;
-        _player.setVolume(_effectiveVolume);
         setState(() {
+          _gestureVolume = newVol;
           _showVolumeIndicator = true;
           _showBrightnessIndicator = false;
           _showSeekIndicator = false;
         });
+
+        if (_lastVolTime == null || now.difference(_lastVolTime!) > const Duration(milliseconds: 100)) {
+          _player.setVolume(_effectiveVolume);
+          _lastVolTime = now;
+        }
       }
       _resetIndicatorTimer();
     }
   }
 
   void _onScaleEnd(ScaleEndDetails details) {
-    if (details.pointerCount == 2) {
-      // يمكن حفظ الحجم هنا
-    } else {
-      // Seek نهائي دقيق
+    if (_isLocked) return;
+
+    if (_showSeekIndicator) {
+      // تنفيذ القفز الفعلي لزمن الفيديو عند رفع الإصبع فقط لمنع الثقل والتهنيج
       _player.seek(Duration(milliseconds: _seekPreviewMs.toInt()));
       setState(() => _showSeekIndicator = false);
       _resetIndicatorTimer();
       _scheduleHide();
     }
-  }
-
-  void _handleSubtitleScale(double gestureScale) {
-    final newScale = (_subtitleBaseScale * gestureScale).clamp(0.5, 3.0);
-
-    try {
-      if (_player.platform is NativePlayer) {
-        final nativePlayer = _player.platform as NativePlayer;
-        nativePlayer.setProperty('sub-scale', newScale.toStringAsFixed(2));
-      }
-    } catch (_) {}
   }
 
   void _resetIndicatorTimer() {
@@ -1197,7 +1194,7 @@ final dy = details.focalPointDelta.dy;
   }
 }
 
-// ═══════════════ _AudioBoostSection (بدون تغيير) ═══════════════
+// ═══════════════ _AudioBoostSection ═══════════════
 class _AudioBoostSection extends StatefulWidget {
   final double boost;
   final ValueChanged<double> onChanged;

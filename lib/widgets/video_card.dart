@@ -24,7 +24,7 @@ class VideoCard extends StatelessWidget {
               child: SizedBox(
                 width: 90, height: 64,
                 child: Stack(fit: StackFit.expand, children: [
-                  VideoThumbnailLoader(videoPath: video.path, width: 90, height: 64),
+                  VideoThumbnailLoader(video: video, width: 90, height: 64),
                   Positioned(
                     bottom: 4, right: 4,
                     child: Container(
@@ -76,7 +76,7 @@ class VideoGridCard extends StatelessWidget {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: Stack(fit: StackFit.expand, children: [
-                VideoThumbnailLoader(videoPath: video.path, width: double.infinity, height: double.infinity),
+                VideoThumbnailLoader(video: video, width: double.infinity, height: double.infinity),
                 Positioned(
                   bottom: 6, right: 6,
                   child: Container(
@@ -133,10 +133,30 @@ class _Info extends StatelessWidget {
         _Tag(video.formattedSize, cs),
         const SizedBox(width: 6),
         _Tag(video.extension.toUpperCase(), cs, primary: true),
-        if (video.subtitleTypes.isNotEmpty) ...[
-          const SizedBox(width: 6),
-          _Tag(video.subtitleTypes.join('+'), cs, primary: false),
-        ],
+        
+        // بطاقات عرض صيغ الترجمة المدمجة باللون الأخضر المميز
+        ValueListenableBuilder<List<String>>(
+          valueListenable: video.subtitlesNotifier,
+          builder: (context, subtitles, _) {
+            if (subtitles.isEmpty) return const SizedBox.shrink();
+            return Row(
+              children: subtitles.map((sub) => Padding(
+                padding: const EdgeInsets.only(leading: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.green.withOpacity(0.35)),
+                  ),
+                  child: Text(sub, style: const TextStyle(
+                    color: Colors.green, fontSize: 8.5, fontWeight: FontWeight.w900
+                  )),
+                ),
+              )).toList(),
+            );
+          },
+        ),
       ]),
       const SizedBox(height: 4),
       Row(children: [

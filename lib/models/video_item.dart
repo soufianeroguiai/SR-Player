@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class VideoItem {
   final String id;
   final String path;
@@ -9,6 +11,7 @@ class VideoItem {
   List<int>? thumbnail;
   String? thumbnailPath;
   List<String> subtitleTypes;
+  late ValueNotifier<List<String>> subtitlesNotifier;
 
   VideoItem({
     required this.id,
@@ -21,7 +24,9 @@ class VideoItem {
     this.thumbnail,
     this.thumbnailPath,
     this.subtitleTypes = const [],
-  });
+  }) {
+    subtitlesNotifier = ValueNotifier(subtitleTypes);
+  }
 
   String get extension => path.split('.').last.toLowerCase();
 
