@@ -72,7 +72,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showSubtitles = true;
   List<SubtitleTrack> _subtitleTracks = [];
   List<AudioTrack> _audioTracks = [];
-  String? _embeddedSubtitleText;
 
   double _gestureVolume = 0.8;
   double _audioBoost = 100.0;
@@ -87,13 +86,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   double _brightness = 0.7;
 
-  String? _dragAxis;
-  bool _dragIsLeftSide = false;
-  Offset _dragStartGlobal = Offset.zero;
-  Duration _dragStartPosition = Duration.zero;
-  Duration _seekPreview = Duration.zero;
+  // متغيرات الإيماءة الجديدة
+  double _subtitleBaseScale = 1.0;
+  double _seekPreviewMs = 0.0;
   bool _showSeekIndicator = false;
-
   DateTime? _lastSeekTime;
 
   bool _showVolumeIndicator = false;
@@ -222,15 +218,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _applyPreferredSubtitleLanguage(settings);
       });
 
-      _player.stream.subtitle.listen((subtitles) {
-        if (!mounted) return;
-        if (subtitles.isNotEmpty) {
-          setState(() => _embeddedSubtitleText = subtitles.first);
-        } else {
-          setState(() => _embeddedSubtitleText = null);
-        }
-      });
-
       try {
         _brightness = await ScreenBrightness.instance.application;
         await ScreenBrightness.instance.setApplicationScreenBrightness(_brightness);
@@ -253,6 +240,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
+  // ── الترجمة ───────────────────────────────────
   Future<void> _loadSubtitleFromPreferredFolder(SettingsProvider s) async {
     if (s.subtitleFolder.isEmpty) {
       final srtPath = SubtitleService.findSrt(widget.video.path);
@@ -359,101 +347,123 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try { await PipService.enter(); } catch (_) {}
   }
 
-  void _onDoubleTapDown(TapDownDetails details) {
-    if (_isLocked) return;
-    final isRight = details.localPosition.dx > MediaQuery.of(context).size.width / 2;
-    final target = isRight
-        ? (_position + const Duration(seconds: 10))
-        : (_position - const Duration(seconds: 10));
-    _player.seek(target.isNegative ? Duration.zero : (target > _duration ? _duration : target));
-  }
-
-  void _onPanStart(DragStartDetails details) {
+  // ════════════════════════════════════════════════
+  // 🎯 الإيماءات (Live Scrubbing + Throttling)
+  // ════════════════════════════════════════════════
+  void _onScaleStart(ScaleStartDetails details) {
     if (_isLocked) return;
     _hideTimer?.cancel();
     _indicatorTimer?.cancel();
-    _dragAxis = null;
-    _dragStartGlobal = details.globalPosition;
-    _dragStartPosition = _position;
-    _dragIsLeftSide = details.localPosition.dx < MediaQuery.of(context).size.width / 2;
+
+    if (details.pointerCount == 2) {
+      _subtitleBaseScale = 1.0;
+    } else {
+      _seekPreviewMs = _position.inMilliseconds.toDouble();
+    }
   }
 
-  void _onPanUpdate(DragUpdateDetails details, double screenWidth) {
+  void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
     if (_isLocked) return;
-    final totalDx = details.globalPosition.dx - _dragStartGlobal.dx;
-    final totalDy = details.globalPosition.dy - _dragStartGlobal.dy;
 
-    _dragAxis ??= (totalDx.abs() > 12 || totalDy.abs() > 12)
-        ? (totalDx.abs() > totalDy.abs() ? 'h' : 'v')
-        : null;
-    if (_dragAxis == null) return;
+    if (details.pointerCount == 2) {
+      _handleSubtitleScale(details.scale);
+      setState(() {
+        _showBrightnessIndicator = false;
+        _showVolumeIndicator = false;
+        _showSeekIndicator = false;
+      });
+      return;
+    }
 
-    if (_dragAxis == 'h') {
-      final seekSeconds = (totalDx / screenWidth) * 90;
-      var target = _dragStartPosition + Duration(seconds: seekSeconds.round());
-      if (target < Duration.zero) target = Duration.zero;
-      if (_duration > Duration.zero && target > _duration) target = _duration;
+    final dx = details.localFocalPointDelta.dx;
+    final dy = details.localFocalPointDelta.dy;
+
+    if (dx.abs() < 2 && dy.abs() < 2) return;
+
+    if (dx.abs() > dy.abs()) {
+      // ➜ Live Scrubbing (أفقي)
+      final seekChangeMs = (dx / screenWidth) * _duration.inMilliseconds;
+      final newMs = (_seekPreviewMs + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
+      _seekPreviewMs = newMs;
 
       setState(() {
-        _seekPreview = target;
         _showSeekIndicator = true;
         _showBrightnessIndicator = false;
         _showVolumeIndicator = false;
       });
 
+      // Throttling: لا نرسل seek أكثر من مرة كل 250ms
       final now = DateTime.now();
-      if (_lastSeekTime == null || now.difference(_lastSeekTime!) > const Duration(milliseconds: 150)) {
-        _player.seek(target);
+      if (_lastSeekTime == null || now.difference(_lastSeekTime!) > const Duration(milliseconds: 250)) {
+        _player.seek(Duration(milliseconds: newMs.toInt()));
         _lastSeekTime = now;
       }
     } else {
-      _handleVerticalGesture(details.delta.dy);
-    }
-  }
+      // ➜ عمودي = صوت / سطوع
+      final delta = -dy / 200.0;
+      final isLeft = details.localPosition.dx < screenWidth / 2;
 
-  void _onPanEnd(DragEndDetails details) {
-    if (_dragAxis == 'h') {
-      _player.seek(_seekPreview);
-      setState(() => _showSeekIndicator = false);
-    } else if (_dragAxis == 'v') {
+      if (isLeft) {
+        final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
+        try {
+          ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
+          setState(() {
+            _brightness = newBrightness;
+            _showBrightnessIndicator = true;
+            _showVolumeIndicator = false;
+            _showSeekIndicator = false;
+          });
+        } catch (_) {}
+      } else {
+        final newVol = (_gestureVolume + delta).clamp(0.0, 1.0);
+        _gestureVolume = newVol;
+        _player.setVolume(_effectiveVolume);
+        setState(() {
+          _showVolumeIndicator = true;
+          _showBrightnessIndicator = false;
+          _showSeekIndicator = false;
+        });
+      }
       _resetIndicatorTimer();
     }
-    _dragAxis = null;
-    _scheduleHide();
   }
 
-  void _handleVerticalGesture(double dy) {
-    final delta = -dy / 200.0;
-
-    if (_dragIsLeftSide) {
-      final newBrightness = (_brightness + delta).clamp(0.0, 1.0);
-      try {
-        ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
-        setState(() {
-          _brightness = newBrightness;
-          _showBrightnessIndicator = true;
-          _showVolumeIndicator = false;
-        });
-      } catch (_) {}
+  void _onScaleEnd(ScaleEndDetails details) {
+    if (details.pointerCount == 2) {
+      // يمكن حفظ الحجم هنا
     } else {
-      final newGestureVol = (_gestureVolume + delta).clamp(0.0, 1.0);
-      _gestureVolume = newGestureVol;
-      _player.setVolume(_effectiveVolume);
-      setState(() {
-        _showVolumeIndicator = true;
-        _showBrightnessIndicator = false;
-      });
+      // Seek نهائي دقيق
+      _player.seek(Duration(milliseconds: _seekPreviewMs.toInt()));
+      setState(() => _showSeekIndicator = false);
+      _resetIndicatorTimer();
+      _scheduleHide();
     }
-    _resetIndicatorTimer();
+  }
+
+  void _handleSubtitleScale(double gestureScale) {
+    final newScale = (_subtitleBaseScale * gestureScale).clamp(0.5, 3.0);
+
+    try {
+      if (_player.platform is NativePlayer) {
+        final nativePlayer = _player.platform as NativePlayer;
+        nativePlayer.setProperty('sub-scale', newScale.toStringAsFixed(2));
+      }
+    } catch (_) {}
   }
 
   void _resetIndicatorTimer() {
     _indicatorTimer?.cancel();
     _indicatorTimer = Timer(const Duration(seconds: 1, milliseconds: 500), () {
-      if (mounted) setState(() { _showBrightnessIndicator = false; _showVolumeIndicator = false; });
+      if (mounted) setState(() {
+        _showBrightnessIndicator = false;
+        _showVolumeIndicator = false;
+      });
     });
   }
 
+  // ════════════════════════════════════════════════
+  // مؤشرات الصوت والسطوع والتمرير (FadeOut)
+  // ════════════════════════════════════════════════
   Widget _buildFloatingIndicator({
     required IconData icon,
     required double displayValue,
@@ -539,6 +549,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  // ── القوائم ──────────────────────────────────
   void _showSpeedSheet() {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -832,7 +843,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: cs.primary)),
       ],
 
-      // ── ظل الأحرف ────────────────────────────
       SwitchListTile(
           dense: true,
           title: const Text('تفعيل ظل الأحرف', style: TextStyle(color: Colors.white)),
@@ -853,7 +863,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 onChanged: (v) => s.setTextShadowBlurRadius(v), activeColor: cs.primary)),
       ],
 
-      // ── ظل الصندوق ───────────────────────────
       SwitchListTile(
           dense: true,
           title: const Text('تفعيل ظل الصندوق', style: TextStyle(color: Colors.white)),
@@ -934,22 +943,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     if (_isPip) return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
 
-    final hasCustomSubtitle = _showSubtitles && _embeddedSubtitleText != null && _embeddedSubtitleText!.isNotEmpty;
-    final builtInSubtitleStyle = hasCustomSubtitle
-        ? const TextStyle(fontSize: 0, color: Colors.transparent)
-        : TextStyle(
-            fontSize: s.subtitleFontSize,
-            color: s.subtitleColor,
-            fontWeight: _getFontWeight(s.fontWeightIndex),
-            fontFamily: s.fontFamily,
-            fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-            backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-            shadows: s.textShadowEnabled
-                ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
-                    offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
-                : null,
-          );
-
     return PopScope(
       canPop: !_isLocked,
       onPopInvokedWithResult: (didPop, result) async {
@@ -964,60 +957,38 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
           GestureDetector(
             onTap: _toggleControls,
-            onDoubleTapDown: _isLocked ? null : _onDoubleTapDown,
-            onPanStart: _onPanStart,
-            onPanUpdate: (d) => _onPanUpdate(d, screenWidth),
-            onPanEnd: _onPanEnd,
+            onDoubleTapDown: _isLocked ? null : (details) {
+              final isRight = details.localPosition.dx > screenWidth / 2;
+              final target = isRight
+                  ? (_position + const Duration(seconds: 10))
+                  : (_position - const Duration(seconds: 10));
+              _player.seek(target.isNegative ? Duration.zero : (target > _duration ? _duration : target));
+            },
+            onScaleStart: _onScaleStart,
+            onScaleUpdate: (details) => _onScaleUpdate(details, screenWidth),
+            onScaleEnd: _onScaleEnd,
             child: Video(
               controller: _controller,
               fit: getBoxFit(_fitMode),
               controls: NoVideoControls,
               subtitleViewConfiguration: SubtitleViewConfiguration(
-                style: builtInSubtitleStyle,
+                style: TextStyle(
+                  fontSize: s.subtitleFontSize,
+                  color: s.subtitleColor,
+                  fontWeight: _getFontWeight(s.fontWeightIndex),
+                  fontFamily: s.fontFamily,
+                  fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                  backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+                  shadows: s.textShadowEnabled
+                      ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
+                          offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
+                      : null,
+                ),
                 textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
                 padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
               ),
             ),
           ),
-
-          if (hasCustomSubtitle)
-            Positioned(
-              bottom: s.bottomPadding,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: IntrinsicWidth(
-                  child: _SubtitleGestureWrapper(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: s.boxShadowEnabled
-                            ? [BoxShadow(color: s.boxShadowColor, blurRadius: s.boxShadowBlurRadius,
-                                offset: Offset(s.boxShadowOffsetX, s.boxShadowOffsetY))]
-                            : null,
-                      ),
-                      child: Text(
-                        _embeddedSubtitleText!,
-                        textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                        style: TextStyle(
-                          fontSize: s.subtitleFontSize,
-                          color: s.subtitleColor,
-                          fontWeight: _getFontWeight(s.fontWeightIndex),
-                          fontFamily: s.fontFamily,
-                          fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-                          shadows: s.textShadowEnabled
-                              ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
-                                  offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
 
           if (_fitOverlayText != null)
             Positioned(top: 100, left: 0, right: 0,
@@ -1032,17 +1003,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ))),
 
           if (_showSeekIndicator)
-            Center(child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.65),
-                borderRadius: BorderRadius.circular(16),
+            Center(
+              child: AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.75),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.video_forward, color: Colors.white, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      _fmt(Duration(milliseconds: _seekPreviewMs.toInt())),
+                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ]),
+                ),
               ),
-              child: Text(
-                _fmt(_seekPreview),
-                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-            )),
+            ),
 
           if (_showVolumeIndicator)
             Positioned(
@@ -1216,6 +1197,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
+// ═══════════════ _AudioBoostSection (بدون تغيير) ═══════════════
 class _AudioBoostSection extends StatefulWidget {
   final double boost;
   final ValueChanged<double> onChanged;
@@ -1300,61 +1282,6 @@ class _QuickBtn extends StatelessWidget {
         ),
         child: Text(label, style: TextStyle(color: active ? color : Colors.white54, fontSize: 11, fontWeight: FontWeight.w600)),
       ),
-    );
-  }
-}
-
-class _SubtitleGestureWrapper extends StatefulWidget {
-  final Widget child;
-  const _SubtitleGestureWrapper({required this.child});
-
-  @override
-  State<_SubtitleGestureWrapper> createState() => _SubtitleGestureWrapperState();
-}
-
-class _SubtitleGestureWrapperState extends State<_SubtitleGestureWrapper> {
-  bool _isScaling = false;
-  Timer? _scaleDelayTimer;
-  double _startScale = 1.0;
-  static const double _scaleThreshold = 1.02;
-
-  void _onScaleStart(ScaleStartDetails details) {
-    _startScale = 1.0;
-    _scaleDelayTimer = Timer(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _isScaling = true);
-    });
-  }
-
-  void _onScaleUpdate(ScaleUpdateDetails details) {
-    if (!_isScaling) return;
-    final currentScale = details.scale;
-    if ((currentScale - _startScale).abs() > _scaleThreshold - 1.0) {
-      final s = context.read<SettingsProvider>();
-      final newFontSize = (s.subtitleFontSize * currentScale).clamp(10.0, 150.0);
-      s.setSubtitleFontSize(newFontSize.roundToDouble());
-      _startScale = currentScale;
-    }
-  }
-
-  void _onScaleEnd(ScaleEndDetails details) {
-    _scaleDelayTimer?.cancel();
-    setState(() => _isScaling = false);
-  }
-
-  @override
-  void dispose() {
-    _scaleDelayTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onScaleStart: _onScaleStart,
-      onScaleUpdate: _onScaleUpdate,
-      onScaleEnd: _onScaleEnd,
-      behavior: HitTestBehavior.opaque,
-      child: widget.child,
     );
   }
 }
