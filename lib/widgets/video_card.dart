@@ -25,16 +25,6 @@ class VideoCard extends StatelessWidget {
                 width: 90, height: 64,
                 child: Stack(fit: StackFit.expand, children: [
                   VideoThumbnailLoader(videoPath: video.path, width: 90, height: 64),
-                  Center(
-                    child: Container(
-                      width: 34, height: 34,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 20),
-                    ),
-                  ),
                   Positioned(
                     bottom: 4, right: 4,
                     child: Container(
@@ -87,16 +77,6 @@ class VideoGridCard extends StatelessWidget {
               aspectRatio: 16 / 9,
               child: Stack(fit: StackFit.expand, children: [
                 VideoThumbnailLoader(videoPath: video.path, width: double.infinity, height: double.infinity),
-                Center(
-                  child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 24),
-                  ),
-                ),
                 Positioned(
                   bottom: 6, right: 6,
                   child: Container(
@@ -153,6 +133,10 @@ class _Info extends StatelessWidget {
         _Tag(video.formattedSize, cs),
         const SizedBox(width: 6),
         _Tag(video.extension.toUpperCase(), cs, primary: true),
+        if (video.subtitleTypes.isNotEmpty) ...[
+          const SizedBox(width: 6),
+          _Tag(video.subtitleTypes.join('+'), cs, primary: false),
+        ],
       ]),
       const SizedBox(height: 4),
       Row(children: [

@@ -8,6 +8,7 @@ class VideoItem {
   final Duration duration;
   List<int>? thumbnail;
   String? thumbnailPath;
+  List<String> subtitleTypes;
 
   VideoItem({
     required this.id,
@@ -19,6 +20,7 @@ class VideoItem {
     required this.duration,
     this.thumbnail,
     this.thumbnailPath,
+    this.subtitleTypes = const [],
   });
 
   String get extension => path.split('.').last.toLowerCase();
@@ -50,6 +52,7 @@ class VideoItem {
       'folder': folder,
       'duration': duration.inMilliseconds,
       'thumbnailPath': thumbnailPath,
+      'subtitleTypes': subtitleTypes,
     };
   }
 
@@ -63,6 +66,7 @@ class VideoItem {
       folder: json['folder'] as String,
       duration: Duration(milliseconds: json['duration'] as int),
       thumbnailPath: json['thumbnailPath'] as String?,
+      subtitleTypes: (json['subtitleTypes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 }

@@ -44,20 +44,41 @@ class SettingsProvider extends ChangeNotifier {
   double _outlineWidth = 2.0;
   double get outlineWidth => _outlineWidth;
 
-  bool _shadowEnabled = false;
-  bool get shadowEnabled => _shadowEnabled;
+  // ──────────────────────────────────────────────
+  // ظل الأحرف (Text Shadow)
+  // ──────────────────────────────────────────────
+  bool _textShadowEnabled = false;
+  bool get textShadowEnabled => _textShadowEnabled;
 
-  Color _shadowColor = const Color(0xFF000000);
-  Color get shadowColor => _shadowColor;
+  Color _textShadowColor = const Color(0xFF000000);
+  Color get textShadowColor => _textShadowColor;
 
-  double _shadowBlurRadius = 4.0;
-  double get shadowBlurRadius => _shadowBlurRadius;
+  double _textShadowBlurRadius = 4.0;
+  double get textShadowBlurRadius => _textShadowBlurRadius;
 
-  double _shadowOffsetX = 1.0;
-  double get shadowOffsetX => _shadowOffsetX;
+  double _textShadowOffsetX = 1.0;
+  double get textShadowOffsetX => _textShadowOffsetX;
 
-  double _shadowOffsetY = 1.0;
-  double get shadowOffsetY => _shadowOffsetY;
+  double _textShadowOffsetY = 1.0;
+  double get textShadowOffsetY => _textShadowOffsetY;
+
+  // ──────────────────────────────────────────────
+  // ظل الصندوق (Box Shadow)
+  // ──────────────────────────────────────────────
+  bool _boxShadowEnabled = false;
+  bool get boxShadowEnabled => _boxShadowEnabled;
+
+  Color _boxShadowColor = const Color(0xFF000000);
+  Color get boxShadowColor => _boxShadowColor;
+
+  double _boxShadowBlurRadius = 4.0;
+  double get boxShadowBlurRadius => _boxShadowBlurRadius;
+
+  double _boxShadowOffsetX = 1.0;
+  double get boxShadowOffsetX => _boxShadowOffsetX;
+
+  double _boxShadowOffsetY = 1.0;
+  double get boxShadowOffsetY => _boxShadowOffsetY;
 
   int _fontWeightIndex = 2;
   int get fontWeightIndex => _fontWeightIndex;
@@ -131,7 +152,7 @@ class SettingsProvider extends ChangeNotifier {
   double _audioRate = 1.0;
   double get audioRate => _audioRate;
 
-  // --- Load & Save ---
+  // --- Load ---
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
@@ -152,11 +173,19 @@ class SettingsProvider extends ChangeNotifier {
       _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
       _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
       _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
-      _shadowEnabled = p.getBool('shadowEnabled') ?? false;
-      _shadowColor = Color(p.getInt('shadowColor') ?? 0xFF000000);
-      _shadowBlurRadius = p.getDouble('shadowBlurRadius') ?? 4.0;
-      _shadowOffsetX = p.getDouble('shadowOffsetX') ?? 1.0;
-      _shadowOffsetY = p.getDouble('shadowOffsetY') ?? 1.0;
+
+      _textShadowEnabled = p.getBool('textShadowEnabled') ?? false;
+      _textShadowColor = Color(p.getInt('textShadowColor') ?? 0xFF000000);
+      _textShadowBlurRadius = p.getDouble('textShadowBlurRadius') ?? 4.0;
+      _textShadowOffsetX = p.getDouble('textShadowOffsetX') ?? 1.0;
+      _textShadowOffsetY = p.getDouble('textShadowOffsetY') ?? 1.0;
+
+      _boxShadowEnabled = p.getBool('boxShadowEnabled') ?? false;
+      _boxShadowColor = Color(p.getInt('boxShadowColor') ?? 0xFF000000);
+      _boxShadowBlurRadius = p.getDouble('boxShadowBlurRadius') ?? 4.0;
+      _boxShadowOffsetX = p.getDouble('boxShadowOffsetX') ?? 1.0;
+      _boxShadowOffsetY = p.getDouble('boxShadowOffsetY') ?? 1.0;
+
       _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
       _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
       _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
@@ -187,6 +216,7 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  // --- Save ---
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('themeMode', _themeMode.index);
@@ -203,11 +233,19 @@ class SettingsProvider extends ChangeNotifier {
     await p.setInt('subtitleBgColor', _subtitleBgColor.value);
     await p.setInt('outlineColor', _outlineColor.value);
     await p.setDouble('outlineWidth', _outlineWidth);
-    await p.setBool('shadowEnabled', _shadowEnabled);
-    await p.setInt('shadowColor', _shadowColor.value);
-    await p.setDouble('shadowBlurRadius', _shadowBlurRadius);
-    await p.setDouble('shadowOffsetX', _shadowOffsetX);
-    await p.setDouble('shadowOffsetY', _shadowOffsetY);
+
+    await p.setBool('textShadowEnabled', _textShadowEnabled);
+    await p.setInt('textShadowColor', _textShadowColor.value);
+    await p.setDouble('textShadowBlurRadius', _textShadowBlurRadius);
+    await p.setDouble('textShadowOffsetX', _textShadowOffsetX);
+    await p.setDouble('textShadowOffsetY', _textShadowOffsetY);
+
+    await p.setBool('boxShadowEnabled', _boxShadowEnabled);
+    await p.setInt('boxShadowColor', _boxShadowColor.value);
+    await p.setDouble('boxShadowBlurRadius', _boxShadowBlurRadius);
+    await p.setDouble('boxShadowOffsetX', _boxShadowOffsetX);
+    await p.setDouble('boxShadowOffsetY', _boxShadowOffsetY);
+
     await p.setInt('fontWeightIndex', _fontWeightIndex);
     await p.setDouble('bottomPadding', _bottomPadding);
     await p.setDouble('horizontalMargin', _horizontalMargin);
@@ -234,7 +272,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('audioRate', _audioRate);
   }
 
-  // Setters (مع حفظ فوري)
+  // Setters
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
@@ -249,9 +287,15 @@ class SettingsProvider extends ChangeNotifier {
   void setSubtitleBgColor(Color c) { _subtitleBgColor = c; notifyListeners(); _save(); }
   void setOutlineColor(Color c) { _outlineColor = c; notifyListeners(); _save(); }
   void setOutlineWidth(double v) { _outlineWidth = v; notifyListeners(); _save(); }
-  void setShadowEnabled(bool v) { _shadowEnabled = v; notifyListeners(); _save(); }
-  void setShadowColor(Color c) { _shadowColor = c; notifyListeners(); _save(); }
-  void setShadowBlurRadius(double v) { _shadowBlurRadius = v; notifyListeners(); _save(); }
+
+  void setTextShadowEnabled(bool v) { _textShadowEnabled = v; notifyListeners(); _save(); }
+  void setTextShadowColor(Color c) { _textShadowColor = c; notifyListeners(); _save(); }
+  void setTextShadowBlurRadius(double v) { _textShadowBlurRadius = v; notifyListeners(); _save(); }
+
+  void setBoxShadowEnabled(bool v) { _boxShadowEnabled = v; notifyListeners(); _save(); }
+  void setBoxShadowColor(Color c) { _boxShadowColor = c; notifyListeners(); _save(); }
+  void setBoxShadowBlurRadius(double v) { _boxShadowBlurRadius = v; notifyListeners(); _save(); }
+
   void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
   void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }
   void setHorizontalMargin(double v) { _horizontalMargin = v; notifyListeners(); _save(); }

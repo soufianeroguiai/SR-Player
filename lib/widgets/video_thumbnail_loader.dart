@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:video_thumbnail_gen/video_thumbnail_gen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -58,32 +59,42 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
 
   static Future<Uint8List?> _generate(String videoPath) async {
     try {
-      // 1. Disk cache
       final dir = await getTemporaryDirectory();
       final cacheFile = File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
       if (await cacheFile.exists()) {
         return await cacheFile.readAsBytes();
       }
 
-      // 2. Extract frame using media_kit (works with all formats)
+      try {
+        final thumbnail = await VideoThumbnail.thumbnailFile(
+          video: videoPath,
+          thumbnailPath: dir.path,
+          imageFormat: ImageFormat.PNG,
+          maxHeight: 200,
+          quality: 75,
+        );
+
+        if (thumbnail != null) {
+          final bytes = await File(thumbnail).readAsBytes();
+          await cacheFile.writeAsBytes(bytes);
+          return bytes;
+        }
+      } catch (_) {}
+
       final player = Player();
       await player.open(Media(videoPath), play: false);
       await Future.delayed(const Duration(milliseconds: 500));
-      // Note: 'quality' not supported in media_kit 1.2.6, so we remove it
       final screenshot = await player.screenshot(format: 'image/jpeg');
       await player.dispose();
 
       if (screenshot != null && screenshot.isNotEmpty) {
-        // Save to disk
-        try {
-          await cacheFile.writeAsBytes(screenshot);
-        } catch (_) {}
+        await cacheFile.writeAsBytes(screenshot);
         return screenshot;
       }
 
       return null;
     } catch (e) {
-      debugPrint('Thumbnail generation error: $e');
+      debugPrint('Thumbnail error: $e');
       return null;
     }
   }
@@ -98,11 +109,8 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
         child: _loading
             ? _shimmer()
             : _bytes != null
-                ? Image.memory(
-                    _bytes!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholder(),
-                  )
+                ? Image.memory(_bytes!, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder())
                 : _placeholder(),
       ),
     );
@@ -112,7 +120,7 @@ class _VideoThumbnailLoaderState extends State<VideoThumbnailLoader> {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.4, end: 0.9),
       duration: const Duration(milliseconds: 900),
-      builder: (_, v, __) => Container(color: Colors.grey[900]!.withOpacity(v)),
+      builder: (_, v, __) => Container(color: Colors.grey[900]!.withValues(alpha: v)),
       onEnd: () => setState(() {}),
     );
   }

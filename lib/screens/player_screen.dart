@@ -31,9 +31,9 @@ BoxFit getBoxFit(VideoFitMode mode) {
 
 String modeName(VideoFitMode mode) {
   switch (mode) {
-    case VideoFitMode.contain: return '📺 Fit';
-    case VideoFitMode.cover:   return '🔳 Crop';
-    case VideoFitMode.fill:    return '📐 Stretch';
+    case VideoFitMode.contain: return 'Fit';
+    case VideoFitMode.cover:   return 'Crop';
+    case VideoFitMode.fill:    return 'Stretch';
   }
 }
 
@@ -72,7 +72,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showSubtitles = true;
   List<SubtitleTrack> _subtitleTracks = [];
   List<AudioTrack> _audioTracks = [];
-  String? _embeddedSubtitleText; // الترجمة المدمجة الحالية
+  String? _embeddedSubtitleText;
 
   double _gestureVolume = 0.8;
   double _audioBoost = 100.0;
@@ -94,7 +94,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _seekPreview = Duration.zero;
   bool _showSeekIndicator = false;
 
-  // لتخفيف طلبات seek أثناء السحب (منع التهنيج)
   DateTime? _lastSeekTime;
 
   bool _showVolumeIndicator = false;
@@ -223,7 +222,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _applyPreferredSubtitleLanguage(settings);
       });
 
-      // التقاط نص الترجمة المدمجة (قد يكون List في 1.2.6)
       _player.stream.subtitle.listen((subtitles) {
         if (!mounted) return;
         if (subtitles.isNotEmpty) {
@@ -396,7 +394,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       if (target < Duration.zero) target = Duration.zero;
       if (_duration > Duration.zero && target > _duration) target = _duration;
 
-      // تحديث المؤشر فوراً
       setState(() {
         _seekPreview = target;
         _showSeekIndicator = true;
@@ -404,7 +401,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _showVolumeIndicator = false;
       });
 
-      // لا نطلب seek أكثر من مرة كل 150ms لتجنب التقطيع
       final now = DateTime.now();
       if (_lastSeekTime == null || now.difference(_lastSeekTime!) > const Duration(milliseconds: 150)) {
         _player.seek(target);
@@ -417,7 +413,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _onPanEnd(DragEndDetails details) {
     if (_dragAxis == 'h') {
-      // تأكد من أن seek النهائي دقيق
       _player.seek(_seekPreview);
       setState(() => _showSeekIndicator = false);
     } else if (_dragAxis == 'v') {
@@ -836,30 +831,53 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 value: s.subtitleBgOpacity, min: 0, max: 1,
                 onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: cs.primary)),
       ],
+
+      // ── ظل الأحرف ────────────────────────────
       SwitchListTile(
           dense: true,
-          title: const Text('تفعيل الظل', style: TextStyle(color: Colors.white)),
-          value: s.shadowEnabled,
-          onChanged: (v) => s.setShadowEnabled(v),
+          title: const Text('تفعيل ظل الأحرف', style: TextStyle(color: Colors.white)),
+          value: s.textShadowEnabled,
+          onChanged: (v) => s.setTextShadowEnabled(v),
           activeColor: Colors.lightBlue),
-      if (s.shadowEnabled) ...[
+      if (s.textShadowEnabled) ...[
         ListTile(
             dense: true,
-            title: const Text('لون الظل', style: TextStyle(color: Colors.white)),
-            trailing: CircleAvatar(backgroundColor: s.shadowColor, radius: 12),
-            onTap: () { Navigator.pop(context); _showColorPicker(context, s.shadowColor, (c) => s.setShadowColor(c)); }),
+            title: const Text('لون ظل الأحرف', style: TextStyle(color: Colors.white)),
+            trailing: CircleAvatar(backgroundColor: s.textShadowColor, radius: 12),
+            onTap: () { Navigator.pop(context); _showColorPicker(context, s.textShadowColor, (c) => s.setTextShadowColor(c)); }),
         ListTile(
             dense: true,
-            title: const Text('توهج الظل', style: TextStyle(color: Colors.white)),
+            title: const Text('توهج ظل الأحرف', style: TextStyle(color: Colors.white)),
             subtitle: Slider(
-                value: s.shadowBlurRadius, min: 0, max: 20,
-                onChanged: (v) => s.setShadowBlurRadius(v), activeColor: cs.primary)),
+                value: s.textShadowBlurRadius, min: 0, max: 20,
+                onChanged: (v) => s.setTextShadowBlurRadius(v), activeColor: cs.primary)),
+      ],
+
+      // ── ظل الصندوق ───────────────────────────
+      SwitchListTile(
+          dense: true,
+          title: const Text('تفعيل ظل الصندوق', style: TextStyle(color: Colors.white)),
+          value: s.boxShadowEnabled,
+          onChanged: (v) => s.setBoxShadowEnabled(v),
+          activeColor: Colors.lightBlue),
+      if (s.boxShadowEnabled) ...[
+        ListTile(
+            dense: true,
+            title: const Text('لون ظل الصندوق', style: TextStyle(color: Colors.white)),
+            trailing: CircleAvatar(backgroundColor: s.boxShadowColor, radius: 12),
+            onTap: () { Navigator.pop(context); _showColorPicker(context, s.boxShadowColor, (c) => s.setBoxShadowColor(c)); }),
+        ListTile(
+            dense: true,
+            title: const Text('توهج ظل الصندوق', style: TextStyle(color: Colors.white)),
+            subtitle: Slider(
+                value: s.boxShadowBlurRadius, min: 0, max: 20,
+                onChanged: (v) => s.setBoxShadowBlurRadius(v), activeColor: cs.primary)),
       ],
     ]);
   }
 
   void _showFontFamilyPicker() {
-    final fonts = ['Roboto', 'Cairo', 'Amiri', 'Noto Naskh Arabic', 'Courier', 'Monospace'];
+    final fonts = ['Adobe Arabic', 'Roboto', 'Cairo', 'Amiri', 'Noto Naskh Arabic', 'Courier', 'Monospace'];
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -916,10 +934,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     if (_isPip) return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
 
-    // إخفاء الترجمة المدمجة الأصلية عند وجود ترجمتنا المخصصة
     final hasCustomSubtitle = _showSubtitles && _embeddedSubtitleText != null && _embeddedSubtitleText!.isNotEmpty;
     final builtInSubtitleStyle = hasCustomSubtitle
-        ? const TextStyle(fontSize: 0, color: Colors.transparent) // إخفاء الترجمة المدمجة
+        ? const TextStyle(fontSize: 0, color: Colors.transparent)
         : TextStyle(
             fontSize: s.subtitleFontSize,
             color: s.subtitleColor,
@@ -927,9 +944,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             fontFamily: s.fontFamily,
             fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
             backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-            shadows: s.shadowEnabled
-                ? [Shadow(color: s.shadowColor, blurRadius: s.shadowBlurRadius,
-                    offset: Offset(s.shadowOffsetX, s.shadowOffsetY))]
+            shadows: s.textShadowEnabled
+                ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
+                    offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
                 : null,
           );
 
@@ -963,40 +980,39 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
           ),
 
-          // ترجمتنا المخصصة (فوق الفيديو)
           if (hasCustomSubtitle)
             Positioned(
               bottom: s.bottomPadding,
-              left: s.horizontalMargin,
-              right: s.horizontalMargin,
-              child: GestureDetector(
-                onScaleUpdate: (details) {
-                  final newSize = (s.subtitleFontSize * details.scale).clamp(10.0, 150.0);
-                  s.setSubtitleFontSize(newSize);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: s.shadowEnabled
-                        ? [BoxShadow(color: s.shadowColor, blurRadius: s.shadowBlurRadius,
-                            offset: Offset(s.shadowOffsetX, s.shadowOffsetY))]
-                        : null,
-                  ),
-                  child: Text(
-                    _embeddedSubtitleText!,
-                    textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                    style: TextStyle(
-                      fontSize: s.subtitleFontSize,
-                      color: s.subtitleColor,
-                      fontWeight: _getFontWeight(s.fontWeightIndex),
-                      fontFamily: s.fontFamily,
-                      fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-                      shadows: s.shadowEnabled
-                          ? [Shadow(color: s.shadowColor, blurRadius: s.shadowBlurRadius,
-                              offset: Offset(s.shadowOffsetX, s.shadowOffsetY))]
-                          : null,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: IntrinsicWidth(
+                  child: _SubtitleGestureWrapper(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: s.boxShadowEnabled
+                            ? [BoxShadow(color: s.boxShadowColor, blurRadius: s.boxShadowBlurRadius,
+                                offset: Offset(s.boxShadowOffsetX, s.boxShadowOffsetY))]
+                            : null,
+                      ),
+                      child: Text(
+                        _embeddedSubtitleText!,
+                        textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
+                        style: TextStyle(
+                          fontSize: s.subtitleFontSize,
+                          color: s.subtitleColor,
+                          fontWeight: _getFontWeight(s.fontWeightIndex),
+                          fontFamily: s.fontFamily,
+                          fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                          shadows: s.textShadowEnabled
+                              ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
+                                  offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1095,7 +1111,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         onPressed: _toggleLock),
                     IconButton(
                         icon: const Icon(Symbols.aspect_ratio_rounded, color: Colors.white70),
-                        onPressed: _toggleFit),
+                        onPressed: _toggleFit,
+                        tooltip: 'تغيير وضع الملء'),
                     IconButton(
                         icon: Icon(_isLandscape ? Symbols.screen_rotation_rounded : Symbols.stay_current_portrait_rounded,
                             color: Colors.white70),
@@ -1199,7 +1216,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ═══════════════ _AudioBoostSection (بدون تغيير) ═══════════════
 class _AudioBoostSection extends StatefulWidget {
   final double boost;
   final ValueChanged<double> onChanged;
@@ -1284,6 +1300,61 @@ class _QuickBtn extends StatelessWidget {
         ),
         child: Text(label, style: TextStyle(color: active ? color : Colors.white54, fontSize: 11, fontWeight: FontWeight.w600)),
       ),
+    );
+  }
+}
+
+class _SubtitleGestureWrapper extends StatefulWidget {
+  final Widget child;
+  const _SubtitleGestureWrapper({required this.child});
+
+  @override
+  State<_SubtitleGestureWrapper> createState() => _SubtitleGestureWrapperState();
+}
+
+class _SubtitleGestureWrapperState extends State<_SubtitleGestureWrapper> {
+  bool _isScaling = false;
+  Timer? _scaleDelayTimer;
+  double _startScale = 1.0;
+  static const double _scaleThreshold = 1.02;
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _startScale = details.scale;
+    _scaleDelayTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) setState(() => _isScaling = true);
+    });
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    if (!_isScaling) return;
+    final currentScale = details.scale;
+    if ((currentScale - _startScale).abs() > _scaleThreshold - 1.0) {
+      final s = context.read<SettingsProvider>();
+      final newFontSize = (s.subtitleFontSize * currentScale).clamp(10.0, 150.0);
+      s.setSubtitleFontSize(newFontSize.roundToDouble());
+      _startScale = currentScale;
+    }
+  }
+
+  void _onScaleEnd(ScaleEndDetails details) {
+    _scaleDelayTimer?.cancel();
+    setState(() => _isScaling = false);
+  }
+
+  @override
+  void dispose() {
+    _scaleDelayTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onScaleStart: _onScaleStart,
+      onScaleUpdate: _onScaleUpdate,
+      onScaleEnd: _onScaleEnd,
+      behavior: HitTestBehavior.opaque,
+      child: widget.child,
     );
   }
 }

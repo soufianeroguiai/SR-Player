@@ -59,10 +59,22 @@ class LibraryProvider extends ChangeNotifier {
       final file = await asset.file;
       if (file == null) return null;
 
+      String name = asset.title ?? '';
+      if (name.isEmpty || name.length < 2) {
+        name = file.path.split('/').last;
+        final dotIndex = name.lastIndexOf('.');
+        if (dotIndex != -1) {
+          name = name.substring(0, dotIndex);
+        }
+        if (name.length < 2) {
+          name = '$albumName ${asset.id}';
+        }
+      }
+
       return VideoItem(
         id: asset.id,
         path: file.path,
-        name: asset.title ?? 'فيديو ${asset.id}',
+        name: name,
         size: file.lengthSync(),
         modified: asset.modifiedDateTime,
         folder: albumName,
@@ -114,6 +126,56 @@ class LibraryProvider extends ChangeNotifier {
 
     _loading = false;
     notifyListeners();
+
+    _scanEmbeddedSubtitles();
+  }
+
+  Future<void> _scanEmbeddedSubtitles() async {
+    final videosToScan = List<VideoItem>.from(_videos);
+
+    for (int i = 0; i < videosToScan.length; i++) {
+      final video = videosToScan[i];
+
+      if (!['mkv', 'mp4', 'avi', 'webm', 'm4v'].contains(video.extension)) continue;
+      if (video.subtitleTypes.isNotEmpty) continue;
+
+      final player = Player();
+      try {
+        await player.open(Media(video.path), play: false);
+        await Future.delayed(const Duration(milliseconds: 150));
+
+        final tracks = player.state.tracks.subtitle;
+        final types = <String>{};
+
+        for (final track in tracks) {
+          final id = (track.id ?? '').toLowerCase();
+          final title = (track.title ?? '').toLowerCase();
+
+          if (id.contains('srt') || title.contains('srt') || title.contains('subrip')) {
+            types.add('SRT');
+          }
+          if (id.contains('ass') || title.contains('ass')) {
+            types.add('ASS');
+          }
+          if (id.contains('ssa') || title.contains('ssa')) {
+            types.add('SSA');
+          }
+          if (id.contains('vtt') || title.contains('vtt')) {
+            types.add('VTT');
+          }
+        }
+
+        video.subtitleTypes = types.toList();
+        notifyListeners();
+      } catch (_) {
+      } finally {
+        await player.dispose();
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    await _saveVideosToCache();
   }
 
   Future<void> loadRecent() async {
