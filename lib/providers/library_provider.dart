@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui'; // لإضافة RootIsolateToken
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // for compute
-import 'package:flutter/services.dart'; // for BackgroundIsolateBinaryMessenger
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,7 +34,6 @@ class LibraryProvider extends ChangeNotifier {
       final file = File('${dir.path}/video_cache.json');
       if (await file.exists()) {
         final jsonString = await file.readAsString();
-        // نقل التحليل إلى compute
         final List<VideoItem> parsed = await compute(_parseVideoJson, jsonString);
         _videos = parsed;
         notifyListeners();
@@ -62,9 +62,9 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   // دالة المسح التي ستعمل في isolate
-  static Future<List<VideoItem>> _scanInIsolate(dynamic _) async {
-    // ⚠️ هام جداً: تهيئة الـ BinaryMessenger للـ Isolate
-    BackgroundIsolateBinaryMessenger.ensureInitialized();
+  static Future<List<VideoItem>> _scanInIsolate(RootIsolateToken token) async {
+    // تهيئة الـ BinaryMessenger للـ Isolate باستخدام الرمز
+    BackgroundIsolateBinaryMessenger.ensureInitialized(token);
 
     final ps = await PhotoManager.requestPermissionExtend();
     if (!ps.isAuth && !ps.hasAccess) {
@@ -114,8 +114,9 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // استخدام compute مع الدالة المعدلة
-      final result = await compute(_scanInIsolate, null);
+      // الحصول على رمز الـ Isolate الرئيسي وتمريره إلى الـ compute
+      final token = RootIsolateToken.instance;
+      final result = await compute(_scanInIsolate, token);
       _videos = result;
       await _saveVideosToCache();
     } catch (e) {

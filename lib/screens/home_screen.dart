@@ -99,15 +99,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Tab(text: 'الكل'), Tab(text: 'الأخيرة'), Tab(text: 'المجلدات'),
         ]),
         actions: [
-          IconButton(icon: const Icon(Symbols.search_rounded),
-            onPressed: () => showSearch(context: context,
-              delegate: _SearchDelegate(context.read<LibraryProvider>().videos, _openPlayer))),
+          IconButton(
+            icon: const Icon(Symbols.search_rounded),
+            onPressed: () => showSearch(
+              context: context,
+              delegate: _SearchDelegate(context.read<LibraryProvider>().videos, _openPlayer)
+            ),
+          ),
           IconButton(
             icon: Icon(settings.gridView ? Symbols.view_list_rounded : Symbols.grid_view_rounded),
-            onPressed: () => settings.setGridView(!settings.gridView)),
-          IconButton(icon: const Icon(Symbols.sort_rounded), onPressed: () => _sortSheet(settings)),
-          IconButton(icon: const Icon(Symbols.settings_rounded),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+            onPressed: () => settings.setGridView(!settings.gridView),
+          ),
+          IconButton(
+            icon: const Icon(Symbols.sort_rounded),
+            onPressed: () => _sortSheet(settings),
+          ),
+          // 👈 زر فتح الملف الجديد هنا (بجوار الإعدادات)
+          IconButton(
+            icon: const Icon(Symbols.folder_open_rounded),
+            onPressed: _pickFile,
+            tooltip: 'فتح ملف',
+          ),
+          IconButton(
+            icon: const Icon(Symbols.settings_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
         ],
       ),
       body: Consumer<LibraryProvider>(builder: (_, lib, __) {
@@ -153,11 +169,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ]);
       }),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _pickFile,
-        icon: const Icon(Symbols.folder_open_rounded),
-        label: const Text('فتح ملف'),
-      ),
+      // تم حذف floatingActionButton نهائياً لأن الزر أصبح في الأعلى
+      floatingActionButton: null,
     );
   }
 
@@ -214,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     child: Icon(icon, color: fg, size: 22));
 }
 
+// ------------------- باقي الـ Widgets كما هي (لم تتغير) -------------------
 class _AllTab extends StatelessWidget {
   final List<VideoItem> videos;
   final String? selectedFolder;
@@ -290,50 +304,71 @@ class _Chips extends StatelessWidget {
   }
 }
 
-class _RecentTab extends StatelessWidget {
+class _RecentTab extends StatefulWidget {
   final List<String> paths;
   final List<VideoItem> all;
   final void Function(String) onOpen;
   final VoidCallback onClear;
   const _RecentTab({required this.paths, required this.all, required this.onOpen, required this.onClear});
 
-  List<VideoItem> get list {
-    final map = {for (final v in all) v.path: v};
-    return paths.map((p) {
-      if (map.containsKey(p)) return map[p]!;
-      try {
-        if (!File(p).existsSync()) return null;
-        final stat = File(p).statSync();
-        final parts = p.split('/');
-        return VideoItem(id: p.hashCode.toString(), path: p, name: parts.last,
-          size: stat.size, modified: stat.modified,
-          folder: parts.length > 1 ? parts[parts.length - 2] : '', duration: Duration.zero);
-      } catch (_) { return null; }
-    }).whereType<VideoItem>().toList();
+  @override
+  State<_RecentTab> createState() => _RecentTabState();
+}
+
+class _RecentTabState extends State<_RecentTab> {
+  Future<List<VideoItem>> _loadItems() async {
+    final map = {for (final v in widget.all) v.path: v};
+    final List<VideoItem> items = [];
+    for (final p in widget.paths) {
+      if (map.containsKey(p)) {
+        items.add(map[p]!);
+      } else {
+        try {
+          if (File(p).existsSync()) {
+            final stat = await File(p).stat();
+            final parts = p.split('/');
+            items.add(VideoItem(
+              id: p.hashCode.toString(), path: p, name: parts.last,
+              size: stat.size, modified: stat.modified,
+              folder: parts.length > 1 ? parts[parts.length - 2] : '', duration: Duration.zero,
+            ));
+          }
+        } catch (_) {}
+      }
+    }
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final items = list;
-    if (items.isEmpty) return _Empty('ما شفتي فيديو بعد', Symbols.history_rounded);
-    return Column(children: [
-      Padding(padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
-        child: Row(children: [
-          Icon(Symbols.history_rounded, size: 16, color: cs.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text('${items.length} ملف', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
-          const Spacer(),
-          TextButton.icon(onPressed: onClear,
-            icon: Icon(Symbols.delete_sweep_rounded, size: 16, color: cs.error),
-            label: Text('مسح', style: TextStyle(color: cs.error, fontSize: 12)),
-            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10))),
-        ])),
-      Expanded(child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 90),
-        itemCount: items.length,
-        itemBuilder: (_, i) => VideoCard(video: items[i], onTap: () => onOpen(items[i].path)))),
-    ]);
+    return FutureBuilder<List<VideoItem>>(
+      future: _loadItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) return _Empty('ما شفتي فيديو بعد', Symbols.history_rounded);
+        return Column(children: [
+          Padding(padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+            child: Row(children: [
+              Icon(Symbols.history_rounded, size: 16, color: cs.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text('${items.length} ملف', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+              const Spacer(),
+              TextButton.icon(onPressed: widget.onClear,
+                icon: Icon(Symbols.delete_sweep_rounded, size: 16, color: cs.error),
+                label: Text('مسح', style: TextStyle(color: cs.error, fontSize: 12)),
+                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10))),
+            ])),
+          Expanded(child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 90),
+            itemCount: items.length,
+            itemBuilder: (_, i) => VideoCard(video: items[i], onTap: () => widget.onOpen(items[i].path)))),
+        ]);
+      }
+    );
   }
 }
 
@@ -394,6 +429,8 @@ class _Empty extends StatelessWidget {
 class _SearchDelegate extends SearchDelegate<VideoItem?> {
   final List<VideoItem> videos;
   final Future<void> Function(VideoItem) onOpen;
+  Timer? _debounceTimer;
+
   _SearchDelegate(this.videos, this.onOpen);
 
   @override
@@ -412,7 +449,13 @@ class _SearchDelegate extends SearchDelegate<VideoItem?> {
   Widget buildResults(BuildContext context) => _list(context);
 
   @override
-  Widget buildSuggestions(BuildContext context) => _list(context);
+  Widget buildSuggestions(BuildContext context) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) (context as Element).markNeedsBuild();
+    });
+    return _list(context);
+  }
 
   Widget _list(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -423,5 +466,11 @@ class _SearchDelegate extends SearchDelegate<VideoItem?> {
       itemCount: results.length,
       itemBuilder: (_, i) => VideoCard(video: results[i],
         onTap: () { close(context, results[i]); onOpen(results[i]); }));
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }
