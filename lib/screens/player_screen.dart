@@ -81,6 +81,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
+  // تهيئة الوضع الأفقي حسب الاتجاه الحالي للجهاز
   bool _isLandscape = true;
   VideoFitMode _fitMode = VideoFitMode.contain;
   String? _fitOverlayText;
@@ -111,6 +112,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
+
+    // تهيئة الاتجاه بناءً على وضع الجهاز الحالي
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final orientation = MediaQuery.of(context).orientation;
+        setState(() => _isLandscape = orientation == Orientation.landscape);
+      }
+    });
+
     _enterFullscreen();
 
     final settings = context.read<SettingsProvider>();
@@ -119,11 +129,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _audioBoost = settings.defaultAudioBoost.clamp(50.0, 200.0);
     _subtitleSync = settings.defaultSubtitleSync;
 
+    // استرجاع آخر مستوى صوت وسطوع محفوظين
+    _loadPersistedVolumeAndBrightness();
+
     _player = Player();
     _controller = VideoController(_player);
 
     _initPlayer();
     _loadFitMode();
+  }
+
+  Future<void> _loadPersistedVolumeAndBrightness() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vol = prefs.getDouble('player_volume') ?? 0.8;
+    final bright = prefs.getDouble('player_brightness') ?? 0.7;
+    _volumeNotifier.value = vol.clamp(0.0, 1.0);
+    _brightnessNotifier.value = bright.clamp(0.1, 1.0); // منع السواد التام
   }
 
   Future<void> _loadFitMode() async {
@@ -220,6 +241,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       try {
         _brightnessNotifier.value = await ScreenBrightness.instance.application;
+        // منع السواد التام عند الاسترجاع
+        if (_brightnessNotifier.value < 0.1) _brightnessNotifier.value = 0.1;
         await ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
       } catch (_) {
         _brightnessNotifier.value = 0.7;
@@ -251,18 +274,47 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final videoName = widget.video.path.split('/').last.replaceAll(RegExp(r'\.[^.]+$'), '');
     final folder = Directory(s.subtitleFolder);
     if (await folder.exists()) {
+      // جمع كل الملفات المطابقة ليختار المستخدم إذا تعددت
+      final matchedFiles = <File>[];
       await for (final file in folder.list()) {
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (fileName.startsWith(videoName) &&
               (fileName.endsWith('.srt') || fileName.endsWith('.SRT') ||
                fileName.endsWith('.ssa') || fileName.endsWith('.ass'))) {
-            await _loadSrtFile(file.path, s.subtitleEncoding);
-            return;
+            matchedFiles.add(file);
           }
         }
       }
+
+      if (matchedFiles.length == 1) {
+        await _loadSrtFile(matchedFiles.first.path, s.subtitleEncoding);
+        return;
+      } else if (matchedFiles.length > 1) {
+        // اختيار المستخدم من قائمة
+        final chosen = await showDialog<File>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('اختر ملف الترجمة'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: matchedFiles.map((f) => ListTile(
+                  title: Text(f.path.split('/').last),
+                  onTap: () => Navigator.pop(ctx, f),
+                )).toList(),
+              ),
+            ),
+          ),
+        );
+        if (chosen != null) {
+          await _loadSrtFile(chosen.path, s.subtitleEncoding);
+          return;
+        }
+      }
     }
+
+    // احتياط: البحث بالطريقة التقليدية
     final srtPath = SubtitleService.findSrt(widget.video.path);
     if (srtPath != null) await _loadSrtFile(srtPath, s.subtitleEncoding);
   }
@@ -282,6 +334,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _loadSrtFile(String path, [String encoding = 'UTF-8']) async {
     try {
+      // تفريغ أي ترجمة سابقة قبل تحميل الجديدة (منع تسرب الذاكرة)
+      await _player.setSubtitleTrack(SubtitleTrack.no());
+
       final entries = await SubtitleService.load(path);
       if (entries.isEmpty) return;
 
@@ -379,11 +434,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final dx = details.focalPointDelta.dx;
     final dy = details.focalPointDelta.dy;
 
-    if (dx.abs() < 1.5 && dy.abs() < 1.5) return;
+    if (dx.abs() < 6 && dy.abs() < 6) return; // حساسية أقل للحركات العشوائية
 
     if (dx.abs() > dy.abs()) {
       // ── التمرير الحي (Scrubbing) ──
-      final seekFactor = _duration.inMilliseconds * 0.4; 
+      const seekFactor = 120000.0; // معدل تمشيط ثابت لتجنب القفزات الكبيرة
       final seekChangeMs = (dx / screenWidth) * seekFactor;
       _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
 
@@ -391,21 +446,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _showBrightNotifier.value = false;
       _showVolNotifier.value = false;
     } else {
-      // ── الصوت والسطوع (بدون أي setState لمنع التقطيع) ──
+      // ── الصوت والسطوع ──
       final delta = -dy / 150.0;
       final isLeft = details.localFocalPoint.dx < screenWidth / 2;
       final now = DateTime.now();
 
       if (isLeft) {
-        final newBrightness = (_brightnessNotifier.value + delta).clamp(0.0, 1.0);
+        final newBrightness = (_brightnessNotifier.value + delta).clamp(0.1, 1.0); // منع السواد الكامل
         _brightnessNotifier.value = newBrightness;
         _showBrightNotifier.value = true;
         _showVolNotifier.value = false;
         _showSeekNotifier.value = false;
 
-        if (_lastBrightTime == null || now.difference(_lastBrightTime!) > const Duration(milliseconds: 100)) {
+        // استجابة أسرع للسطوع
+        if (_lastBrightTime == null || now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
           try { ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness); } catch (_) {}
           _lastBrightTime = now;
+          HapticFeedback.lightImpact(); // رد فعلي لمسي
         }
       } else {
         final newVol = (_volumeNotifier.value + delta).clamp(0.0, 1.0);
@@ -414,9 +471,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         _showBrightNotifier.value = false;
         _showSeekNotifier.value = false;
 
-        if (_lastVolTime == null || now.difference(_lastVolTime!) > const Duration(milliseconds: 100)) {
+        if (_lastVolTime == null || now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
           _player.setVolume(_effectiveVolume);
           _lastVolTime = now;
+          HapticFeedback.lightImpact();
         }
       }
       _resetIndicatorTimer();
@@ -426,12 +484,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _onScaleEnd(ScaleEndDetails details) {
     if (_isLocked) return;
 
+    // حفظ الصوت والسطوع الحاليين
+    _saveVolumeAndBrightness();
+
     if (_showSeekNotifier.value) {
       _player.seek(Duration(milliseconds: _seekMsNotifier.value.toInt()));
       _showSeekNotifier.value = false;
       _resetIndicatorTimer();
       _scheduleHide();
     }
+  }
+
+  Future<void> _saveVolumeAndBrightness() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('player_volume', _volumeNotifier.value);
+    await prefs.setDouble('player_brightness', _brightnessNotifier.value);
   }
 
   void _resetIndicatorTimer() {
@@ -516,7 +583,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // ── القوائم (بقيت كما هي لتحافظ على وظائفك) ──
+  // ── القوائم ──
   void _showSpeedSheet() {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -737,12 +804,104 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final cs = Theme.of(context).colorScheme;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
+        dense: true,
+        title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
+        subtitle: Slider(
+          value: s.subtitleFontSize, min: 10, max: 150,
+          onChanged: (v) => s.setSubtitleFontSize(v), activeColor: cs.primary,
+        ),
+      ),
+      ListTile(
+        dense: true,
+        title: const Text('لون النص', style: TextStyle(color: Colors.white)),
+        trailing: ColorIndicator(
+          color: s.subtitleColor,
+          onTap: () async {
+            final color = await showColorPickerDialog(context, s.subtitleColor);
+            if (color != null) s.setSubtitleColor(color);
+          },
+        ),
+      ),
+      ListTile(
+        dense: true,
+        title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
+        trailing: ColorIndicator(
+          color: s.subtitleBgColor,
+          onTap: () async {
+            final color = await showColorPickerDialog(context, s.subtitleBgColor);
+            if (color != null) s.setSubtitleBgColor(color);
+          },
+        ),
+      ),
+      ListTile(
+        dense: true,
+        title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)),
+        subtitle: Slider(
+          value: s.subtitleBgOpacity, min: 0.0, max: 1.0,
+          onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: cs.primary,
+        ),
+      ),
+      SwitchListTile(
+        dense: true,
+        title: const Text('ظل النص', style: TextStyle(color: Colors.white)),
+        value: s.textShadowEnabled,
+        activeColor: cs.primary,
+        onChanged: (v) => s.setTextShadowEnabled(v),
+      ),
+      if (s.textShadowEnabled) ...[
+        ListTile(
           dense: true,
-          title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
+          title: const Text('لون الظل', style: TextStyle(color: Colors.white70)),
+          trailing: ColorIndicator(
+            color: s.textShadowColor,
+            onTap: () async {
+              final color = await showColorPickerDialog(context, s.textShadowColor);
+              if (color != null) s.setTextShadowColor(color);
+            },
+          ),
+        ),
+        ListTile(
+          dense: true,
+          title: const Text('حجم الظل', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
-              value: s.subtitleFontSize, min: 10, max: 150,
-              onChanged: (v) => s.setSubtitleFontSize(v), activeColor: cs.primary)),
-      // وباقي الإعدادات الخاصة بك...
+            value: s.textShadowBlurRadius, min: 0, max: 20,
+            onChanged: (v) => s.setTextShadowBlurRadius(v), activeColor: cs.primary,
+          ),
+        ),
+        ListTile(
+          dense: true,
+          title: const Text('إزاحة أفقية', style: TextStyle(color: Colors.white70)),
+          subtitle: Slider(
+            value: s.textShadowOffsetX, min: -10, max: 10,
+            onChanged: (v) => s.setTextShadowOffsetX(v), activeColor: cs.primary,
+          ),
+        ),
+        ListTile(
+          dense: true,
+          title: const Text('إزاحة رأسية', style: TextStyle(color: Colors.white70)),
+          subtitle: Slider(
+            value: s.textShadowOffsetY, min: -10, max: 10,
+            onChanged: (v) => s.setTextShadowOffsetY(v), activeColor: cs.primary,
+          ),
+        ),
+      ],
+      ListTile(
+        dense: true,
+        title: const Text('الهامش الأفقي', style: TextStyle(color: Colors.white)),
+        subtitle: Slider(
+          value: s.horizontalMargin, min: 0, max: 100,
+          onChanged: (v) => s.setHorizontalMargin(v), activeColor: cs.primary,
+        ),
+      ),
+      ListTile(
+        dense: true,
+        title: const Text('المسافة السفلية', style: TextStyle(color: Colors.white)),
+        subtitle: Slider(
+          value: s.bottomPadding, min: 0, max: 200,
+          onChanged: (v) => s.setBottomPadding(v), activeColor: cs.primary,
+        ),
+      ),
+      // يمكن إضافة نوع الخط يدوياً إذا كان SettingsProvider يدعمه
     ]);
   }
 
@@ -783,7 +942,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
 
-          // 1. الفيديو وإطار الإيماءات (لن يعاد بناؤه عند السحب)
+          // 1. الفيديو وإطار الإيماءات
           GestureDetector(
             onTap: _toggleControls,
             onDoubleTapDown: _isLocked ? null : (details) {
@@ -815,11 +974,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
                 textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
                 padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
+                delay: Duration(milliseconds: (_subtitleSync * 1000).round()), // تطبيق المزامنة
               ),
             ),
           ),
 
-          // 2. مؤشر التمرير المستقل (Scrubbing)
+          // 2. مؤشر التمرير المستقل
           ValueListenableBuilder<bool>(
             valueListenable: _showSeekNotifier,
             builder: (context, show, child) {
@@ -917,7 +1077,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
 
           if (_showControls && !_isLocked) ...[
-            // أزرار التحكم والـ AppBar (لم تتغير)
+            // أزرار التحكم والـ AppBar
             Positioned(
               top: 0, left: 0, right: 0,
               child: Container(
@@ -938,6 +1098,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
 
+            // شريط التقدم
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: Container(
@@ -965,8 +1126,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
 
+            // أزرار التشغيل
             Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              _CtrlBtn(Symbols.replay_10_rounded, () => _player.seek(_position - const Duration(seconds: 10))),
+              _CtrlBtn(
+                Symbols.replay_10_rounded,
+                () {
+                  final target = _position - const Duration(seconds: 10);
+                  _player.seek(target.isNegative ? Duration.zero : target);
+                },
+              ),
               const SizedBox(width: 28),
               GestureDetector(
                 onTap: () => _isPlaying ? _player.pause() : _player.play(),
@@ -977,7 +1145,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
               ),
               const SizedBox(width: 28),
-              _CtrlBtn(Symbols.forward_10_rounded, () => _player.seek(_position + const Duration(seconds: 10))),
+              _CtrlBtn(
+                Symbols.forward_10_rounded,
+                () {
+                  final target = _position + const Duration(seconds: 10);
+                  _player.seek(target > _duration ? _duration : target);
+                },
+              ),
             ])),
           ],
         ]),
@@ -989,7 +1163,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     
-    // التخلص من الـ Notifiers لتنظيف الذاكرة
     _volumeNotifier.dispose();
     _brightnessNotifier.dispose();
     _seekMsNotifier.dispose();
