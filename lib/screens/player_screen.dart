@@ -81,7 +81,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
 
-  // تهيئة الوضع الأفقي حسب الاتجاه الحالي للجهاز
   bool _isLandscape = true;
   VideoFitMode _fitMode = VideoFitMode.contain;
   String? _fitOverlayText;
@@ -91,7 +90,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _subtitleSpeed = 1.0;
   bool _autoSubtitleSelected = false;
 
-  // ── متغيرات إدارة الحالة الموضعية للإيماءات (لمنع التقطيع) ──
   final ValueNotifier<double> _volumeNotifier = ValueNotifier(0.8);
   final ValueNotifier<double> _brightnessNotifier = ValueNotifier(0.7);
   final ValueNotifier<double> _seekMsNotifier = ValueNotifier(0.0);
@@ -113,7 +111,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
 
-    // تهيئة الاتجاه بناءً على وضع الجهاز الحالي
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final orientation = MediaQuery.of(context).orientation;
@@ -129,7 +126,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _audioBoost = settings.defaultAudioBoost.clamp(50.0, 200.0);
     _subtitleSync = settings.defaultSubtitleSync;
 
-    // استرجاع آخر مستوى صوت وسطوع محفوظين
     _loadPersistedVolumeAndBrightness();
 
     _player = Player();
@@ -144,7 +140,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final vol = prefs.getDouble('player_volume') ?? 0.8;
     final bright = prefs.getDouble('player_brightness') ?? 0.7;
     _volumeNotifier.value = vol.clamp(0.0, 1.0);
-    _brightnessNotifier.value = bright.clamp(0.1, 1.0); // منع السواد التام
+    _brightnessNotifier.value = bright.clamp(0.1, 1.0);
   }
 
   Future<void> _loadFitMode() async {
@@ -241,7 +237,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       try {
         _brightnessNotifier.value = await ScreenBrightness.instance.application;
-        // منع السواد التام عند الاسترجاع
         if (_brightnessNotifier.value < 0.1) _brightnessNotifier.value = 0.1;
         await ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
       } catch (_) {
@@ -252,6 +247,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _scheduleHide();
 
       await _loadSubtitleFromPreferredFolder(settings);
+      
+      // تطبيق مزامنة الترجمة الأولية
+      _player.setSubtitleDelay(Duration(milliseconds: (_subtitleSync * 1000).round()));
 
     } catch (e) {
       if (mounted) {
@@ -263,7 +261,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  // ── الترجمة ───────────────────────────────────
   Future<void> _loadSubtitleFromPreferredFolder(SettingsProvider s) async {
     if (s.subtitleFolder.isEmpty) {
       final srtPath = SubtitleService.findSrt(widget.video.path);
@@ -274,7 +271,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final videoName = widget.video.path.split('/').last.replaceAll(RegExp(r'\.[^.]+$'), '');
     final folder = Directory(s.subtitleFolder);
     if (await folder.exists()) {
-      // جمع كل الملفات المطابقة ليختار المستخدم إذا تعددت
       final matchedFiles = <File>[];
       await for (final file in folder.list()) {
         if (file is File) {
@@ -291,7 +287,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         await _loadSrtFile(matchedFiles.first.path, s.subtitleEncoding);
         return;
       } else if (matchedFiles.length > 1) {
-        // اختيار المستخدم من قائمة
         final chosen = await showDialog<File>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -314,7 +309,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       }
     }
 
-    // احتياط: البحث بالطريقة التقليدية
     final srtPath = SubtitleService.findSrt(widget.video.path);
     if (srtPath != null) await _loadSrtFile(srtPath, s.subtitleEncoding);
   }
@@ -334,7 +328,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _loadSrtFile(String path, [String encoding = 'UTF-8']) async {
     try {
-      // تفريغ أي ترجمة سابقة قبل تحميل الجديدة (منع تسرب الذاكرة)
       await _player.setSubtitleTrack(SubtitleTrack.no());
 
       final entries = await SubtitleService.load(path);
@@ -402,9 +395,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try { await PipService.enter(); } catch (_) {}
   }
 
-  // ════════════════════════════════════════════════
-  // 🎯 الإيماءات المُحسّنة (ValueNotifier + Throttling)
-  // ════════════════════════════════════════════════
   void _onScaleStart(ScaleStartDetails details) {
     if (_isLocked) return;
     _hideTimer?.cancel();
@@ -420,7 +410,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
     if (_isLocked) return;
 
-    // ── جاستر الترجمة (Pinch to Zoom) ──
     if (details.pointerCount == 2) {
       final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
       context.read<SettingsProvider>().setSubtitleFontSize(newSize);
@@ -434,11 +423,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final dx = details.focalPointDelta.dx;
     final dy = details.focalPointDelta.dy;
 
-    if (dx.abs() < 6 && dy.abs() < 6) return; // حساسية أقل للحركات العشوائية
+    if (dx.abs() < 6 && dy.abs() < 6) return;
 
     if (dx.abs() > dy.abs()) {
-      // ── التمرير الحي (Scrubbing) ──
-      const seekFactor = 120000.0; // معدل تمشيط ثابت لتجنب القفزات الكبيرة
+      const seekFactor = 120000.0;
       final seekChangeMs = (dx / screenWidth) * seekFactor;
       _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
 
@@ -446,23 +434,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _showBrightNotifier.value = false;
       _showVolNotifier.value = false;
     } else {
-      // ── الصوت والسطوع ──
       final delta = -dy / 150.0;
       final isLeft = details.localFocalPoint.dx < screenWidth / 2;
       final now = DateTime.now();
 
       if (isLeft) {
-        final newBrightness = (_brightnessNotifier.value + delta).clamp(0.1, 1.0); // منع السواد الكامل
+        final newBrightness = (_brightnessNotifier.value + delta).clamp(0.1, 1.0);
         _brightnessNotifier.value = newBrightness;
         _showBrightNotifier.value = true;
         _showVolNotifier.value = false;
         _showSeekNotifier.value = false;
 
-        // استجابة أسرع للسطوع
         if (_lastBrightTime == null || now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
           try { ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness); } catch (_) {}
           _lastBrightTime = now;
-          HapticFeedback.lightImpact(); // رد فعلي لمسي
+          HapticFeedback.lightImpact();
         }
       } else {
         final newVol = (_volumeNotifier.value + delta).clamp(0.0, 1.0);
@@ -484,7 +470,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _onScaleEnd(ScaleEndDetails details) {
     if (_isLocked) return;
 
-    // حفظ الصوت والسطوع الحاليين
     _saveVolumeAndBrightness();
 
     if (_showSeekNotifier.value) {
@@ -511,9 +496,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-  // ════════════════════════════════════════════════
-  // واجهة المؤشرات العائمة
-  // ════════════════════════════════════════════════
   Widget _buildFloatingIndicator({
     required IconData icon,
     required double displayValue,
@@ -583,7 +565,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // ── القوائم ──
   void _showSpeedSheet() {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -761,7 +742,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               subtitle: Slider(
                 value: _subtitleSync, min: -5.0, max: 5.0, divisions: 100,
                 label: '${_subtitleSync.toStringAsFixed(1)}s',
-                onChanged: (v) { setState(() => _subtitleSync = v); settings.setDefaultSubtitleSync(v); },
+                onChanged: (v) {
+                  setState(() => _subtitleSync = v);
+                  settings.setDefaultSubtitleSync(v);
+                  _player.setSubtitleDelay(Duration(milliseconds: (v * 1000).round()));
+                },
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
             ),
@@ -814,23 +799,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       ListTile(
         dense: true,
         title: const Text('لون النص', style: TextStyle(color: Colors.white)),
-        trailing: ColorIndicator(
-          color: s.subtitleColor,
+        trailing: GestureDetector(
           onTap: () async {
             final color = await showColorPickerDialog(context, s.subtitleColor);
             if (color != null) s.setSubtitleColor(color);
           },
+          child: ColorIndicator(color: s.subtitleColor),
         ),
       ),
       ListTile(
         dense: true,
         title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
-        trailing: ColorIndicator(
-          color: s.subtitleBgColor,
+        trailing: GestureDetector(
           onTap: () async {
             final color = await showColorPickerDialog(context, s.subtitleBgColor);
             if (color != null) s.setSubtitleBgColor(color);
           },
+          child: ColorIndicator(color: s.subtitleBgColor),
         ),
       ),
       ListTile(
@@ -852,12 +837,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         ListTile(
           dense: true,
           title: const Text('لون الظل', style: TextStyle(color: Colors.white70)),
-          trailing: ColorIndicator(
-            color: s.textShadowColor,
+          trailing: GestureDetector(
             onTap: () async {
               final color = await showColorPickerDialog(context, s.textShadowColor);
               if (color != null) s.setTextShadowColor(color);
             },
+            child: ColorIndicator(color: s.textShadowColor),
           ),
         ),
         ListTile(
@@ -873,7 +858,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           title: const Text('إزاحة أفقية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
             value: s.textShadowOffsetX, min: -10, max: 10,
-            onChanged: (v) => s.setTextShadowOffsetX(v), activeColor: cs.primary,
+            onChanged: (v) {
+              s.textShadowOffsetX = v;
+              s.notifyListeners();
+            },
+            activeColor: cs.primary,
           ),
         ),
         ListTile(
@@ -881,7 +870,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           title: const Text('إزاحة رأسية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
             value: s.textShadowOffsetY, min: -10, max: 10,
-            onChanged: (v) => s.setTextShadowOffsetY(v), activeColor: cs.primary,
+            onChanged: (v) {
+              s.textShadowOffsetY = v;
+              s.notifyListeners();
+            },
+            activeColor: cs.primary,
           ),
         ),
       ],
@@ -901,7 +894,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           onChanged: (v) => s.setBottomPadding(v), activeColor: cs.primary,
         ),
       ),
-      // يمكن إضافة نوع الخط يدوياً إذا كان SettingsProvider يدعمه
     ]);
   }
 
@@ -941,8 +933,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
-
-          // 1. الفيديو وإطار الإيماءات
           GestureDetector(
             onTap: _toggleControls,
             onDoubleTapDown: _isLocked ? null : (details) {
@@ -974,12 +964,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
                 textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
                 padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
-                delay: Duration(milliseconds: (_subtitleSync * 1000).round()), // تطبيق المزامنة
               ),
             ),
           ),
 
-          // 2. مؤشر التمرير المستقل
           ValueListenableBuilder<bool>(
             valueListenable: _showSeekNotifier,
             builder: (context, show, child) {
@@ -1009,7 +997,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             },
           ),
 
-          // 3. مؤشر الصوت المستقل
           ValueListenableBuilder<bool>(
             valueListenable: _showVolNotifier,
             builder: (context, show, child) {
@@ -1032,7 +1019,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             },
           ),
 
-          // 4. مؤشر السطوع المستقل
           ValueListenableBuilder<bool>(
             valueListenable: _showBrightNotifier,
             builder: (context, show, child) {
@@ -1077,7 +1063,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
 
           if (_showControls && !_isLocked) ...[
-            // أزرار التحكم والـ AppBar
             Positioned(
               top: 0, left: 0, right: 0,
               child: Container(
@@ -1098,7 +1083,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // شريط التقدم
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: Container(
@@ -1126,7 +1110,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // أزرار التشغيل
             Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               _CtrlBtn(
                 Symbols.replay_10_rounded,
@@ -1183,7 +1166,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 }
 
-// ═══════════════ _AudioBoostSection ═══════════════
 class _AudioBoostSection extends StatefulWidget {
   final double boost;
   final ValueChanged<double> onChanged;
