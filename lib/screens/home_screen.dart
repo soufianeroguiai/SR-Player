@@ -1,3 +1,4 @@
+import 'dart:async'; // ✅ إضافة استيراد Timer
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -114,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             icon: const Icon(Symbols.sort_rounded),
             onPressed: () => _sortSheet(settings),
           ),
-          // 👈 زر فتح الملف الجديد هنا (بجوار الإعدادات)
+          // زر فتح الملف
           IconButton(
             icon: const Icon(Symbols.folder_open_rounded),
             onPressed: _pickFile,
@@ -169,7 +170,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ]);
       }),
-      // تم حذف floatingActionButton نهائياً لأن الزر أصبح في الأعلى
       floatingActionButton: null,
     );
   }
@@ -227,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     child: Icon(icon, color: fg, size: 22));
 }
 
-// ------------------- باقي الـ Widgets كما هي (لم تتغير) -------------------
+// ------------------- باقي الـ Widgets -------------------
 class _AllTab extends StatelessWidget {
   final List<VideoItem> videos;
   final String? selectedFolder;
@@ -426,6 +426,7 @@ class _Empty extends StatelessWidget {
   }
 }
 
+// ✅ _SearchDelegate بعد التصحيح
 class _SearchDelegate extends SearchDelegate<VideoItem?> {
   final List<VideoItem> videos;
   final Future<void> Function(VideoItem) onOpen;
@@ -452,7 +453,10 @@ class _SearchDelegate extends SearchDelegate<VideoItem?> {
   Widget buildSuggestions(BuildContext context) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) (context as Element).markNeedsBuild();
+      // استخدام context.mounted للتحقق من أن الواجهة لا تزال موجودة
+      if (context.mounted) {
+        (context as Element).markNeedsBuild();
+      }
     });
     return _list(context);
   }

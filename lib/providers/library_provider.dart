@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui'; // لإضافة RootIsolateToken
+import 'dart:ui'; // ضروري لـ RootIsolateToken
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -61,10 +61,12 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
-  // دالة المسح التي ستعمل في isolate
-  static Future<List<VideoItem>> _scanInIsolate(RootIsolateToken token) async {
-    // تهيئة الـ BinaryMessenger للـ Isolate باستخدام الرمز
-    BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+  // دالة المسح التي ستعمل في isolate - تقبل RootIsolateToken? للتوافق مع compute
+  static Future<List<VideoItem>> _scanInIsolate(RootIsolateToken? token) async {
+    // تهيئة الـ BinaryMessenger إذا كان الـ token موجوداً
+    if (token != null) {
+      BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    }
 
     final ps = await PhotoManager.requestPermissionExtend();
     if (!ps.isAuth && !ps.hasAccess) {
