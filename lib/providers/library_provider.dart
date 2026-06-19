@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // for compute
+import 'package:flutter/services.dart'; // for BackgroundIsolateBinaryMessenger
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
@@ -60,28 +61,11 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
-  Future<VideoItem?> _buildVideoItem(AssetEntity asset, String albumName) async {
-    try {
-      final file = await asset.file;
-      if (file == null) return null;
-
-      return VideoItem(
-        id: asset.id,
-        path: file.path,
-        name: asset.title ?? 'فيديو ${asset.id}',
-        size: file.lengthSync(),
-        modified: asset.modifiedDateTime,
-        folder: albumName,
-        duration: asset.videoDuration,
-      );
-    } catch (e) {
-      debugPrint("خطأ في بناء عنصر الفيديو: $e");
-      return null;
-    }
-  }
-
   // دالة المسح التي ستعمل في isolate
   static Future<List<VideoItem>> _scanInIsolate(dynamic _) async {
+    // ⚠️ هام جداً: تهيئة الـ BinaryMessenger للـ Isolate
+    BackgroundIsolateBinaryMessenger.ensureInitialized();
+
     final ps = await PhotoManager.requestPermissionExtend();
     if (!ps.isAuth && !ps.hasAccess) {
       return [];
@@ -130,11 +114,13 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // استخدام compute مع الدالة المعدلة
       final result = await compute(_scanInIsolate, null);
       _videos = result;
       await _saveVideosToCache();
     } catch (e) {
       _error = 'فشل المسح: $e';
+      debugPrint('Error in scan: $e');
     }
 
     _loading = false;
