@@ -141,7 +141,7 @@ class _Info extends StatelessWidget {
             if (subtitles.isEmpty) return const SizedBox.shrink();
             return Row(
               children: subtitles.map((sub) => Padding(
-                padding: const EdgeInsets.only(leading: 6),
+                padding: const EdgeInsets.only(left: 6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                   decoration: BoxDecoration(
