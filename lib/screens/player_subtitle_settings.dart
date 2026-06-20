@@ -24,7 +24,7 @@ void showSubtitleSettingsSheet(BuildContext context) {
               ),
             ),
             const Divider(color: Colors.white24),
-            _buildSettingsContent(context),
+            buildSubtitleSettingsContent(context), // تم التعديل هنا
           ],
         ),
       ),
@@ -32,7 +32,8 @@ void showSubtitleSettingsSheet(BuildContext context) {
   );
 }
 
-Widget _buildSettingsContent(BuildContext context) {
+// أصبحت دالة عامة (Public) لكي نستدعيها داخل النافذة الجانبية في player_screen
+Widget buildSubtitleSettingsContent(BuildContext context) {
   final s = context.watch<SettingsProvider>();
   final cs = Theme.of(context).colorScheme;
 

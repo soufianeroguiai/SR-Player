@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart'; // <-- ضروري لـ ScaleGestureRecognizer
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -24,6 +24,9 @@ import 'player_controls.dart';
 import 'player_subtitle_settings.dart';
 
 enum VideoFitMode { contain, cover, fill }
+
+// تعريف حالة القائمة الجانبية
+enum ActiveMenu { none, subtitles, audio }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
@@ -65,6 +68,15 @@ class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver, PlayerGestures {
   late final Player _player;
   late final VideoController _controller;
+
+  // متغير للتحكم في النافذة الجانبية
+  ActiveMenu _currentMenu = ActiveMenu.none;
+
+  // متغيرات التكبير والتصغير (Pinch-to-Zoom)
+  double _videoScale = 1.0;
+  double _baseVideoScale = 1.0;
+  Offset _videoOffset = Offset.zero;
+  Offset _baseVideoOffset = Offset.zero;
 
   bool _initialized = false;
   bool _showControls = true;
@@ -111,7 +123,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
 
-    // ربط PlayerGestures بالحقول
     getPlayer = () => _player;
     volumeNotifier = _volumeNotifier;
     brightnessNotifier = _brightnessNotifier;
@@ -188,7 +199,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _toggleLock() {
     setState(() {
       _isLocked = !_isLocked;
-      if (_isLocked) _showControls = false;
+      if (_isLocked) {
+        _showControls = false;
+        _currentMenu = ActiveMenu.none;
+      }
     });
   }
 
@@ -390,197 +404,28 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _scheduleHide() {
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _isPlaying && !_isLocked) setState(() => _showControls = false);
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _isPlaying && !_isLocked && _currentMenu == ActiveMenu.none) {
+        setState(() => _showControls = false);
+      }
     });
   }
 
   void _toggleControls() {
     if (_isLocked) return;
+    
+    if (_currentMenu != ActiveMenu.none) {
+      setState(() => _currentMenu = ActiveMenu.none);
+      _scheduleHide();
+      return;
+    }
+    
     setState(() => _showControls = !_showControls);
     if (_showControls) _scheduleHide();
   }
 
   Future<void> _enterPip() async {
     try { await PipService.enter(); } catch (_) {}
-  }
-
-  void _showAudioMenu() {
-    final cs = Theme.of(context).colorScheme;
-    final seen = <String>{};
-    final uniqueAudio = <AudioTrack>[];
-    for (final t in _audioTracks) {
-      final k = t.title ?? t.language ?? 'unknown';
-      if (!seen.contains(k)) { seen.add(k); uniqueAudio.add(t); }
-    }
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.transparent,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (uniqueAudio.isNotEmpty) ...[
-              const Text('المسارات الصوتية',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 8),
-              ...uniqueAudio.map((track) {
-                final name = track.title ?? track.language ?? 'مسار صوتي';
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(name, style: const TextStyle(color: Colors.white)),
-                  subtitle: track.language != null
-                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
-                      : null,
-                  trailing: _player.state.track.audio == track
-                      ? Icon(Icons.check, color: cs.primary)
-                      : null,
-                  onTap: () { _player.setAudioTrack(track); Navigator.pop(ctx); },
-                );
-              }),
-              const Divider(color: Colors.white24),
-            ],
-            AudioBoostSection(
-              boost: _audioBoost,
-              onChanged: (v) {
-                setState(() => _audioBoost = v);
-                _player.setVolume(_effectiveVolume);
-              },
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  void _showSubtitleMenu() {
-    final cs = Theme.of(context).colorScheme;
-    final seen = <String>{};
-    final uniqueTracks = <SubtitleTrack>[];
-    for (final t in _subtitleTracks) {
-      final k = t.title ?? t.language ?? 'unknown';
-      if (!seen.contains(k)) { seen.add(k); uniqueTracks.add(t); }
-    }
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.transparent,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            SwitchListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              activeColor: Colors.lightBlue,
-              title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة',
-                  style: const TextStyle(color: Colors.white)),
-              value: _showSubtitles,
-              onChanged: (v) {
-                setState(() => _showSubtitles = v);
-                if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
-                Navigator.pop(ctx);
-              },
-            ),
-            if (uniqueTracks.isNotEmpty) ...[
-              const Divider(color: Colors.white24),
-              ...uniqueTracks.map((track) {
-                final name = track.title ?? track.language ?? 'ترجمة';
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(name, style: const TextStyle(color: Colors.white)),
-                  subtitle: track.language != null
-                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
-                      : null,
-                  trailing: _player.state.track.subtitle == track
-                      ? Icon(Icons.check, color: cs.primary)
-                      : null,
-                  onTap: () {
-                    _player.setSubtitleTrack(track);
-                    setState(() => _showSubtitles = true);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }),
-            ],
-            const Divider(color: Colors.white24),
-            ListTile(
-              leading: const Icon(Icons.upload_file, color: Colors.white),
-              title: const Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white)),
-              onTap: () { Navigator.pop(ctx); _pickSubtitle(); },
-            ),
-            const Divider(color: Colors.white24),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.white),
-              title: const Text('مزامنة وإعدادات', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showSyncSpeedPaletteSheet();
-              },
-            ),
-            const Divider(color: Colors.white24),
-            ListTile(
-              leading: const Icon(Icons.palette, color: Colors.white),
-              title: const Text('تخصيص المظهر', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                showSubtitleSettingsSheet(context);
-              },
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  void _showSyncSpeedPaletteSheet() {
-    final settings = context.read<SettingsProvider>();
-    showDialog(
-      context: context,
-      barrierColor: Colors.transparent,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('إعدادات الترجمة',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            const Divider(color: Colors.white24),
-            ListTile(
-              dense: true,
-              title: const Text('مزامنة الترجمة', style: TextStyle(color: Colors.white)),
-              subtitle: Slider(
-                value: _subtitleSync, min: -5.0, max: 5.0, divisions: 100,
-                label: '${_subtitleSync.toStringAsFixed(1)}s',
-                onChanged: (v) {
-                  setState(() => _subtitleSync = v);
-                  settings.setDefaultSubtitleSync(v);
-                },
-                activeColor: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            ListTile(
-              dense: true,
-              title: const Text('سرعة الترجمة', style: TextStyle(color: Colors.white)),
-              subtitle: Slider(
-                value: _subtitleSpeed, min: 0.5, max: 2.0, divisions: 15,
-                label: '${_subtitleSpeed}x',
-                onChanged: (v) => setState(() => _subtitleSpeed = v),
-                activeColor: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
   }
 
   FontWeight _getFontWeight(int index) {
@@ -593,20 +438,207 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  // ─── دوال بناء النافذة الجانبية ───
+
+  Widget _buildAudioPanelContent() {
+    final cs = Theme.of(context).colorScheme;
+    final seen = <String>{};
+    final uniqueAudio = <AudioTrack>[];
+    for (final t in _audioTracks) {
+      final k = t.title ?? t.language ?? 'unknown';
+      if (!seen.contains(k)) { seen.add(k); uniqueAudio.add(t); }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (uniqueAudio.isNotEmpty) ...[
+          const Text('المسارات الصوتية', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ...uniqueAudio.map((track) {
+            final name = track.title ?? track.language ?? 'مسار صوتي';
+            return ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(name, style: const TextStyle(color: Colors.white)),
+              subtitle: track.language != null ? Text(track.language!, style: const TextStyle(color: Colors.white54)) : null,
+              trailing: _player.state.track.audio == track ? Icon(Icons.check, color: cs.primary) : null,
+              onTap: () => setState(() => _player.setAudioTrack(track)),
+            );
+          }),
+          const Divider(color: Colors.white24, height: 32),
+        ],
+        AudioBoostSection(
+          boost: _audioBoost,
+          onChanged: (v) {
+            setState(() => _audioBoost = v);
+            _player.setVolume(_effectiveVolume);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubtitlePanelContent() {
+    final cs = Theme.of(context).colorScheme;
+    final settings = context.watch<SettingsProvider>();
+    final seen = <String>{};
+    final uniqueTracks = <SubtitleTrack>[];
+    for (final t in _subtitleTracks) {
+      final k = t.title ?? t.language ?? 'unknown';
+      if (!seen.contains(k)) { seen.add(k); uniqueTracks.add(t); }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        SwitchListTile(
+          dense: true,
+          activeColor: Colors.lightBlue,
+          title: Text(_showSubtitles ? 'إيقاف الترجمة' : 'تشغيل الترجمة', style: const TextStyle(color: Colors.white)),
+          value: _showSubtitles,
+          onChanged: (v) {
+            setState(() => _showSubtitles = v);
+            if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
+          },
+        ),
+        if (uniqueTracks.isNotEmpty) ...[
+          const Divider(color: Colors.white24),
+          ...uniqueTracks.map((track) {
+            final name = track.title ?? track.language ?? 'ترجمة';
+            return ListTile(
+              dense: true,
+              title: Text(name, style: const TextStyle(color: Colors.white)),
+              subtitle: track.language != null ? Text(track.language!, style: const TextStyle(color: Colors.white54)) : null,
+              trailing: _player.state.track.subtitle == track ? Icon(Icons.check, color: cs.primary) : null,
+              onTap: () {
+                _player.setSubtitleTrack(track);
+                setState(() => _showSubtitles = true);
+              },
+            );
+          }),
+        ],
+        const Divider(color: Colors.white24),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.upload_file, color: Colors.white70),
+          title: const Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            _pickSubtitle();
+            setState(() => _currentMenu = ActiveMenu.none);
+          },
+        ),
+        const Divider(color: Colors.white24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text('المزامنة والسرعة', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+        ),
+        ListTile(
+          dense: true,
+          title: const Text('مزامنة الترجمة', style: TextStyle(color: Colors.white)),
+          subtitle: Slider(
+            value: _subtitleSync, min: -5.0, max: 5.0, divisions: 100,
+            label: '${_subtitleSync.toStringAsFixed(1)}s',
+            onChanged: (v) {
+              setState(() => _subtitleSync = v);
+              settings.setDefaultSubtitleSync(v);
+            },
+            activeColor: cs.primary,
+          ),
+        ),
+        ListTile(
+          dense: true,
+          title: const Text('سرعة الترجمة', style: TextStyle(color: Colors.white)),
+          subtitle: Slider(
+            value: _subtitleSpeed, min: 0.5, max: 2.0, divisions: 15,
+            label: '${_subtitleSpeed}x',
+            onChanged: (v) => setState(() => _subtitleSpeed = v),
+            activeColor: cs.primary,
+          ),
+        ),
+        const Divider(color: Colors.white24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text('المظهر', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+        ),
+        buildSubtitleSettingsContent(context),
+      ],
+    );
+  }
+
+  Widget _buildSidePanel() {
+    final double panelWidth = 320.0;
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      top: 0,
+      bottom: 0,
+      right: _currentMenu != ActiveMenu.none ? 0 : -panelWidth,
+      width: panelWidth,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.85),
+          border: const Border(left: BorderSide(color: Colors.white24, width: 1)),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _currentMenu == ActiveMenu.subtitles ? 'إعدادات الترجمة' : 'إعدادات الصوت',
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Symbols.close_rounded, color: Colors.white70),
+                      onPressed: () {
+                        setState(() => _currentMenu = ActiveMenu.none);
+                        _scheduleHide();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white24, height: 1),
+              Expanded(
+                child: _currentMenu == ActiveMenu.subtitles
+                    ? _buildSubtitlePanelContent()
+                    : _currentMenu == ActiveMenu.audio
+                        ? _buildAudioPanelContent()
+                        : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
     final s = context.watch<SettingsProvider>();
 
-    if (_isPip)
+    if (_isPip) {
       return Scaffold(
           backgroundColor: Colors.black, body: Video(controller: _controller));
+    }
 
     return PopScope(
       canPop: !_isLocked,
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop && !_isLocked) await _enterPip();
+        if (!didPop) {
+          if (_currentMenu != ActiveMenu.none) {
+            setState(() => _currentMenu = ActiveMenu.none);
+            return;
+          }
+          if (!_isLocked) await _enterPip();
+        }
         if (_isLocked) setState(() => _isLocked = false);
       },
       child: Scaffold(
@@ -614,11 +646,20 @@ class _PlayerScreenState extends State<PlayerScreen>
         body: !_initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
+                
+                // ─── نظام الإيماءات المدمج والمحدث (Gestures) ───
                 GestureDetector(
                   onTap: _toggleControls,
                   onDoubleTapDown: _isLocked
                       ? null
                       : (details) {
+                          if (_videoScale > 1.0) {
+                            setState(() {
+                              _videoScale = 1.0;
+                              _videoOffset = Offset.zero;
+                            });
+                            return;
+                          }
                           final isRight = details.localPosition.dx > screenWidth / 2;
                           final target = isRight
                               ? (_position + const Duration(seconds: 10))
@@ -627,49 +668,96 @@ class _PlayerScreenState extends State<PlayerScreen>
                               ? Duration.zero
                               : (target > _duration ? _duration : target));
                         },
-                  onPanDown: onPanDown,
-                  onPanUpdate: (details) => onPanUpdate(details, screenWidth),
-                  onPanEnd: onPanEnd,
-                  child: Video(
-                    controller: _controller,
-                    fit: getBoxFit(_fitMode),
-                    controls: NoVideoControls,
-                    subtitleViewConfiguration: SubtitleViewConfiguration(
-                      style: TextStyle(
-                        fontSize: s.subtitleFontSize,
-                        color: s.subtitleColor,
-                        fontWeight: _getFontWeight(s.fontWeightIndex),
-                        fontFamily: s.fontFamily,
-                        fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-                        backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-                        shadows: s.textShadowEnabled
-                            ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
-                                offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
-                            : null,
+                  onScaleStart: (details) {
+                    if (_isLocked) return;
+                    if (details.pointerCount == 2) {
+                      _baseVideoScale = _videoScale;
+                      _baseVideoOffset = _videoOffset;
+                    } else {
+                      onPanDown(DragDownDetails(
+                        globalPosition: details.focalPoint,
+                        localPosition: details.localFocalPoint,
+                      ));
+                    }
+                  },
+                  onScaleUpdate: (details) {
+                    if (_isLocked) return;
+                    
+                    if (details.pointerCount == 2) {
+                      setState(() {
+                        _videoScale = (_baseVideoScale * details.scale).clamp(1.0, 5.0);
+                        if (_videoScale > 1.0) {
+                          _videoOffset = _baseVideoOffset + details.focalPointDelta;
+                        } else {
+                          _videoOffset = Offset.zero;
+                        }
+                      });
+                    } else if (details.pointerCount == 1) {
+                      final screenHeight = MediaQuery.of(context).size.height;
+                      
+                      final isBottom = details.localFocalPoint.dy > screenHeight * 0.7;
+                      final isCenter = details.localFocalPoint.dx > screenWidth * 0.25 && details.localFocalPoint.dx < screenWidth * 0.75;
+                      final isVerticalDrag = details.focalPointDelta.dy.abs() > details.focalPointDelta.dx.abs();
+
+                      // التحكم في رفع وتنزيل الترجمة
+                      if (isBottom && isCenter && isVerticalDrag) {
+                        double newPadding = s.bottomPadding - details.focalPointDelta.dy;
+                        s.setBottomPadding(newPadding.clamp(0.0, screenHeight / 1.5)); 
+                      } else {
+                        // التحكم في الصوت أو الإضاءة
+                        onPanUpdate(
+                          DragUpdateDetails(
+                            globalPosition: details.focalPoint,
+                            localPosition: details.localFocalPoint,
+                            delta: details.focalPointDelta,
+                            primaryDelta: details.focalPointDelta.dy,
+                          ),
+                          screenWidth,
+                        );
+                      }
+                    }
+                  },
+                  onScaleEnd: (details) {
+                    if (_isLocked) return;
+                    if (_videoScale < 1.0) {
+                      setState(() {
+                        _videoScale = 1.0;
+                        _videoOffset = Offset.zero;
+                      });
+                    }
+                    onPanEnd(DragEndDetails(velocity: details.velocity));
+                  },
+                  child: ClipRect(
+                    child: Transform.translate(
+                      offset: _videoOffset,
+                      child: Transform.scale(
+                        scale: _videoScale,
+                        child: Video(
+                          controller: _controller,
+                          fit: getBoxFit(_fitMode),
+                          controls: NoVideoControls,
+                          subtitleViewConfiguration: SubtitleViewConfiguration(
+                            style: TextStyle(
+                              fontSize: s.subtitleFontSize,
+                              color: s.subtitleColor,
+                              fontWeight: _getFontWeight(s.fontWeightIndex),
+                              fontFamily: s.fontFamily,
+                              fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                              backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+                              shadows: s.textShadowEnabled
+                                  ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
+                                      offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
+                                  : null,
+                            ),
+                            textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
+                            padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
+                          ),
+                        ),
                       ),
-                      textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                      padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: 0, left: 0, right: 0, height: 200,
-                  child: RawGestureDetector(
-                    gestures: {
-                      ScaleGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-                        () => ScaleGestureRecognizer(),
-                        (instance) {
-                          instance
-                            ..onStart = onScaleStart
-                            ..onUpdate = onScaleUpdate
-                            ..onEnd = onScaleEnd;
-                        },
-                      ),
-                    },
-                    behavior: HitTestBehavior.translucent,
-                  ),
-                ),
+
                 ValueListenableBuilder<bool>(
                   valueListenable: _showSeekNotifier,
                   builder: (context, show, child) {
@@ -757,6 +845,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                         child: const Icon(Symbols.lock_rounded, color: Colors.white, size: 22),
                       ),
                     ))),
+                
+                // ── شريط التحكم ──
                 if (_showControls && !_isLocked) ...[
                   Positioned(top: 0, left: 0, right: 0,
                     child: PlayerTopBar(
@@ -765,8 +855,18 @@ class _PlayerScreenState extends State<PlayerScreen>
                       onToggleFit: _toggleFit,
                       onToggleOrientation: _toggleOrientation,
                       onPip: _enterPip,
-                      onAudioMenu: _showAudioMenu,
-                      onSubtitleMenu: _showSubtitleMenu,
+                      onAudioMenu: () {
+                        setState(() {
+                          _currentMenu = _currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
+                          if (_currentMenu != ActiveMenu.none) cancelHideTimer(); else _scheduleHide();
+                        });
+                      },
+                      onSubtitleMenu: () {
+                        setState(() {
+                          _currentMenu = _currentMenu == ActiveMenu.subtitles ? ActiveMenu.none : ActiveMenu.subtitles;
+                          if (_currentMenu != ActiveMenu.none) cancelHideTimer(); else _scheduleHide();
+                        });
+                      },
                       isLandscape: _isLandscape,
                       showSubtitles: _showSubtitles,
                     )),
@@ -792,6 +892,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                     onPrimaryContainer: cs.onPrimaryContainer,
                   )),
                 ],
+
+                // ── النافذة الجانبية ──
+                _buildSidePanel(),
               ]),
       ),
     );
