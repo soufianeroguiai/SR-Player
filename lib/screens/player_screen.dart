@@ -105,10 +105,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   DateTime? _lastBrightTime;
   Timer? _indicatorTimer;
 
-  // متغيرات جديدة لتتبع بداية الإيماءة
+  // متغيرات الإيماءات الجديدة
   double _gestureStartVolume = 0.8;
   double _gestureStartBrightness = 0.7;
   double _gestureStartSeekMs = 0.0;
+  int _gestureMode = 0; // 0=غير محدد, 1=صوت/سطوع, 2=تمرير
 
   @override
   void initState() {
@@ -398,7 +399,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ═══════════════════════════════════════════════
-  // 🎯 الإيماءات المُعاد بناؤها بالكامل
+  // 🎯 الإيماءات المُعاد بناؤها بالكامل (تثبيت الاتجاه)
   // ═══════════════════════════════════════════════
 
   void _onScaleStart(ScaleStartDetails details) {
@@ -408,19 +409,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     if (details.pointerCount == 2) {
       _startSubtitleSize = context.read<SettingsProvider>().subtitleFontSize;
+      _gestureMode = 0; // وضع خاص بالتكبير
     } else {
-      // حفظ القيم الحالية عند بدء الإيماءة
+      // حفظ القيم الحالية كمرجع
       _gestureStartVolume = _volumeNotifier.value;
       _gestureStartBrightness = _brightnessNotifier.value;
       _gestureStartSeekMs = _position.inMilliseconds.toDouble();
       _seekMsNotifier.value = _gestureStartSeekMs;
+      _gestureMode = 0; // لم نحدد الاتجاه بعد
     }
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
     if (_isLocked) return;
 
-    // ── جاستر الترجمة (Pinch to Zoom) ──
+    // ── تكبير/تصغير الخط (إصبعين) ──
     if (details.pointerCount == 2) {
       final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
       context.read<SettingsProvider>().setSubtitleFontSize(newSize);
@@ -433,32 +436,39 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final dx = details.focalPointDelta.dx;
     final dy = details.focalPointDelta.dy;
 
-    // إذا لم تكن الحركة أفقية أو رأسية بشكل واضح، نهمل (أقل من 2 بكسل)
-    if (dx.abs() < 2 && dy.abs() < 2) return;
+    // تجاهل فقط إذا لم تكن هناك أي حركة على الإطلاق
+    if (dx == 0 && dy == 0) return;
 
-    // تحديد نوع الإيماءة بناءً على الاتجاه الغالب
-    if (dx.abs() > dy.abs()) {
-      // ── تمرير أفقي للبحث في الفيديو ──
-      // عامل سرعة يتناسب مع طول الفيديو، مع حد أدنى وأقصى
+    // تحديد الاتجاه لأول مرة بناءً على الحركة الأكبر بعد تجاوز عتبة صغيرة
+    if (_gestureMode == 0) {
+      if (dx.abs() > 5 || dy.abs() > 5) {
+        _gestureMode = (dx.abs() > dy.abs()) ? 2 : 1;
+      } else {
+        return; // لم نتجاوز العتبة بعد، انتظر
+      }
+    }
+
+    // ── وضع التمرير الأفقي (Seek) ──
+    if (_gestureMode == 2) {
       final double seekFactor = (_duration.inMilliseconds * 0.3).clamp(60000, 600000);
       final seekChangeMs = (dx / screenWidth) * seekFactor;
       _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs)
           .clamp(0.0, _duration.inMilliseconds.toDouble());
-
       _showSeekNotifier.value = true;
       _showBrightNotifier.value = false;
       _showVolNotifier.value = false;
       _resetIndicatorTimer();
-    } else {
-      // ── تمرير رأسي للصوت / السطوع ──
-      final double delta = -dy / 200.0; // تحكم أدق (كان 150)
+      return;
+    }
+
+    // ── وضع الصوت / السطوع (رأسي) ──
+    if (_gestureMode == 1) {
+      final double delta = -dy / 200.0;
       final bool isLeft = details.localFocalPoint.dx < screenWidth / 2;
       final DateTime now = DateTime.now();
 
       if (isLeft) {
-        // السطوع
-        final newBrightness =
-            (_gestureStartBrightness + delta).clamp(0.1, 1.0);
+        final newBrightness = (_gestureStartBrightness + delta).clamp(0.1, 1.0);
         _brightnessNotifier.value = newBrightness;
         _showBrightNotifier.value = true;
         _showVolNotifier.value = false;
@@ -467,14 +477,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (_lastBrightTime == null ||
             now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
           try {
-            ScreenBrightness.instance
-                .setApplicationScreenBrightness(newBrightness);
+            ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
           } catch (_) {}
           _lastBrightTime = now;
           HapticFeedback.lightImpact();
         }
       } else {
-        // الصوت
         final newVol = (_gestureStartVolume + delta).clamp(0.0, 1.0);
         _volumeNotifier.value = newVol;
         _showVolNotifier.value = true;
@@ -495,14 +503,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _onScaleEnd(ScaleEndDetails details) {
     if (_isLocked) return;
 
-    _saveVolumeAndBrightness();
-
-    if (_showSeekNotifier.value) {
+    // تطبيق التمرير إذا كنا في وضعه
+    if (_gestureMode == 2 && _showSeekNotifier.value) {
       _player.seek(Duration(milliseconds: _seekMsNotifier.value.toInt()));
       _showSeekNotifier.value = false;
-      _resetIndicatorTimer();
       _scheduleHide();
     }
+
+    // حفظ القيم النهائية
+    _saveVolumeAndBrightness();
+
+    // إعادة تعيين وضع الإيماءة
+    _gestureMode = 0;
+    _resetIndicatorTimer();
   }
 
   Future<void> _saveVolumeAndBrightness() async {
@@ -514,7 +527,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _resetIndicatorTimer() {
     _indicatorTimer?.cancel();
     _indicatorTimer = Timer(const Duration(seconds: 1), () {
-      // تقليل المدة إلى ثانية واحدة لإخفاء أسرع
       if (mounted) {
         _showBrightNotifier.value = false;
         _showVolNotifier.value = false;
@@ -523,7 +535,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ═══════════════════════════════════════════════
-  // واجهة المؤشرات العائمة (لم تُمس)
+  // واجهة المؤشرات العائمة
   // ═══════════════════════════════════════════════
   Widget _buildFloatingIndicator({
     required IconData icon,
