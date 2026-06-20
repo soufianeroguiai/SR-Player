@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -11,35 +10,33 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-import 'package:flex_color_picker/flex_color_picker.dart';
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/subtitle_service.dart';
 import '../services/pip_service.dart';
 import 'info_screen.dart';
+import 'player_audio_boost.dart';
+import 'player_indicators.dart';
+import 'player_gestures.dart';
+import 'player_controls.dart';
+import 'player_subtitle_settings.dart';
 
 enum VideoFitMode { contain, cover, fill }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
-    case VideoFitMode.contain:
-      return BoxFit.contain;
-    case VideoFitMode.cover:
-      return BoxFit.cover;
-    case VideoFitMode.fill:
-      return BoxFit.fill;
+    case VideoFitMode.contain: return BoxFit.contain;
+    case VideoFitMode.cover: return BoxFit.cover;
+    case VideoFitMode.fill: return BoxFit.fill;
   }
 }
 
 String modeName(VideoFitMode mode) {
   switch (mode) {
-    case VideoFitMode.contain:
-      return 'Fit';
-    case VideoFitMode.cover:
-      return 'Crop';
-    case VideoFitMode.fill:
-      return 'Stretch';
+    case VideoFitMode.contain: return 'Fit';
+    case VideoFitMode.cover: return 'Crop';
+    case VideoFitMode.fill: return 'Stretch';
   }
 }
 
@@ -56,17 +53,15 @@ class VideoFitSettings {
   }
 }
 
-enum GestureType { none, seek, volumeBrightness }
-
 class PlayerScreen extends StatefulWidget {
   final VideoItem video;
   const PlayerScreen({super.key, required this.video});
-
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
+class _PlayerScreenState extends State<PlayerScreen>
+    with WidgetsBindingObserver, PlayerGestures {
   late final Player _player;
   late final VideoController _controller;
 
@@ -109,29 +104,26 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double get _effectiveVolume =>
       (_volumeNotifier.value * _audioBoost).clamp(0, 200);
 
-  double _startSubtitleSize = 24.0;
-  DateTime? _lastVolTime;
-  DateTime? _lastBrightTime;
-  Timer? _indicatorTimer;
-
-  // Pan variables (one finger)
-  double _panStartVolume = 0.8;
-  double _panStartBrightness = 0.7;
-  double _panStartSeekMs = 0.0;
-  GestureType _panType = GestureType.none;
-  Offset _panStartPos = Offset.zero;
-
-  // Scale variables (two fingers)
-  bool _isScaling = false;
-  double _startBottomPadding = 48.0;
-  Offset _scaleStartFocalPoint = Offset.zero;
-  bool? _verticalTwoFingerMode; // true = vertical move, false = pinch zoom
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
+
+    getPlayer = () => _player;
+    volumeNotifier = _volumeNotifier;
+    brightnessNotifier = _brightnessNotifier;
+    seekMsNotifier = _seekMsNotifier;
+    showVolNotifier = _showVolNotifier;
+    showBrightNotifier = _showBrightNotifier;
+    showSeekNotifier = _showSeekNotifier;
+    isLocked = () => _isLocked;
+    getAudioBoost = () => _audioBoost;
+    getDuration = () => _duration;
+    getPosition = () => _position;
+    scheduleHide = _scheduleHide;
+    cancelHideTimer = () { _hideTimer?.cancel(); _indicatorTimer?.cancel(); };
+    getContext = () => context;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -200,8 +192,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _toggleFit() {
     setState(() {
-      _fitMode =
-          VideoFitMode.values[(_fitMode.index + 1) % VideoFitMode.values.length];
+      _fitMode = VideoFitMode.values[(_fitMode.index + 1) % VideoFitMode.values.length];
       _showFitOverlay();
     });
     VideoFitSettings.save(_fitMode);
@@ -217,7 +208,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _initPlayer() async {
     final settings = context.read<SettingsProvider>();
-
     try {
       await _player.open(Media(widget.video.path), play: settings.autoPlay);
       _player.setRate(_speed);
@@ -225,8 +215,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
       if (settings.rememberPosition) {
         try {
-          final saved =
-              await context.read<LibraryProvider>().getPosition(widget.video.path);
+          final saved = await context.read<LibraryProvider>().getPosition(widget.video.path);
           if (saved != null && saved.inSeconds > 0) await _player.seek(saved);
         } catch (_) {}
       }
@@ -237,10 +226,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (settings.rememberPosition) {
           _saveTimer?.cancel();
           _saveTimer = Timer(const Duration(seconds: 5), () {
-            if (mounted)
-              context
-                  .read<LibraryProvider>()
-                  .savePosition(widget.video.path, _position);
+            if (mounted) context.read<LibraryProvider>().savePosition(widget.video.path, _position);
           });
         }
       });
@@ -263,11 +249,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       });
 
       try {
-        _brightnessNotifier.value =
-            await ScreenBrightness.instance.application;
+        _brightnessNotifier.value = await ScreenBrightness.instance.application;
         if (_brightnessNotifier.value < 0.1) _brightnessNotifier.value = 0.1;
-        await ScreenBrightness.instance
-            .setApplicationScreenBrightness(_brightnessNotifier.value);
+        await ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
       } catch (_) {
         _brightnessNotifier.value = 0.7;
       }
@@ -293,8 +277,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       return;
     }
 
-    final videoName =
-        widget.video.path.split('/').last.replaceAll(RegExp(r'\.[^.]+$'), '');
+    final videoName = widget.video.path.split('/').last.replaceAll(RegExp(r'\.[^.]+$'), '');
     final folder = Directory(s.subtitleFolder);
     if (await folder.exists()) {
       final matchedFiles = <File>[];
@@ -302,10 +285,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (fileName.startsWith(videoName) &&
-              (fileName.endsWith('.srt') ||
-                  fileName.endsWith('.SRT') ||
-                  fileName.endsWith('.ssa') ||
-                  fileName.endsWith('.ass'))) {
+              (fileName.endsWith('.srt') || fileName.endsWith('.SRT') ||
+               fileName.endsWith('.ssa') || fileName.endsWith('.ass'))) {
             matchedFiles.add(file);
           }
         }
@@ -322,12 +303,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: matchedFiles
-                    .map((f) => ListTile(
-                          title: Text(f.path.split('/').last),
-                          onTap: () => Navigator.pop(ctx, f),
-                        ))
-                    .toList(),
+                children: matchedFiles.map((f) => ListTile(
+                  title: Text(f.path.split('/').last),
+                  onTap: () => Navigator.pop(ctx, f),
+                )).toList(),
               ),
             ),
           ),
@@ -359,7 +338,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Future<void> _loadSrtFile(String path, [String encoding = 'UTF-8']) async {
     try {
       await _player.setSubtitleTrack(SubtitleTrack.no());
-
       final entries = await SubtitleService.load(path);
       if (entries.isEmpty) return;
 
@@ -367,8 +345,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       for (int i = 0; i < entries.length; i++) {
         final e = entries[i];
         srtContent.writeln('${i + 1}');
-        srtContent
-            .writeln('${_formatSrtTime(e.start)} --> ${_formatSrtTime(e.end)}');
+        srtContent.writeln('${_formatSrtTime(e.start)} --> ${_formatSrtTime(e.end)}');
         srtContent.writeln(e.text);
         srtContent.writeln();
       }
@@ -402,8 +379,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _pickSubtitle() async {
     final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
+        type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
     if (result?.files.single.path != null) {
       final settings = context.read<SettingsProvider>();
       await _loadSrtFile(result!.files.single.path!, settings.subtitleEncoding);
@@ -413,8 +389,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _scheduleHide() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _isPlaying && !_isLocked)
-        setState(() => _showControls = false);
+      if (mounted && _isPlaying && !_isLocked) setState(() => _showControls = false);
     });
   }
 
@@ -425,308 +400,57 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _enterPip() async {
-    try {
-      await PipService.enter();
-    } catch (_) {}
+    try { await PipService.enter(); } catch (_) {}
   }
 
-  // ──────────────────────────────────────────────
-  // Pan gestures (one finger) – volume / brightness / seek
-  // ──────────────────────────────────────────────
-  void _onPanDown(DragDownDetails details) {
-    if (_isLocked || _isScaling) return;
-    _hideTimer?.cancel();
-    _indicatorTimer?.cancel();
-
-    _panStartPos = details.localPosition;
-    _panType = GestureType.none;
-    _panStartVolume = _volumeNotifier.value;
-    _panStartBrightness = _brightnessNotifier.value;
-    _panStartSeekMs = _position.inMilliseconds.toDouble();
-    _seekMsNotifier.value = _panStartSeekMs;
-  }
-
-  void _onPanUpdate(DragUpdateDetails details, double screenWidth) {
-    if (_isLocked || _isScaling) return;
-
-    if (_panType == GestureType.none) {
-      final delta = details.localPosition - _panStartPos;
-      if (delta.distance < 8) return;
-      if (delta.dx.abs() > delta.dy.abs()) {
-        _panType = GestureType.seek;
-      } else {
-        _panType = GestureType.volumeBrightness;
-      }
-    }
-
-    if (_panType == GestureType.seek) {
-      _handleSeekPan(details, screenWidth);
-    } else if (_panType == GestureType.volumeBrightness) {
-      _handleVolumeBrightnessPan(details, screenWidth);
-    }
-  }
-
-  void _handleSeekPan(DragUpdateDetails details, double screenWidth) {
-    final dx = details.delta.dx;
-    final double seekFactor =
-        (_duration.inMilliseconds * 0.25).clamp(50000, 500000);
-    final seekChangeMs = (dx / screenWidth) * seekFactor;
-    _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs)
-        .clamp(0.0, _duration.inMilliseconds.toDouble());
-
-    _showSeekNotifier.value = true;
-    _showBrightNotifier.value = false;
-    _showVolNotifier.value = false;
-    _resetIndicatorTimer();
-  }
-
-  void _handleVolumeBrightnessPan(
-      DragUpdateDetails details, double screenWidth) {
-    final dy = details.delta.dy;
-    final double delta = -dy / 200.0;
-    final bool isLeft = details.localPosition.dx < screenWidth / 2;
-    final DateTime now = DateTime.now();
-
-    if (isLeft) {
-      final newBrightness =
-          (_brightnessNotifier.value + delta).clamp(0.1, 1.0);
-      _brightnessNotifier.value = newBrightness;
-      _showBrightNotifier.value = true;
-      _showVolNotifier.value = false;
-      _showSeekNotifier.value = false;
-
-      if (_lastBrightTime == null ||
-          now.difference(_lastBrightTime!) >
-              const Duration(milliseconds: 50)) {
-        try {
-          ScreenBrightness.instance
-              .setApplicationScreenBrightness(newBrightness);
-        } catch (_) {}
-        _lastBrightTime = now;
-      }
-    } else {
-      final newVol = (_volumeNotifier.value + delta).clamp(0.0, 1.0);
-      _volumeNotifier.value = newVol;
-      _showVolNotifier.value = true;
-      _showBrightNotifier.value = false;
-      _showSeekNotifier.value = false;
-
-      if (_lastVolTime == null ||
-          now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
-        _player.setVolume(_effectiveVolume);
-        _lastVolTime = now;
-      }
-    }
-    _resetIndicatorTimer();
-  }
-
-  void _onPanEnd(DragEndDetails details) {
-    if (_isLocked || _isScaling) return;
-
-    if (_panType == GestureType.seek) {
-      _player.seek(Duration(milliseconds: _seekMsNotifier.value.toInt()));
-      _showSeekNotifier.value = false;
-      _scheduleHide();
-    }
-
-    _saveVolumeAndBrightness();
-    _panType = GestureType.none;
-    _resetIndicatorTimer();
-  }
-
-  // ──────────────────────────────────────────────
-  // Scale gestures (two fingers) – subtitle zoom & vertical move
-  // ──────────────────────────────────────────────
-  void _onScaleStart(ScaleStartDetails details) {
-    if (_isLocked) return;
-    _isScaling = true;
-    _hideTimer?.cancel();
-    _indicatorTimer?.cancel();
-
-    final settings = context.read<SettingsProvider>();
-    _startSubtitleSize = settings.subtitleFontSize;
-    _startBottomPadding = settings.bottomPadding;
-    _scaleStartFocalPoint = details.focalPoint;
-    _verticalTwoFingerMode = null;
-    _showBrightNotifier.value = false;
-    _showVolNotifier.value = false;
-    _showSeekNotifier.value = false;
-  }
-
-  void _onScaleUpdate(ScaleUpdateDetails details) {
-    if (_isLocked || !_isScaling) return;
-
-    final settings = context.read<SettingsProvider>();
-    final scaleChange = (details.scale - 1.0).abs();
-    final focalDy = details.focalPointDelta.dy;
-    final focalDx = details.focalPointDelta.dx;
-
-    if (_verticalTwoFingerMode == null) {
-      if (scaleChange > 0.03 || focalDy.abs() > 5 || focalDx.abs() > 5) {
-        if (scaleChange > 0.03) {
-          _verticalTwoFingerMode = false;
-        } else if (focalDy.abs() > focalDx.abs()) {
-          _verticalTwoFingerMode = true;
-        } else {
-          _verticalTwoFingerMode = false;
-        }
-      } else {
-        return;
-      }
-    }
-
-    if (_verticalTwoFingerMode == true) {
-      final newBottomPadding =
-          (_startBottomPadding - focalDy * 0.5).clamp(0.0, 200.0);
-      settings.setBottomPadding(newBottomPadding);
-    } else {
-      final newSize =
-          (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
-      settings.setSubtitleFontSize(newSize);
-    }
-  }
-
-  void _onScaleEnd(ScaleEndDetails details) {
-    _isScaling = false;
-    _verticalTwoFingerMode = null;
-    _panType = GestureType.none;
-    _resetIndicatorTimer();
-  }
-
-  Future<void> _saveVolumeAndBrightness() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('player_volume', _volumeNotifier.value);
-    await prefs.setDouble('player_brightness', _brightnessNotifier.value);
-  }
-
-  void _resetIndicatorTimer() {
-    _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(const Duration(seconds: 1), () {
-      if (mounted) {
-        _showBrightNotifier.value = false;
-        _showVolNotifier.value = false;
-      }
-    });
-  }
-
-  // ──────────────────────────────────────────────
-  // Floating indicators
-  // ──────────────────────────────────────────────
-  Widget _buildFloatingIndicator({
-    required IconData icon,
-    required double displayValue,
-    required String labelText,
-    required Color color,
-  }) {
-    return AnimatedOpacity(
-      opacity: 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        width: 52,
-        height: 200,
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 4)),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withOpacity(0.18),
-                    Colors.white.withOpacity(0.06)
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(26),
-                border:
-                    Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-              ),
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: Colors.white, size: 20),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: RotatedBox(
-                      quarterTurns: -1,
-                      child: SliderTheme(
-                        data: SliderThemeData(
-                          trackHeight: 3,
-                          thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 5),
-                          activeTrackColor: color,
-                          inactiveTrackColor:
-                              Colors.white.withOpacity(0.2),
-                          thumbColor: Colors.white,
-                          overlayColor: color.withOpacity(0.2),
-                        ),
-                        child: Slider(
-                            value: displayValue.clamp(0.0, 1.0),
-                            onChanged: null,
-                            min: 0,
-                            max: 1),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    labelText,
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showSpeedSheet() {
+  void _showAudioMenu() {
     final cs = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    final seen = <String>{};
+    final uniqueAudio = <AudioTrack>[];
+    for (final t in _audioTracks) {
+      final k = t.title ?? t.language ?? 'unknown';
+      if (!seen.contains(k)) { seen.add(k); uniqueAudio.add(t); }
+    }
+
+    showDialog(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-            child: Text('سرعة التشغيل',
-                style: TextStyle(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
-          ),
-          const Divider(height: 1),
-          ..._speeds.map((sp) => ListTile(
-                title: Text('${sp}x'),
-                trailing: _speed == sp
-                    ? Icon(Symbols.check_rounded, color: cs.primary)
-                    : null,
-                selected: _speed == sp,
-                onTap: () {
-                  setState(() => _speed = sp);
-                  _player.setRate(sp);
-                  Navigator.pop(context);
-                },
-              )),
-        ]),
+      barrierColor: Colors.transparent,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(16),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (uniqueAudio.isNotEmpty) ...[
+              const Text('المسارات الصوتية',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 8),
+              ...uniqueAudio.map((track) {
+                final name = track.title ?? track.language ?? 'مسار صوتي';
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(name, style: const TextStyle(color: Colors.white)),
+                  subtitle: track.language != null
+                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
+                      : null,
+                  trailing: _player.state.track.audio == track
+                      ? Icon(Icons.check, color: cs.primary)
+                      : null,
+                  onTap: () { _player.setAudioTrack(track); Navigator.pop(ctx); },
+                );
+              }),
+              const Divider(color: Colors.white24),
+            ],
+            AudioBoostSection(
+              boost: _audioBoost,
+              onChanged: (v) {
+                setState(() => _audioBoost = v);
+                _player.setVolume(_effectiveVolume);
+              },
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -737,10 +461,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final uniqueTracks = <SubtitleTrack>[];
     for (final t in _subtitleTracks) {
       final k = t.title ?? t.language ?? 'unknown';
-      if (!seen.contains(k)) {
-        seen.add(k);
-        uniqueTracks.add(t);
-      }
+      if (!seen.contains(k)) { seen.add(k); uniqueTracks.add(t); }
     }
 
     showDialog(
@@ -774,8 +495,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   contentPadding: EdgeInsets.zero,
                   title: Text(name, style: const TextStyle(color: Colors.white)),
                   subtitle: track.language != null
-                      ? Text(track.language!,
-                          style: const TextStyle(color: Colors.white54))
+                      ? Text(track.language!, style: const TextStyle(color: Colors.white54))
                       : null,
                   trailing: _player.state.track.subtitle == track
                       ? Icon(Icons.check, color: cs.primary)
@@ -791,18 +511,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.upload_file, color: Colors.white),
-              title: const Text('تحميل ترجمة من ملف',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickSubtitle();
-              },
+              title: const Text('تحميل ترجمة من ملف', style: TextStyle(color: Colors.white)),
+              onTap: () { Navigator.pop(ctx); _pickSubtitle(); },
             ),
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.white),
-              title: const Text('مزامنة وإعدادات',
-                  style: TextStyle(color: Colors.white)),
+              title: const Text('مزامنة وإعدادات', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showSyncSpeedPaletteSheet();
@@ -811,71 +526,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.palette, color: Colors.white),
-              title: const Text('تخصيص المظهر',
-                  style: TextStyle(color: Colors.white)),
+              title: const Text('تخصيص المظهر', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
-                _showSubtitleSettingsSheet();
-              },
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showAudioMenu() async {
-    final cs = Theme.of(context).colorScheme;
-    final seen = <String>{};
-    final uniqueAudio = <AudioTrack>[];
-    for (final t in _audioTracks) {
-      final k = t.title ?? t.language ?? 'unknown';
-      if (!seen.contains(k)) {
-        seen.add(k);
-        uniqueAudio.add(t);
-      }
-    }
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.transparent,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (uniqueAudio.isNotEmpty) ...[
-              const Text('المسارات الصوتية',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 8),
-              ...uniqueAudio.map((track) {
-                final name = track.title ?? track.language ?? 'مسار صوتي';
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title:
-                      Text(name, style: const TextStyle(color: Colors.white)),
-                  subtitle: track.language != null
-                      ? Text(track.language!,
-                          style: const TextStyle(color: Colors.white54))
-                      : null,
-                  trailing: _player.state.track.audio == track
-                      ? Icon(Icons.check, color: cs.primary)
-                      : null,
-                  onTap: () {
-                    _player.setAudioTrack(track);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }),
-              const Divider(color: Colors.white24),
-            ],
-            _AudioBoostSection(
-              boost: _audioBoost,
-              onChanged: (v) {
-                setState(() => _audioBoost = v);
-                _player.setVolume(_effectiveVolume);
+                showSubtitleSettingsSheet(context);
               },
             ),
           ]),
@@ -896,20 +550,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('إعدادات الترجمة',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const Divider(color: Colors.white24),
             ListTile(
               dense: true,
-              title: const Text('مزامنة الترجمة',
-                  style: TextStyle(color: Colors.white)),
+              title: const Text('مزامنة الترجمة', style: TextStyle(color: Colors.white)),
               subtitle: Slider(
-                value: _subtitleSync,
-                min: -5.0,
-                max: 5.0,
-                divisions: 100,
+                value: _subtitleSync, min: -5.0, max: 5.0, divisions: 100,
                 label: '${_subtitleSync.toStringAsFixed(1)}s',
                 onChanged: (v) {
                   setState(() => _subtitleSync = v);
@@ -920,13 +567,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
             ListTile(
               dense: true,
-              title: const Text('سرعة الترجمة',
-                  style: TextStyle(color: Colors.white)),
+              title: const Text('سرعة الترجمة', style: TextStyle(color: Colors.white)),
               subtitle: Slider(
-                value: _subtitleSpeed,
-                min: 0.5,
-                max: 2.0,
-                divisions: 15,
+                value: _subtitleSpeed, min: 0.5, max: 2.0, divisions: 15,
                 label: '${_subtitleSpeed}x',
                 onChanged: (v) => setState(() => _subtitleSpeed = v),
                 activeColor: Theme.of(context).colorScheme.primary,
@@ -938,217 +581,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  void _showSubtitleSettingsSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black54,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.55,
-        minChildSize: 0.3,
-        maxChildSize: 0.85,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1A1A2E),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[600],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  children: [
-                    const Text(
-                      'تخصيص الترجمة',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(color: Colors.white24),
-                    _buildSettingsContent(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsContent() {
-    final s = context.watch<SettingsProvider>();
-    final cs = Theme.of(context).colorScheme;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(
-        dense: true,
-        title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
-        subtitle: Slider(
-          value: s.subtitleFontSize,
-          min: 10,
-          max: 150,
-          onChanged: (v) => s.setSubtitleFontSize(v),
-          activeColor: cs.primary,
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('لون النص', style: TextStyle(color: Colors.white)),
-        trailing: GestureDetector(
-          onTap: () async {
-            final color =
-                await showColorPickerDialog(context, s.subtitleColor);
-            if (color != null) s.setSubtitleColor(color);
-          },
-          child: ColorIndicator(color: s.subtitleColor),
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title:
-            const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
-        trailing: GestureDetector(
-          onTap: () async {
-            final color =
-                await showColorPickerDialog(context, s.subtitleBgColor);
-            if (color != null) s.setSubtitleBgColor(color);
-          },
-          child: ColorIndicator(color: s.subtitleBgColor),
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('شفافية الخلفية',
-            style: TextStyle(color: Colors.white)),
-        subtitle: Slider(
-          value: s.subtitleBgOpacity,
-          min: 0.0,
-          max: 1.0,
-          onChanged: (v) => s.setSubtitleBgOpacity(v),
-          activeColor: cs.primary,
-        ),
-      ),
-      SwitchListTile(
-        dense: true,
-        title: const Text('ظل النص', style: TextStyle(color: Colors.white)),
-        value: s.textShadowEnabled,
-        activeColor: cs.primary,
-        onChanged: (v) => s.setTextShadowEnabled(v),
-      ),
-      if (s.textShadowEnabled) ...[
-        ListTile(
-          dense: true,
-          title:
-              const Text('لون الظل', style: TextStyle(color: Colors.white70)),
-          trailing: GestureDetector(
-            onTap: () async {
-              final color =
-                  await showColorPickerDialog(context, s.textShadowColor);
-              if (color != null) s.setTextShadowColor(color);
-            },
-            child: ColorIndicator(color: s.textShadowColor),
-          ),
-        ),
-        ListTile(
-          dense: true,
-          title:
-              const Text('حجم الظل', style: TextStyle(color: Colors.white70)),
-          subtitle: Slider(
-            value: s.textShadowBlurRadius,
-            min: 0,
-            max: 20,
-            onChanged: (v) => s.setTextShadowBlurRadius(v),
-            activeColor: cs.primary,
-          ),
-        ),
-        ListTile(
-          dense: true,
-          title: const Text('إزاحة أفقية',
-              style: TextStyle(color: Colors.white70)),
-          subtitle: Slider(
-            value: s.textShadowOffsetX,
-            min: -10,
-            max: 10,
-            onChanged: (v) => s.setTextShadowOffsetX(v),
-            activeColor: cs.primary,
-          ),
-        ),
-        ListTile(
-          dense: true,
-          title: const Text('إزاحة رأسية',
-              style: TextStyle(color: Colors.white70)),
-          subtitle: Slider(
-            value: s.textShadowOffsetY,
-            min: -10,
-            max: 10,
-            onChanged: (v) => s.setTextShadowOffsetY(v),
-            activeColor: cs.primary,
-          ),
-        ),
-      ],
-      ListTile(
-        dense: true,
-        title: const Text('الهامش الأفقي',
-            style: TextStyle(color: Colors.white)),
-        subtitle: Slider(
-          value: s.horizontalMargin,
-          min: 0,
-          max: 100,
-          onChanged: (v) => s.setHorizontalMargin(v),
-          activeColor: cs.primary,
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('المسافة السفلية',
-            style: TextStyle(color: Colors.white)),
-        subtitle: Slider(
-          value: s.bottomPadding,
-          min: 0,
-          max: 200,
-          onChanged: (v) => s.setBottomPadding(v),
-          activeColor: cs.primary,
-        ),
-      ),
-    ]);
-  }
-
-  String _fmt(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
-  }
-
   FontWeight _getFontWeight(int index) {
     switch (index) {
-      case 0:
-        return FontWeight.w300;
-      case 1:
-        return FontWeight.normal;
-      case 2:
-        return FontWeight.w500;
-      case 3:
-        return FontWeight.bold;
-      default:
-        return FontWeight.normal;
+      case 0: return FontWeight.w300;
+      case 1: return FontWeight.normal;
+      case 2: return FontWeight.w500;
+      case 3: return FontWeight.bold;
+      default: return FontWeight.normal;
     }
   }
 
@@ -1173,14 +612,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
-                // 🟢 طبقة الفيديو + إيماءات اللمسة الواحدة (Pan)
                 GestureDetector(
                   onTap: _toggleControls,
                   onDoubleTapDown: _isLocked
                       ? null
                       : (details) {
-                          final isRight =
-                              details.localPosition.dx > screenWidth / 2;
+                          final isRight = details.localPosition.dx > screenWidth / 2;
                           final target = isRight
                               ? (_position + const Duration(seconds: 10))
                               : (_position - const Duration(seconds: 10));
@@ -1188,10 +625,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               ? Duration.zero
                               : (target > _duration ? _duration : target));
                         },
-                  onPanDown: _onPanDown,
-                  onPanUpdate: (details) => _onPanUpdate(details, screenWidth),
-                  onPanEnd: _onPanEnd,
-                  // لا توجد onScale هنا
+                  onPanDown: onPanDown,
+                  onPanUpdate: (details) => onPanUpdate(details, screenWidth),
+                  onPanEnd: onPanEnd,
                   child: Video(
                     controller: _controller,
                     fit: getBoxFit(_fitMode),
@@ -1202,49 +638,35 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         color: s.subtitleColor,
                         fontWeight: _getFontWeight(s.fontWeightIndex),
                         fontFamily: s.fontFamily,
-                        fontStyle: s.subtitleItalic
-                            ? FontStyle.italic
-                            : FontStyle.normal,
-                        backgroundColor:
-                            s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+                        fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                        backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
                         shadows: s.textShadowEnabled
-                            ? [
-                                Shadow(
-                                    color: s.textShadowColor,
-                                    blurRadius: s.textShadowBlurRadius,
-                                    offset: Offset(s.textShadowOffsetX,
-                                        s.textShadowOffsetY))
-                              ]
+                            ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius,
+                                offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
                             : null,
                       ),
-                      textAlign:
-                          s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                      padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0,
-                          s.horizontalMargin, s.bottomPadding),
+                      textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
+                      padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
                     ),
                   ),
                 ),
-
-                // 🟢 طبقة شفافة لإيماءات الإصبعين (Scale) - منفصلة تماماً
-                Positioned.fill(
+                Positioned(
+                  bottom: 0, left: 0, right: 0, height: 200,
                   child: RawGestureDetector(
                     gestures: {
                       ScaleGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                              ScaleGestureRecognizer>(
+                          GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
                         () => ScaleGestureRecognizer(),
                         (instance) {
-                          instance.onStart = _onScaleStart;
-                          instance.onUpdate = _onScaleUpdate;
-                          instance.onEnd = _onScaleEnd;
+                          instance.onStart = onScaleStart;
+                          instance.onUpdate = onScaleUpdate;
+                          instance.onEnd = onScaleEnd;
                         },
                       ),
                     },
                     behavior: HitTestBehavior.translucent,
                   ),
                 ),
-
-                // المؤشرات
                 ValueListenableBuilder<bool>(
                   valueListenable: _showSeekNotifier,
                   builder: (context, show, child) {
@@ -1254,27 +676,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       builder: (context, seekMs, child) {
                         return Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.75),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Symbols.fast_forward_rounded,
-                                      color: Colors.white, size: 32),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _fmt(Duration(
-                                        milliseconds: seekMs.toInt())),
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ]),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Symbols.fast_forward_rounded, color: Colors.white, size: 32),
+                              const SizedBox(height: 8),
+                              Text(
+                                _fmt(Duration(milliseconds: seekMs.toInt())),
+                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                              ),
+                            ]),
                           ),
                         );
                       },
@@ -1291,13 +705,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         return Positioned(
                           left: 24,
                           top: MediaQuery.of(context).size.height * 0.25,
-                          child: _buildFloatingIndicator(
-                            icon: volume == 0
-                                ? Icons.volume_off_rounded
-                                : Icons.volume_up_rounded,
+                          child: PlayerIndicators.buildFloatingIndicator(
+                            icon: volume == 0 ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                             displayValue: volume,
-                            labelText:
-                                '${(volume * _audioBoost).round()}%',
+                            labelText: '${(volume * _audioBoost).round()}%',
                             color: cs.primary,
                           ),
                         );
@@ -1315,10 +726,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         return Positioned(
                           right: 24,
                           top: MediaQuery.of(context).size.height * 0.25,
-                          child: _buildFloatingIndicator(
-                            icon: brightness < 0.15
-                                ? Icons.brightness_low_rounded
-                                : Icons.brightness_6_rounded,
+                          child: PlayerIndicators.buildFloatingIndicator(
+                            icon: brightness < 0.15 ? Icons.brightness_low_rounded : Icons.brightness_6_rounded,
                             displayValue: brightness,
                             labelText: '${(brightness * 100).round()}%',
                             color: cs.secondary,
@@ -1328,208 +737,57 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     );
                   },
                 ),
-
                 if (_fitOverlayText != null)
-                  Positioned(
-                      top: 100,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                          child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.55),
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Text(_fitOverlayText!,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600)),
-                      ))),
-
+                  Positioned(top: 100, left: 0, right: 0,
+                    child: Center(child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.black.withOpacity(0.55), borderRadius: BorderRadius.circular(20)),
+                      child: Text(_fitOverlayText!, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    ))),
                 if (_isLocked)
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: SafeArea(
-                        child: GestureDetector(
+                  Positioned(top: 16, right: 16,
+                    child: SafeArea(child: GestureDetector(
                       onTap: _toggleLock,
                       child: Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.85),
-                            shape: BoxShape.circle),
-                        child: const Icon(Symbols.lock_rounded,
-                            color: Colors.white, size: 22),
+                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.85), shape: BoxShape.circle),
+                        child: const Icon(Symbols.lock_rounded, color: Colors.white, size: 22),
                       ),
-                    )),
-                  ),
-
+                    ))),
                 if (_showControls && !_isLocked) ...[
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.8),
-                              Colors.transparent
-                            ]),
-                      ),
-                      child: SafeArea(
-                        child: Row(children: [
-                          IconButton(
-                              icon: const Icon(Symbols.arrow_back_rounded,
-                                  color: Colors.white),
-                              onPressed: () => Navigator.pop(context)),
-                          Expanded(
-                              child: Text(widget.video.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 14))),
-                          IconButton(
-                              icon: const Icon(Symbols.aspect_ratio_rounded,
-                                  color: Colors.white70),
-                              onPressed: _toggleFit),
-                          IconButton(
-                              icon: Icon(
-                                  _isLandscape
-                                      ? Symbols.screen_rotation_rounded
-                                      : Symbols.stay_current_portrait_rounded,
-                                  color: Colors.white70),
-                              onPressed: _toggleOrientation),
-                          IconButton(
-                              icon: const Icon(
-                                  Symbols.picture_in_picture_rounded,
-                                  color: Colors.white70),
-                              onPressed: _enterPip),
-                          IconButton(
-                              icon: const Icon(Symbols.graphic_eq_rounded,
-                                  color: Colors.white70),
-                              onPressed: _showAudioMenu),
-                          IconButton(
-                              icon: Icon(
-                                  _showSubtitles
-                                      ? Symbols.subtitles_rounded
-                                      : Symbols.subtitles_off_rounded,
-                                  color: _showSubtitles
-                                      ? Colors.lightBlue
-                                      : Colors.white54),
-                              onPressed: _showSubtitleMenu),
-                        ]),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.85),
-                              Colors.transparent
-                            ]),
-                      ),
-                      child: SafeArea(
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                          child: Row(children: [
-                            Text(_fmt(_position),
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 12)),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                    trackHeight: 3,
-                                    thumbShape:
-                                        const RoundSliderThumbShape(
-                                            enabledThumbRadius: 6),
-                                    activeTrackColor: cs.primary,
-                                    inactiveTrackColor:
-                                        Colors.white.withOpacity(0.2),
-                                    thumbColor: cs.primary),
-                                child: Slider(
-                                  value: _duration.inMilliseconds > 0
-                                      ? (_position.inMilliseconds /
-                                              _duration.inMilliseconds)
-                                          .clamp(0.0, 1.0)
-                                      : 0.0,
-                                  onChanged: (v) => _player.seek(Duration(
-                                      milliseconds:
-                                          (v * _duration.inMilliseconds)
-                                              .toInt())),
-                                ),
-                              ),
-                            ),
-                            Text(_fmt(_duration),
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 12)),
-                          ]),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Center(
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                        _CtrlBtn(
-                          Symbols.replay_10_rounded,
-                          () {
-                            final target = _position -
-                                const Duration(seconds: 10);
-                            _player.seek(target.isNegative
-                                ? Duration.zero
-                                : target);
-                          },
-                        ),
-                        const SizedBox(width: 28),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _isPlaying
-                                ? _player.pause()
-                                : _player.play(),
-                            borderRadius: BorderRadius.circular(34),
-                            child: Container(
-                              width: 68,
-                              height: 68,
-                              decoration: BoxDecoration(
-                                color:
-                                    cs.primaryContainer.withOpacity(0.9),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                  _isPlaying
-                                      ? Symbols.pause_rounded
-                                      : Symbols.play_arrow_rounded,
-                                  color: cs.onPrimaryContainer,
-                                  size: 38),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 28),
-                        _CtrlBtn(
-                          Symbols.forward_10_rounded,
-                          () {
-                            final target = _position +
-                                const Duration(seconds: 10);
-                            _player.seek(
-                                target > _duration ? _duration : target);
-                          },
-                        ),
-                      ])),
+                  Positioned(top: 0, left: 0, right: 0,
+                    child: PlayerTopBar(
+                      videoName: widget.video.name,
+                      onBack: () => Navigator.pop(context),
+                      onToggleFit: _toggleFit,
+                      onToggleOrientation: _toggleOrientation,
+                      onPip: _enterPip,
+                      onAudioMenu: _showAudioMenu,
+                      onSubtitleMenu: _showSubtitleMenu,
+                      isLandscape: _isLandscape,
+                      showSubtitles: _showSubtitles,
+                    )),
+                  Positioned(bottom: 0, left: 0, right: 0,
+                    child: PlayerBottomBar(
+                      position: _position,
+                      duration: _duration,
+                      onSeek: (v) => _player.seek(Duration(milliseconds: (v * _duration.inMilliseconds).toInt())),
+                      primaryColor: cs.primary,
+                    )),
+                  Center(child: PlayerCenterButtons(
+                    isPlaying: _isPlaying,
+                    onPlayPause: () => _isPlaying ? _player.pause() : _player.play(),
+                    onSkipBack: () {
+                      final target = _position - const Duration(seconds: 10);
+                      _player.seek(target.isNegative ? Duration.zero : target);
+                    },
+                    onSkipForward: () {
+                      final target = _position + const Duration(seconds: 10);
+                      _player.seek(target > _duration ? _duration : target);
+                    },
+                    primaryColor: cs.primaryContainer,
+                    onPrimaryContainer: cs.onPrimaryContainer,
+                  )),
                 ],
               ]),
       ),
@@ -1539,156 +797,29 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    
     _volumeNotifier.dispose();
     _brightnessNotifier.dispose();
     _seekMsNotifier.dispose();
     _showVolNotifier.dispose();
     _showBrightNotifier.dispose();
     _showSeekNotifier.dispose();
-
     _hideTimer?.cancel();
     _saveTimer?.cancel();
     _indicatorTimer?.cancel();
     _fitOverlayTimer?.cancel();
-    try {
-      ScreenBrightness.instance.resetApplicationScreenBrightness();
-    } catch (_) {}
+    disposeGestures();
+    try { ScreenBrightness.instance.resetApplicationScreenBrightness(); } catch (_) {}
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _player.dispose();
     super.dispose();
   }
-}
 
-class _AudioBoostSection extends StatefulWidget {
-  final double boost;
-  final ValueChanged<double> onChanged;
-  const _AudioBoostSection({required this.boost, required this.onChanged});
-  @override
-  State<_AudioBoostSection> createState() => _AudioBoostSectionState();
-}
-
-class _AudioBoostSectionState extends State<_AudioBoostSection> {
-  late double _local;
-  @override
-  void initState() {
-    super.initState();
-    _local = widget.boost;
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
-
-  Color _boostColor(double v) {
-    if (v <= 100) return Colors.lightBlue;
-    if (v <= 150) return Colors.orange;
-    return Colors.redAccent;
-  }
-
-  String _boostLabel(double v) {
-    if (v <= 100) return 'طبيعي';
-    if (v <= 130) return 'مرتفع';
-    if (v <= 160) return 'عالٍ جداً';
-    return '⚠️ تشويه محتمل';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _boostColor(_local);
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text('تكبير الصوت',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-        Text(_boostLabel(_local),
-            style: TextStyle(color: color, fontSize: 11)),
-      ]),
-      const SizedBox(height: 6),
-      AnimatedDefaultTextStyle(
-        duration: const Duration(milliseconds: 200),
-        style: TextStyle(
-            color: color, fontWeight: FontWeight.w800, fontSize: 36),
-        child: Text('${_local.round()}%'),
-      ),
-      SliderTheme(
-        data: SliderThemeData(
-          trackHeight: 5,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-          activeTrackColor: color,
-          inactiveTrackColor: Colors.white12,
-          thumbColor: color,
-          overlayColor: color.withOpacity(0.2),
-        ),
-        child: Slider(
-            value: _local,
-            min: 50,
-            max: 200,
-            divisions: 30,
-            onChanged: (v) {
-              setState(() => _local = v);
-              widget.onChanged(v);
-            }),
-      ),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-        for (final val in [100.0, 130.0, 160.0, 200.0])
-          _QuickBtn(
-              label: '${val.toInt()}%',
-              active: (_local - val).abs() < 2,
-              color: _boostColor(val),
-              onTap: () {
-                setState(() => _local = val);
-                widget.onChanged(val);
-              }),
-      ]),
-    ]);
-  }
-}
-
-class _QuickBtn extends StatelessWidget {
-  final String label;
-  final bool active;
-  final Color color;
-  final VoidCallback onTap;
-  const _QuickBtn(
-      {required this.label,
-      required this.active,
-      required this.color,
-      required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? color.withOpacity(0.25) : Colors.white.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? color : Colors.white24),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                color: active ? color : Colors.white54,
-                fontSize: 11,
-                fontWeight: FontWeight.w600)),
-      ),
-    );
-  }
-}
-
-class _CtrlBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _CtrlBtn(this.icon, this.onTap);
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              shape: BoxShape.circle),
-          child: Icon(icon, color: Colors.white, size: 28),
-        ),
-      );
 }
