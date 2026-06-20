@@ -45,12 +45,10 @@ String modeName(VideoFitMode mode) {
 
 class VideoFitSettings {
   static const _key = 'video_fit_mode';
-
   static Future<void> save(VideoFitMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_key, mode.index);
   }
-
   static Future<VideoFitMode> load() async {
     final prefs = await SharedPreferences.getInstance();
     final index = prefs.getInt(_key) ?? 0;
@@ -62,7 +60,6 @@ enum GestureType { none, seek, volumeBrightness }
 
 class PlayerScreen extends StatefulWidget {
   final VideoItem video;
-
   const PlayerScreen({super.key, required this.video});
 
   @override
@@ -117,14 +114,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   DateTime? _lastBrightTime;
   Timer? _indicatorTimer;
 
-  // Pan variables
+  // Pan variables (one finger)
   double _panStartVolume = 0.8;
   double _panStartBrightness = 0.7;
   double _panStartSeekMs = 0.0;
   GestureType _panType = GestureType.none;
   Offset _panStartPos = Offset.zero;
 
-  // Scale (two‑finger) variables
+  // Scale variables (two fingers)
   bool _isScaling = false;
   double _startBottomPadding = 48.0;
   Offset _scaleStartFocalPoint = Offset.zero;
@@ -542,55 +539,47 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // ──────────────────────────────────────────────
   void _onScaleStart(ScaleStartDetails details) {
     if (_isLocked) return;
-    if (details.pointerCount >= 2) {
-      _isScaling = true;
-      _hideTimer?.cancel();
-      _indicatorTimer?.cancel();
+    _isScaling = true;
+    _hideTimer?.cancel();
+    _indicatorTimer?.cancel();
 
-      final settings = context.read<SettingsProvider>();
-      _startSubtitleSize = settings.subtitleFontSize;
-      _startBottomPadding = settings.bottomPadding;
-      _scaleStartFocalPoint = details.focalPoint;
-      _verticalTwoFingerMode = null; // will be decided on first move
-      // hide other indicators
-      _showBrightNotifier.value = false;
-      _showVolNotifier.value = false;
-      _showSeekNotifier.value = false;
-    }
+    final settings = context.read<SettingsProvider>();
+    _startSubtitleSize = settings.subtitleFontSize;
+    _startBottomPadding = settings.bottomPadding;
+    _scaleStartFocalPoint = details.focalPoint;
+    _verticalTwoFingerMode = null;
+    _showBrightNotifier.value = false;
+    _showVolNotifier.value = false;
+    _showSeekNotifier.value = false;
   }
 
-  void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
+  void _onScaleUpdate(ScaleUpdateDetails details) {
     if (_isLocked || !_isScaling) return;
-    if (details.pointerCount < 2) return;
 
     final settings = context.read<SettingsProvider>();
     final scaleChange = (details.scale - 1.0).abs();
     final focalDy = details.focalPointDelta.dy;
     final focalDx = details.focalPointDelta.dx;
 
-    // Determine mode on first significant move
     if (_verticalTwoFingerMode == null) {
       if (scaleChange > 0.03 || focalDy.abs() > 5 || focalDx.abs() > 5) {
-        // If scale changed noticeably → pinch zoom, otherwise vertical pan
         if (scaleChange > 0.03) {
           _verticalTwoFingerMode = false;
         } else if (focalDy.abs() > focalDx.abs()) {
           _verticalTwoFingerMode = true;
         } else {
-          _verticalTwoFingerMode = false; // default to zoom if unsure
+          _verticalTwoFingerMode = false;
         }
       } else {
-        return; // wait for clearer input
+        return;
       }
     }
 
     if (_verticalTwoFingerMode == true) {
-      // Vertical movement of subtitles
       final newBottomPadding =
           (_startBottomPadding - focalDy * 0.5).clamp(0.0, 200.0);
       settings.setBottomPadding(newBottomPadding);
     } else {
-      // Pinch zoom
       final newSize =
           (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
       settings.setSubtitleFontSize(newSize);
@@ -598,12 +587,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _onScaleEnd(ScaleEndDetails details) {
-    if (_isLocked) return;
     _isScaling = false;
     _verticalTwoFingerMode = null;
     _panType = GestureType.none;
     _resetIndicatorTimer();
-    // settings are already saved via provider setters
   }
 
   Future<void> _saveVolumeAndBrightness() async {
@@ -623,7 +610,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ──────────────────────────────────────────────
-  // Floating indicators (unchanged)
+  // Floating indicators
   // ──────────────────────────────────────────────
   Widget _buildFloatingIndicator({
     required IconData icon,
@@ -1186,6 +1173,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
+                // 🟢 طبقة الفيديو + إيماءات اللمسة الواحدة (Pan)
                 GestureDetector(
                   onTap: _toggleControls,
                   onDoubleTapDown: _isLocked
@@ -1203,10 +1191,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   onPanDown: _onPanDown,
                   onPanUpdate: (details) => _onPanUpdate(details, screenWidth),
                   onPanEnd: _onPanEnd,
-                  onScaleStart: _onScaleStart,
-                  onScaleUpdate: (details) =>
-                      _onScaleUpdate(details, screenWidth),
-                  onScaleEnd: _onScaleEnd,
+                  // لا توجد onScale هنا
                   child: Video(
                     controller: _controller,
                     fit: getBoxFit(_fitMode),
@@ -1240,7 +1225,26 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                // Seek indicator
+                // 🟢 طبقة شفافة لإيماءات الإصبعين (Scale) - منفصلة تماماً
+                Positioned.fill(
+                  child: RawGestureDetector(
+                    gestures: {
+                      ScaleGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                              ScaleGestureRecognizer>(
+                        () => ScaleGestureRecognizer(),
+                        (instance) {
+                          instance.onStart = _onScaleStart;
+                          instance.onUpdate = _onScaleUpdate;
+                          instance.onEnd = _onScaleEnd;
+                        },
+                      ),
+                    },
+                    behavior: HitTestBehavior.translucent,
+                  ),
+                ),
+
+                // المؤشرات
                 ValueListenableBuilder<bool>(
                   valueListenable: _showSeekNotifier,
                   builder: (context, show, child) {
@@ -1277,8 +1281,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     );
                   },
                 ),
-
-                // Volume indicator
                 ValueListenableBuilder<bool>(
                   valueListenable: _showVolNotifier,
                   builder: (context, show, child) {
@@ -1303,8 +1305,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     );
                   },
                 ),
-
-                // Brightness indicator
                 ValueListenableBuilder<bool>(
                   valueListenable: _showBrightNotifier,
                   builder: (context, show, child) {
@@ -1367,7 +1367,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
 
                 if (_showControls && !_isLocked) ...[
-                  // Top bar
                   Positioned(
                     top: 0,
                     left: 0,
@@ -1427,8 +1426,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       ),
                     ),
                   ),
-
-                  // Bottom bar (progress)
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -1483,8 +1480,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       ),
                     ),
                   ),
-
-                  // Play/Pause & skip buttons
                   Center(
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1544,7 +1539,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
+    
     _volumeNotifier.dispose();
     _brightnessNotifier.dispose();
     _seekMsNotifier.dispose();
