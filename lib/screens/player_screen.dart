@@ -105,11 +105,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   DateTime? _lastBrightTime;
   Timer? _indicatorTimer;
 
-  // متغيرات الإيماءات الجديدة
-  double _gestureStartVolume = 0.8;
-  double _gestureStartBrightness = 0.7;
-  double _gestureStartSeekMs = 0.0;
-  int _gestureMode = 0; // 0=غير محدد, 1=صوت/سطوع, 2=تمرير
+  // ── متغيرات الإيماءات الجديدة (Pan) ──
+  double _panStartVolume = 0.8;
+  double _panStartBrightness = 0.7;
+  double _panStartSeekMs = 0.0;
+  
+  enum GestureType { none, seek, volumeBrightness }
+  GestureType _panType = GestureType.none;
+  Offset _panStartPos = Offset.zero;
 
   @override
   void initState() {
@@ -399,122 +402,103 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ═══════════════════════════════════════════════
-  // 🎯 الإيماءات المُعاد بناؤها بالكامل (تثبيت الاتجاه)
+  // 🎯 الإيماءات الجديدة باستخدام Pan (خالية من التعارض)
   // ═══════════════════════════════════════════════
-
-  void _onScaleStart(ScaleStartDetails details) {
+  void _onPanStart(DragStartDetails details) {
     if (_isLocked) return;
     _hideTimer?.cancel();
     _indicatorTimer?.cancel();
 
-    if (details.pointerCount == 2) {
-      _startSubtitleSize = context.read<SettingsProvider>().subtitleFontSize;
-      _gestureMode = 0; // وضع خاص بالتكبير
-    } else {
-      // حفظ القيم الحالية كمرجع
-      _gestureStartVolume = _volumeNotifier.value;
-      _gestureStartBrightness = _brightnessNotifier.value;
-      _gestureStartSeekMs = _position.inMilliseconds.toDouble();
-      _seekMsNotifier.value = _gestureStartSeekMs;
-      _gestureMode = 0; // لم نحدد الاتجاه بعد
+    _panStartPos = details.localPosition;
+    _panType = GestureType.none; // لم نحدد بعد
+    // حفظ القيم المرجعية
+    _panStartVolume = _volumeNotifier.value;
+    _panStartBrightness = _brightnessNotifier.value;
+    _panStartSeekMs = _position.inMilliseconds.toDouble();
+    _seekMsNotifier.value = _panStartSeekMs;
+  }
+
+  void _onPanUpdate(DragUpdateDetails details, double screenWidth) {
+    if (_isLocked || _panType == GestureType.none) {
+      // نحاول تحديد الاتجاه عند بداية السحب
+      final delta = details.localPosition - _panStartPos;
+      if (delta.distance < 8) return; // عتبة صغيرة لتجنب الاهتزاز
+      // تحديد النوع بناءً على الزاوية
+      if (delta.dx.abs() > delta.dy.abs()) {
+        _panType = GestureType.seek;
+      } else {
+        _panType = GestureType.volumeBrightness;
+      }
+    }
+
+    if (_panType == GestureType.seek) {
+      _handleSeekPan(details, screenWidth);
+    } else if (_panType == GestureType.volumeBrightness) {
+      _handleVolumeBrightnessPan(details, screenWidth);
     }
   }
 
-  void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
-    if (_isLocked) return;
+  void _handleSeekPan(DragUpdateDetails details, double screenWidth) {
+    final dx = details.delta.dx;
+    // معامل سرعة البحث يتناسب مع مدة الفيديو
+    final double seekFactor = (_duration.inMilliseconds * 0.25).clamp(50000, 500000);
+    final seekChangeMs = (dx / screenWidth) * seekFactor;
+    _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs)
+        .clamp(0.0, _duration.inMilliseconds.toDouble());
 
-    // ── تكبير/تصغير الخط (إصبعين) ──
-    if (details.pointerCount == 2) {
-      final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
-      context.read<SettingsProvider>().setSubtitleFontSize(newSize);
-      _showBrightNotifier.value = false;
+    _showSeekNotifier.value = true;
+    _showBrightNotifier.value = false;
+    _showVolNotifier.value = false;
+    _resetIndicatorTimer();
+  }
+
+  void _handleVolumeBrightnessPan(DragUpdateDetails details, double screenWidth) {
+    final dy = details.delta.dy;
+    final double delta = -dy / 200.0; // حساسية جيدة
+    final bool isLeft = details.localPosition.dx < screenWidth / 2;
+    final DateTime now = DateTime.now();
+
+    if (isLeft) {
+      final newBrightness = (_brightnessNotifier.value + delta).clamp(0.1, 1.0);
+      _brightnessNotifier.value = newBrightness;
+      _showBrightNotifier.value = true;
       _showVolNotifier.value = false;
       _showSeekNotifier.value = false;
-      return;
-    }
 
-    final dx = details.focalPointDelta.dx;
-    final dy = details.focalPointDelta.dy;
-
-    // تجاهل فقط إذا لم تكن هناك أي حركة على الإطلاق
-    if (dx == 0 && dy == 0) return;
-
-    // تحديد الاتجاه لأول مرة بناءً على الحركة الأكبر بعد تجاوز عتبة صغيرة
-    if (_gestureMode == 0) {
-      if (dx.abs() > 5 || dy.abs() > 5) {
-        _gestureMode = (dx.abs() > dy.abs()) ? 2 : 1;
-      } else {
-        return; // لم نتجاوز العتبة بعد، انتظر
+      if (_lastBrightTime == null ||
+          now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
+        try {
+          ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
+        } catch (_) {}
+        _lastBrightTime = now;
       }
-    }
-
-    // ── وضع التمرير الأفقي (Seek) ──
-    if (_gestureMode == 2) {
-      final double seekFactor = (_duration.inMilliseconds * 0.3).clamp(60000, 600000);
-      final seekChangeMs = (dx / screenWidth) * seekFactor;
-      _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs)
-          .clamp(0.0, _duration.inMilliseconds.toDouble());
-      _showSeekNotifier.value = true;
+    } else {
+      final newVol = (_volumeNotifier.value + delta).clamp(0.0, 1.0);
+      _volumeNotifier.value = newVol;
+      _showVolNotifier.value = true;
       _showBrightNotifier.value = false;
-      _showVolNotifier.value = false;
-      _resetIndicatorTimer();
-      return;
-    }
+      _showSeekNotifier.value = false;
 
-    // ── وضع الصوت / السطوع (رأسي) ──
-    if (_gestureMode == 1) {
-      final double delta = -dy / 200.0;
-      final bool isLeft = details.localFocalPoint.dx < screenWidth / 2;
-      final DateTime now = DateTime.now();
-
-      if (isLeft) {
-        final newBrightness = (_gestureStartBrightness + delta).clamp(0.1, 1.0);
-        _brightnessNotifier.value = newBrightness;
-        _showBrightNotifier.value = true;
-        _showVolNotifier.value = false;
-        _showSeekNotifier.value = false;
-
-        if (_lastBrightTime == null ||
-            now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
-          try {
-            ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
-          } catch (_) {}
-          _lastBrightTime = now;
-          HapticFeedback.lightImpact();
-        }
-      } else {
-        final newVol = (_gestureStartVolume + delta).clamp(0.0, 1.0);
-        _volumeNotifier.value = newVol;
-        _showVolNotifier.value = true;
-        _showBrightNotifier.value = false;
-        _showSeekNotifier.value = false;
-
-        if (_lastVolTime == null ||
-            now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
-          _player.setVolume(_effectiveVolume);
-          _lastVolTime = now;
-          HapticFeedback.lightImpact();
-        }
+      if (_lastVolTime == null ||
+          now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
+        _player.setVolume(_effectiveVolume);
+        _lastVolTime = now;
       }
-      _resetIndicatorTimer();
     }
+    _resetIndicatorTimer();
   }
 
-  void _onScaleEnd(ScaleEndDetails details) {
+  void _onPanEnd(DragEndDetails details) {
     if (_isLocked) return;
 
-    // تطبيق التمرير إذا كنا في وضعه
-    if (_gestureMode == 2 && _showSeekNotifier.value) {
+    if (_panType == GestureType.seek) {
       _player.seek(Duration(milliseconds: _seekMsNotifier.value.toInt()));
       _showSeekNotifier.value = false;
       _scheduleHide();
     }
 
-    // حفظ القيم النهائية
     _saveVolumeAndBrightness();
-
-    // إعادة تعيين وضع الإيماءة
-    _gestureMode = 0;
+    _panType = GestureType.none;
     _resetIndicatorTimer();
   }
 
@@ -535,7 +519,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   // ═══════════════════════════════════════════════
-  // واجهة المؤشرات العائمة
+  // واجهة المؤشرات العائمة (لم تُمس)
   // ═══════════════════════════════════════════════
   Widget _buildFloatingIndicator({
     required IconData icon,
@@ -807,19 +791,56 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _showSubtitleSettingsSheet() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierColor: Colors.transparent,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black87,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('تخصيص الترجمة',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          const Divider(color: Colors.white24),
-          _buildSettingsContent(),
-        ])),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  children: [
+                    const Text(
+                      'تخصيص الترجمة',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(color: Colors.white24),
+                    _buildSettingsContent(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -967,6 +988,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
+          // 🎯 GestureDetector بسيط: Tap + DoubleTap + Pan منفصلة
           GestureDetector(
             onTap: _toggleControls,
             onDoubleTapDown: _isLocked ? null : (details) {
@@ -976,9 +998,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   : (_position - const Duration(seconds: 10));
               _player.seek(target.isNegative ? Duration.zero : (target > _duration ? _duration : target));
             },
-            onScaleStart: _onScaleStart,
-            onScaleUpdate: (details) => _onScaleUpdate(details, screenWidth),
-            onScaleEnd: _onScaleEnd,
+            onPanStart: _onPanStart,
+            onPanUpdate: (details) => _onPanUpdate(details, screenWidth),
+            onPanEnd: _onPanEnd,
             child: Video(
               controller: _controller,
               fit: getBoxFit(_fitMode),
@@ -1002,6 +1024,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ),
           ),
 
+          // المؤشرات (بقيت كما هي)
           ValueListenableBuilder<bool>(
             valueListenable: _showSeekNotifier,
             builder: (context, show, child) {
