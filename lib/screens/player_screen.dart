@@ -105,6 +105,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   DateTime? _lastBrightTime;
   Timer? _indicatorTimer;
 
+  // متغيرات جديدة لتتبع بداية الإيماءة
+  double _gestureStartVolume = 0.8;
+  double _gestureStartBrightness = 0.7;
+  double _gestureStartSeekMs = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -392,6 +397,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try { await PipService.enter(); } catch (_) {}
   }
 
+  // ═══════════════════════════════════════════════
+  // 🎯 الإيماءات المُعاد بناؤها بالكامل
+  // ═══════════════════════════════════════════════
+
   void _onScaleStart(ScaleStartDetails details) {
     if (_isLocked) return;
     _hideTimer?.cancel();
@@ -400,17 +409,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (details.pointerCount == 2) {
       _startSubtitleSize = context.read<SettingsProvider>().subtitleFontSize;
     } else {
-      _seekMsNotifier.value = _position.inMilliseconds.toDouble();
+      // حفظ القيم الحالية عند بدء الإيماءة
+      _gestureStartVolume = _volumeNotifier.value;
+      _gestureStartBrightness = _brightnessNotifier.value;
+      _gestureStartSeekMs = _position.inMilliseconds.toDouble();
+      _seekMsNotifier.value = _gestureStartSeekMs;
     }
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details, double screenWidth) {
     if (_isLocked) return;
 
+    // ── جاستر الترجمة (Pinch to Zoom) ──
     if (details.pointerCount == 2) {
       final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
       context.read<SettingsProvider>().setSubtitleFontSize(newSize);
-
       _showBrightNotifier.value = false;
       _showVolNotifier.value = false;
       _showSeekNotifier.value = false;
@@ -420,41 +433,56 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final dx = details.focalPointDelta.dx;
     final dy = details.focalPointDelta.dy;
 
-    if (dx.abs() < 6 && dy.abs() < 6) return;
+    // إذا لم تكن الحركة أفقية أو رأسية بشكل واضح، نهمل (أقل من 2 بكسل)
+    if (dx.abs() < 2 && dy.abs() < 2) return;
 
+    // تحديد نوع الإيماءة بناءً على الاتجاه الغالب
     if (dx.abs() > dy.abs()) {
-      const seekFactor = 120000.0;
+      // ── تمرير أفقي للبحث في الفيديو ──
+      // عامل سرعة يتناسب مع طول الفيديو، مع حد أدنى وأقصى
+      final double seekFactor = (_duration.inMilliseconds * 0.3).clamp(60000, 600000);
       final seekChangeMs = (dx / screenWidth) * seekFactor;
-      _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs).clamp(0.0, _duration.inMilliseconds.toDouble());
+      _seekMsNotifier.value = (_seekMsNotifier.value + seekChangeMs)
+          .clamp(0.0, _duration.inMilliseconds.toDouble());
 
       _showSeekNotifier.value = true;
       _showBrightNotifier.value = false;
       _showVolNotifier.value = false;
+      _resetIndicatorTimer();
     } else {
-      final delta = -dy / 150.0;
-      final isLeft = details.localFocalPoint.dx < screenWidth / 2;
-      final now = DateTime.now();
+      // ── تمرير رأسي للصوت / السطوع ──
+      final double delta = -dy / 200.0; // تحكم أدق (كان 150)
+      final bool isLeft = details.localFocalPoint.dx < screenWidth / 2;
+      final DateTime now = DateTime.now();
 
       if (isLeft) {
-        final newBrightness = (_brightnessNotifier.value + delta).clamp(0.1, 1.0);
+        // السطوع
+        final newBrightness =
+            (_gestureStartBrightness + delta).clamp(0.1, 1.0);
         _brightnessNotifier.value = newBrightness;
         _showBrightNotifier.value = true;
         _showVolNotifier.value = false;
         _showSeekNotifier.value = false;
 
-        if (_lastBrightTime == null || now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
-          try { ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness); } catch (_) {}
+        if (_lastBrightTime == null ||
+            now.difference(_lastBrightTime!) > const Duration(milliseconds: 50)) {
+          try {
+            ScreenBrightness.instance
+                .setApplicationScreenBrightness(newBrightness);
+          } catch (_) {}
           _lastBrightTime = now;
           HapticFeedback.lightImpact();
         }
       } else {
-        final newVol = (_volumeNotifier.value + delta).clamp(0.0, 1.0);
+        // الصوت
+        final newVol = (_gestureStartVolume + delta).clamp(0.0, 1.0);
         _volumeNotifier.value = newVol;
         _showVolNotifier.value = true;
         _showBrightNotifier.value = false;
         _showSeekNotifier.value = false;
 
-        if (_lastVolTime == null || now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
+        if (_lastVolTime == null ||
+            now.difference(_lastVolTime!) > const Duration(milliseconds: 50)) {
           _player.setVolume(_effectiveVolume);
           _lastVolTime = now;
           HapticFeedback.lightImpact();
@@ -485,7 +513,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _resetIndicatorTimer() {
     _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(const Duration(seconds: 1, milliseconds: 500), () {
+    _indicatorTimer = Timer(const Duration(seconds: 1), () {
+      // تقليل المدة إلى ثانية واحدة لإخفاء أسرع
       if (mounted) {
         _showBrightNotifier.value = false;
         _showVolNotifier.value = false;
@@ -493,6 +522,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  // ═══════════════════════════════════════════════
+  // واجهة المؤشرات العائمة (لم تُمس)
+  // ═══════════════════════════════════════════════
   Widget _buildFloatingIndicator({
     required IconData icon,
     required double displayValue,
@@ -742,7 +774,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 onChanged: (v) {
                   setState(() => _subtitleSync = v);
                   settings.setDefaultSubtitleSync(v);
-                  // مزامنة الترجمة غير مدعومة مباشرة في media_kit حاليًا
                 },
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
@@ -784,7 +815,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget _buildSettingsContent() {
     final s = context.watch<SettingsProvider>();
     final cs = Theme.of(context).colorScheme;
-
     return Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(
         dense: true,
@@ -853,7 +883,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         ),
         ListTile(
           dense: true,
-          title: const Text('إزاحة الظل الأفقية', style: TextStyle(color: Colors.white70)),
+          title: const Text('إزاحة أفقية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
             value: s.textShadowOffsetX, min: -10, max: 10,
             onChanged: (v) => s.setTextShadowOffsetX(v),
@@ -862,7 +892,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         ),
         ListTile(
           dense: true,
-          title: const Text('إزاحة الظل الرأسية', style: TextStyle(color: Colors.white70)),
+          title: const Text('إزاحة رأسية', style: TextStyle(color: Colors.white70)),
           subtitle: Slider(
             value: s.textShadowOffsetY, min: -10, max: 10,
             onChanged: (v) => s.setTextShadowOffsetY(v),
@@ -1111,12 +1141,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 },
               ),
               const SizedBox(width: 28),
-              GestureDetector(
-                onTap: () => _isPlaying ? _player.pause() : _player.play(),
-                child: Container(
-                  width: 68, height: 68,
-                  decoration: BoxDecoration(color: cs.primaryContainer.withOpacity(0.9), shape: BoxShape.circle),
-                  child: Icon(_isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded, color: cs.onPrimaryContainer, size: 38),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _isPlaying ? _player.pause() : _player.play(),
+                  borderRadius: BorderRadius.circular(34),
+                  child: Container(
+                    width: 68, height: 68,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
+                        color: cs.onPrimaryContainer, size: 38),
+                  ),
                 ),
               ),
               const SizedBox(width: 28),
