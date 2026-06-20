@@ -315,6 +315,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       }
     });
   }
+  void cancelHideTimer() {
+    _hideTimer?.cancel();
+  }
 
   void _toggleControls() {
     if (_isLocked) return;
