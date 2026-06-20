@@ -3,245 +3,198 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 
-void showSubtitleSettingsSheet(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierColor: Colors.black54,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: const Color(0xFF1A1A2E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      contentPadding: const EdgeInsets.all(16),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+// دالة مساعدة لإنشاء أشرطة التمرير بشكل أنيق مع الأرقام
+Widget _buildSliderRow({
+  required String title,
+  required double value,
+  required double min,
+  required double max,
+  required String label,
+  required ValueChanged<double> onChanged,
+  required Color activeColor,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'تخصيص الترجمة',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Divider(color: Colors.white24),
-            buildSubtitleSettingsContent(context), // تم التعديل هنا
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+            Text(label, style: TextStyle(color: activeColor, fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
-      ),
+        SliderTheme(
+          data: SliderThemeData(
+            trackHeight: 3,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+          ),
+          child: Slider(value: value, min: min, max: max, onChanged: onChanged, activeColor: activeColor),
+        ),
+      ],
     ),
   );
 }
 
-// أصبحت دالة عامة (Public) لكي نستدعيها داخل النافذة الجانبية في player_screen
+// واجهة التخصيص المحسنة
 Widget buildSubtitleSettingsContent(BuildContext context) {
   final s = context.watch<SettingsProvider>();
   final cs = Theme.of(context).colorScheme;
 
-  return Column(mainAxisSize: MainAxisSize.min, children: [
-    // حجم الخط
-    ListTile(
-      dense: true,
-      title: const Text('حجم الخط', style: TextStyle(color: Colors.white)),
-      subtitle: Slider(
-        value: s.subtitleFontSize, min: 10, max: 150,
-        onChanged: (v) => s.setSubtitleFontSize(v), activeColor: cs.primary,
-      ),
-    ),
-    // نوع الخط
-    ListTile(
-      dense: true,
-      title: const Text('نوع الخط', style: TextStyle(color: Colors.white)),
-      subtitle: Text(s.fontFamily, style: const TextStyle(color: Colors.white70)),
-      trailing: const Icon(Icons.arrow_drop_down, color: Colors.white70),
-      onTap: () {
-        _showFontPicker(context, s);
-      },
-    ),
-    // لون النص
-    ListTile(
-      dense: true,
-      title: const Text('لون النص', style: TextStyle(color: Colors.white)),
-      trailing: GestureDetector(
-        onTap: () async {
-          final color = await showColorPickerDialog(context, s.subtitleColor);
-          if (color != null) s.setSubtitleColor(color);
-        },
-        child: ColorIndicator(color: s.subtitleColor),
-      ),
-    ),
-    // لون الخلفية مع زر تفعيل
-    SwitchListTile(
-      dense: true,
-      title: const Text('لون الخلفية', style: TextStyle(color: Colors.white)),
-      value: s.subtitleBgOpacity > 0,
-      activeColor: cs.primary,
-      onChanged: (v) {
-        s.setSubtitleBgOpacity(v ? 0.6 : 0.0);
-      },
-      secondary: GestureDetector(
-        onTap: () async {
-          final color = await showColorPickerDialog(context, s.subtitleBgColor);
-          if (color != null) s.setSubtitleBgColor(color);
-        },
-        child: ColorIndicator(color: s.subtitleBgColor),
-      ),
-    ),
-    // شفافية الخلفية
-    if (s.subtitleBgOpacity > 0)
-      ListTile(
-        dense: true,
-        title: const Text('شفافية الخلفية', style: TextStyle(color: Colors.white)),
-        subtitle: Slider(
-          value: s.subtitleBgOpacity, min: 0.1, max: 1.0,
-          onChanged: (v) => s.setSubtitleBgOpacity(v), activeColor: cs.primary,
+  return Directionality(
+    textDirection: TextDirection.rtl, // ضمان المحاذاة العربية دائماً
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, 
+      children: [
+        // ── الخط والحجم ──
+        _buildSliderRow(
+          title: 'حجم الخط',
+          value: s.subtitleFontSize, min: 10, max: 100,
+          label: '${s.subtitleFontSize.toInt()} px',
+          onChanged: (v) => s.setSubtitleFontSize(v),
+          activeColor: cs.primary,
         ),
-      ),
+        
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: const Text('نوع الخط', style: TextStyle(color: Colors.white, fontSize: 14)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(s.fontFamily, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              const Icon(Icons.arrow_drop_down, color: Colors.white70),
+            ],
+          ),
+          onTap: () => _showFontPicker(context, s),
+        ),
 
-    const Divider(color: Colors.white24),
-    // ── ظل النص ──
-    SwitchListTile(
-      dense: true,
-      title: const Text('ظل النص', style: TextStyle(color: Colors.white)),
-      value: s.textShadowEnabled,
-      activeColor: cs.primary,
-      onChanged: (v) => s.setTextShadowEnabled(v),
-    ),
-    if (s.textShadowEnabled) ...[
-      ListTile(
-        dense: true,
-        title: const Text('لون ظل النص', style: TextStyle(color: Colors.white70)),
-        trailing: GestureDetector(
-          onTap: () async {
-            final color = await showColorPickerDialog(context, s.textShadowColor);
-            if (color != null) s.setTextShadowColor(color);
-          },
-          child: ColorIndicator(color: s.textShadowColor),
+        const Divider(color: Colors.white24, height: 24),
+        
+        // ── الألوان والخلفية بطريقة احترافية ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('لون النص', style: TextStyle(color: Colors.white, fontSize: 14)),
+            GestureDetector(
+              onTap: () async {
+                final color = await showColorPickerDialog(context, s.subtitleColor);
+                if (color != null) s.setSubtitleColor(color);
+              },
+              child: ColorIndicator(color: s.subtitleColor, width: 30, height: 30, borderRadius: 8),
+            ),
+          ],
         ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('حجم ظل النص', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.textShadowBlurRadius, min: 0, max: 20,
-          onChanged: (v) => s.setTextShadowBlurRadius(v), activeColor: cs.primary,
+        const SizedBox(height: 16),
+        
+        // تصميم لون الخلفية والتوغل بجانب بعضهما
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('خلفية النص', style: TextStyle(color: Colors.white, fontSize: 14)),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final color = await showColorPickerDialog(context, s.subtitleBgColor);
+                    if (color != null) s.setSubtitleBgColor(color);
+                  },
+                  child: ColorIndicator(color: s.subtitleBgColor, width: 30, height: 30, borderRadius: 8),
+                ),
+                const SizedBox(width: 12),
+                Switch(
+                  value: s.subtitleBgOpacity > 0,
+                  onChanged: (v) => s.setSubtitleBgOpacity(v ? 0.6 : 0.0),
+                  activeColor: cs.primary,
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('إزاحة أفقية', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.textShadowOffsetX, min: -10, max: 10,
-          onChanged: (v) => s.setTextShadowOffsetX(v), activeColor: cs.primary,
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('إزاحة رأسية', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.textShadowOffsetY, min: -10, max: 10,
-          onChanged: (v) => s.setTextShadowOffsetY(v), activeColor: cs.primary,
-        ),
-      ),
-    ],
 
-    const Divider(color: Colors.white24),
-    // ── ظل الصندوق (Box Shadow) ──
-    SwitchListTile(
-      dense: true,
-      title: const Text('ظل الصندوق', style: TextStyle(color: Colors.white)),
-      value: s.boxShadowEnabled,
-      activeColor: cs.primary,
-      onChanged: (v) => s.setBoxShadowEnabled(v),
-    ),
-    if (s.boxShadowEnabled) ...[
-      ListTile(
-        dense: true,
-        title: const Text('لون ظل الصندوق', style: TextStyle(color: Colors.white70)),
-        trailing: GestureDetector(
-          onTap: () async {
-            final color = await showColorPickerDialog(context, s.boxShadowColor);
-            if (color != null) s.setBoxShadowColor(color);
-          },
-          child: ColorIndicator(color: s.boxShadowColor),
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('حجم ظل الصندوق', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.boxShadowBlurRadius, min: 0, max: 20,
-          onChanged: (v) => s.setBoxShadowBlurRadius(v), activeColor: cs.primary,
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('إزاحة أفقية للصندوق', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.boxShadowOffsetX, min: -10, max: 10,
-          onChanged: (v) => s.setBoxShadowOffsetX(v), activeColor: cs.primary,
-        ),
-      ),
-      ListTile(
-        dense: true,
-        title: const Text('إزاحة رأسية للصندوق', style: TextStyle(color: Colors.white70)),
-        subtitle: Slider(
-          value: s.boxShadowOffsetY, min: -10, max: 10,
-          onChanged: (v) => s.setBoxShadowOffsetY(v), activeColor: cs.primary,
-        ),
-      ),
-    ],
+        if (s.subtitleBgOpacity > 0) ...[
+          const SizedBox(height: 8),
+          _buildSliderRow(
+            title: 'شفافية الخلفية',
+            value: s.subtitleBgOpacity, min: 0.1, max: 1.0,
+            label: '${(s.subtitleBgOpacity * 100).toInt()}%',
+            onChanged: (v) => s.setSubtitleBgOpacity(v),
+            activeColor: cs.primary,
+          ),
+        ],
 
-    const Divider(color: Colors.white24),
-    ListTile(
-      dense: true,
-      title: const Text('الهامش الأفقي', style: TextStyle(color: Colors.white)),
-      subtitle: Slider(
-        value: s.horizontalMargin, min: 0, max: 100,
-        onChanged: (v) => s.setHorizontalMargin(v), activeColor: cs.primary,
-      ),
+        const Divider(color: Colors.white24, height: 24),
+
+        // ── ظل النص ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('ظل النص', style: TextStyle(color: Colors.white, fontSize: 14)),
+            Switch(
+              value: s.textShadowEnabled,
+              onChanged: (v) => s.setTextShadowEnabled(v),
+              activeColor: cs.primary,
+            ),
+          ],
+        ),
+        
+        if (s.textShadowEnabled) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('لون الظل', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              GestureDetector(
+                onTap: () async {
+                  final color = await showColorPickerDialog(context, s.textShadowColor);
+                  if (color != null) s.setTextShadowColor(color);
+                },
+                child: ColorIndicator(color: s.textShadowColor, width: 24, height: 24, borderRadius: 6),
+              ),
+            ],
+          ),
+          _buildSliderRow(
+            title: 'حجم الظل (Blur)', value: s.textShadowBlurRadius, min: 0, max: 20,
+            label: '${s.textShadowBlurRadius.toInt()}',
+            onChanged: (v) => s.setTextShadowBlurRadius(v), activeColor: cs.primary,
+          ),
+        ],
+
+        const Divider(color: Colors.white24, height: 24),
+
+        // ── الموقع (مزامنة مع السحب) ──
+        _buildSliderRow(
+          title: 'الارتفاع عن الأسفل',
+          value: s.bottomPadding, min: 0, max: 300,
+          label: '${s.bottomPadding.toInt()} px',
+          onChanged: (v) => s.setBottomPadding(v),
+          activeColor: cs.primary,
+        ),
+      ],
     ),
-    ListTile(
-      dense: true,
-      title: const Text('المسافة السفلية', style: TextStyle(color: Colors.white)),
-      subtitle: Slider(
-        value: s.bottomPadding, min: 0, max: 200,
-        onChanged: (v) => s.setBottomPadding(v), activeColor: cs.primary,
-      ),
-    ),
-  ]);
+  );
 }
 
 void _showFontPicker(BuildContext context, SettingsProvider s) {
-  final fonts = <String>[
-    'Roboto',
-    'monospace',
-    'serif',
-    'sans-serif',
-    'Cairo',
-    'Amiri',
-    'Noto Naskh Arabic',
-  ];
-
+  final fonts = ['Roboto', 'monospace', 'serif', 'sans-serif', 'Cairo', 'Amiri', 'Noto Naskh Arabic'];
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF1A1A2E),
-      title: const Text('اختر نوع الخط', style: TextStyle(color: Colors.white)),
+      title: const Text('اختر نوع الخط', style: TextStyle(color: Colors.white), textAlign: TextAlign.right),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: fonts.map((font) => ListTile(
-            title: Text(font, style: TextStyle(
+            title: Text(font, textAlign: TextAlign.right, style: TextStyle(
               color: s.fontFamily == font ? Theme.of(context).colorScheme.primary : Colors.white,
               fontFamily: font,
             )),
-            trailing: s.fontFamily == font
-                ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
-                : null,
-            onTap: () {
-              s.setFontFamily(font);
-              Navigator.pop(ctx);
-            },
+            trailing: s.fontFamily == font ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setFontFamily(font); Navigator.pop(ctx); },
           )).toList(),
         ),
       ),
