@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -69,10 +68,6 @@ class LibraryProvider extends ChangeNotifier {
         if (dotIndex != -1) name = name.substring(0, dotIndex);
         if (name.length < 2) name = '$albumName ${asset.id}';
       }
-      Uint8List? thumbBytes;
-      try {
-        thumbBytes = await asset.thumbDataWithSize(256, 256);
-      } catch (_) {}
       return VideoItem(
         id: asset.id,
         path: file.path,
@@ -82,7 +77,6 @@ class LibraryProvider extends ChangeNotifier {
         folder: albumName,
         duration: asset.videoDuration,
         subtitleTypes: [],
-        thumbnail: thumbBytes,
       );
     } catch (e) {
       return null;
@@ -103,7 +97,7 @@ class LibraryProvider extends ChangeNotifier {
       }
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
-      const batchSize = 6;
+      const batchSize = 12;
       for (final album in albums) {
         final count = await album.assetCountAsync;
         final assets = await album.getAssetListRange(start: 0, end: count);
