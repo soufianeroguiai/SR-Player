@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data'; // تم الإضافة لدعم تحميل الخطوط
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -305,7 +306,55 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (result?.files.single.path != null) {
       final settings = context.read<SettingsProvider>();
       await _loadSrtFile(result!.files.single.path!, settings.subtitleEncoding);
-      setState(() => _currentMenu = ActiveMenu.none);
+    }
+  }
+
+  // --- دالة جلب الخط من ذاكرة الهاتف ---
+  Future<void> _pickCustomFont() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['ttf', 'otf'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final fileName = result.files.single.name;
+        
+        // إنشاء اسم برمجي فريد للخط
+        final fontFamilyName = 'CustomFont_${DateTime.now().millisecondsSinceEpoch}';
+
+        // قراءة الملف من الهاتف كبيانات ثنائية
+        final fontFile = File(path);
+        final fontBytes = await fontFile.readAsBytes();
+
+        // تحميل الخط برمجياً
+        final fontLoader = FontLoader(fontFamilyName);
+        fontLoader.addFont(Future.value(ByteData.view(fontBytes.buffer)));
+        await fontLoader.load();
+
+        // حفظ الخط الجديد في إعدادات التطبيق وتطبيقه
+        final settings = context.read<SettingsProvider>();
+        settings.setFontFamily(fontFamilyName);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تم تطبيق الخط: $fileName بنجاح', textDirection: TextDirection.rtl),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء تحميل الخط: $e', textDirection: TextDirection.rtl),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -380,71 +429,211 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  // --- نافذة إعدادات الترجمة بالبلوكات ---
   Widget _buildSubtitlePanelContent() {
     final cs = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final uniqueTracks = _subtitleTracks.toSet().toList();
 
+    final tileDecoration = BoxDecoration(
+      color: Colors.white.withOpacity(0.05),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white.withOpacity(0.05)),
+    );
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        padding: const EdgeInsets.all(12),
         children: [
-          SwitchListTile(
-            title: const Text('تفعيل الترجمة', style: TextStyle(color: Colors.white)),
-            value: _showSubtitles,
-            onChanged: (v) {
-              setState(() => _showSubtitles = v);
-              if (!v) {
-                _player.setSubtitleTrack(SubtitleTrack.no());
-                _currentSubtitleTrack = null;
-              } else {
-                if (_currentSubtitleTrack != null) {
-                  _player.setSubtitleTrack(_currentSubtitleTrack!);
-                }
-              }
-            },
-            activeColor: cs.primary,
-          ),
-          if (uniqueTracks.isNotEmpty) ...[
-            const Divider(color: Colors.white24),
-            ...uniqueTracks.map((track) {
-              final name = track.title ?? track.language ?? 'ترجمة';
-              return ListTile(
-                title: Text(name, style: const TextStyle(color: Colors.white)),
-                trailing: _currentSubtitleTrack == track ? Icon(Icons.check, color: cs.primary) : null,
-                onTap: () => _activateSubtitleTrack(track),
-              );
-            }),
-          ],
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.folder_open, color: Colors.white70),
-            title: const Text('اختيار ملف ترجمة', style: TextStyle(color: Colors.white)),
-            onTap: () => _pickSubtitle(),
-          ),
-          const Divider(color: Colors.white24),
-          const Text('المزامنة', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('تأخير الترجمة', style: TextStyle(color: Colors.white)),
-              Text('${_subtitleSync > 0 ? '+' : ''}${_subtitleSync.toStringAsFixed(1)}s', style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+          // ----------------------------------------
+          // البلوك الأول: إدارة الترجمة
+          // ----------------------------------------
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: tileDecoration,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                initiallyExpanded: true,
+                leading: const Icon(Symbols.subtitles_rounded),
+                title: const Text('إدارة الترجمة', style: TextStyle(fontWeight: FontWeight.bold)),
+                iconColor: cs.primary,
+                collapsedIconColor: Colors.white70,
+                textColor: cs.primary,
+                collapsedTextColor: Colors.white,
+                children: [
+                  SwitchListTile(
+                    title: const Text('تفعيل الترجمة', style: TextStyle(color: Colors.white, fontSize: 14)),
+                    value: _showSubtitles,
+                    onChanged: (v) {
+                      setState(() => _showSubtitles = v);
+                      if (!v) {
+                        _player.setSubtitleTrack(SubtitleTrack.no());
+                        _currentSubtitleTrack = null;
+                      } else {
+                        if (_currentSubtitleTrack != null) {
+                          _player.setSubtitleTrack(_currentSubtitleTrack!);
+                        }
+                      }
+                    },
+                    activeColor: cs.primary,
+                  ),
+                  const Divider(color: Colors.white10, height: 1),
+                  if (uniqueTracks.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text('لا توجد مسارات ترجمة مدمجة', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    )
+                  else
+                    ...uniqueTracks.map((track) {
+                      final name = track.title ?? track.language ?? 'ترجمة';
+                      final isSelected = _currentSubtitleTrack == track && _showSubtitles;
+                      return ListTile(
+                        dense: true,
+                        title: Text(name, style: TextStyle(color: isSelected ? Colors.white : Colors.white70)),
+                        trailing: isSelected ? Icon(Symbols.check_circle_rounded, color: cs.primary, size: 20) : null,
+                        onTap: () => _activateSubtitleTrack(track),
+                      );
+                    }),
+                  const Divider(color: Colors.white10, height: 1),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Symbols.upload_file_rounded, color: Colors.orangeAccent, size: 20),
+                    title: const Text('إضافة ملف ترجمة خارجي', style: TextStyle(color: Colors.orangeAccent, fontSize: 14)),
+                    onTap: () => _pickSubtitle(),
+                  ),
+                ],
+              ),
             ),
-            child: Slider(
-              value: _subtitleSync, min: -5.0, max: 5.0,
-              onChanged: (v) { setState(() => _subtitleSync = v); settings.setDefaultSubtitleSync(v); },
-              activeColor: cs.primary,
+          ),
+
+          // ----------------------------------------
+          // البلوك الثاني: مزامنة التوقيت
+          // ----------------------------------------
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: tileDecoration,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                leading: const Icon(Symbols.timer_rounded),
+                title: const Text('مزامنة التوقيت', style: TextStyle(fontWeight: FontWeight.bold)),
+                iconColor: cs.primary,
+                collapsedIconColor: Colors.white70,
+                textColor: cs.primary,
+                collapsedTextColor: Colors.white,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('تأخير / تقديم الوقت', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            Text(
+                              '${_subtitleSync > 0 ? '+' : ''}${_subtitleSync.toStringAsFixed(1)}s',
+                              style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 4,
+                            activeTrackColor: cs.primary,
+                            inactiveTrackColor: Colors.white12,
+                            thumbColor: cs.primary,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                          ),
+                          child: Slider(
+                            value: _subtitleSync,
+                            min: -5.0,
+                            max: 5.0,
+                            divisions: 100,
+                            onChanged: (v) {
+                              setState(() => _subtitleSync = v);
+                              settings.setDefaultSubtitleSync(v);
+                            },
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Symbols.fast_rewind_rounded, color: Colors.white54, size: 20),
+                              onPressed: () {
+                                setState(() => _subtitleSync = (_subtitleSync - 0.5).clamp(-5.0, 5.0));
+                                settings.setDefaultSubtitleSync(_subtitleSync);
+                              },
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setState(() => _subtitleSync = 0.0);
+                                settings.setDefaultSubtitleSync(0.0);
+                              },
+                              child: const Text('إعادة ضبط', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            ),
+                            IconButton(
+                              icon: const Icon(Symbols.fast_forward_rounded, color: Colors.white54, size: 20),
+                              onPressed: () {
+                                setState(() => _subtitleSync = (_subtitleSync + 0.5).clamp(-5.0, 5.0));
+                                settings.setDefaultSubtitleSync(_subtitleSync);
+                              },
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const Divider(color: Colors.white24),
-          buildSubtitleSettingsContent(context),
+
+          // ----------------------------------------
+          // البلوك الثالث: الخط والمظهر
+          // ----------------------------------------
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: tileDecoration,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                leading: const Icon(Symbols.font_download_rounded),
+                title: const Text('الخط والمظهر', style: TextStyle(fontWeight: FontWeight.bold)),
+                iconColor: cs.primary,
+                collapsedIconColor: Colors.white70,
+                textColor: cs.primary,
+                collapsedTextColor: Colors.white,
+                children: [
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Symbols.match_case_rounded, color: Colors.blueAccent, size: 20),
+                    title: const Text('تطبيق خط Adobe Arabic', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    trailing: settings.fontFamily == 'Adobe Arabic' 
+                        ? Icon(Symbols.check_circle_rounded, color: cs.primary, size: 18) 
+                        : null,
+                    onTap: () {
+                      settings.setFontFamily('Adobe Arabic');
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Symbols.folder_open_rounded, color: Colors.greenAccent, size: 20),
+                    title: const Text('جلب خط من تخزين الهاتف', style: TextStyle(color: Colors.greenAccent, fontSize: 14)),
+                    subtitle: const Text('يدعم صيغ .ttf و .otf', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    onTap: () => _pickCustomFont(),
+                  ),
+                  const Divider(color: Colors.white10, height: 1),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: buildSubtitleSettingsContent(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -635,6 +824,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           controller: _controller,
                           fit: getBoxFit(_fitMode),
                           controls: NoVideoControls,
+                          // تم إضافة السطر التالي لإخفاء الترجمة الافتراضية
                           subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
                         ),
                       ),
