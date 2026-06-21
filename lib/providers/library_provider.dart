@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/video_item.dart';
+import '../services/recent_files_service.dart';
+import '../services/thumbnail_service.dart';
 
 class LibraryProvider extends ChangeNotifier {
   List<VideoItem> _videos = [];
@@ -17,12 +18,15 @@ class LibraryProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
-  Map<String, List<VideoItem>> get byFolder {
+  Map<String, List<VideoItem>> _cachedByFolder = {};
+  Map<String, List<VideoItem>> get byFolder => _cachedByFolder;
+
+  void _updateByFolder() {
     final map = <String, List<VideoItem>>{};
     for (final v in _videos) {
       map.putIfAbsent(v.folder, () => []).add(v);
     }
-    return map;
+    _cachedByFolder = map;
   }
 
   Future<void> loadCachedVideos() async {
@@ -32,13 +36,12 @@ class LibraryProvider extends ChangeNotifier {
       if (await file.exists()) {
         final jsonString = await file.readAsString();
         final List<dynamic> jsonList = json.decode(jsonString);
-        _videos = jsonList
-            .map((e) => VideoItem.fromJson(e as Map<String, dynamic>))
-            .toList();
+        _videos = jsonList.map((e) => VideoItem.fromJson(e as Map<String, dynamic>)).toList();
+        _updateByFolder();
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('فشل تحميل الذاكرة المؤقتة: $e');
+      debugPrint('Cache load error: $e');
     }
   }
 
@@ -49,7 +52,7 @@ class LibraryProvider extends ChangeNotifier {
       final jsonList = _videos.map((v) => v.toJson()).toList();
       await file.writeAsString(json.encode(jsonList));
     } catch (e) {
-      debugPrint('فشل حفظ الذاكرة المؤقتة: $e');
+      debugPrint('Cache save error: $e');
     }
   }
 
@@ -57,19 +60,13 @@ class LibraryProvider extends ChangeNotifier {
     try {
       final file = await asset.file;
       if (file == null) return null;
-
       String name = asset.title ?? '';
       if (name.isEmpty || name.length < 2) {
         name = file.path.split('/').last;
         final dotIndex = name.lastIndexOf('.');
-        if (dotIndex != -1) {
-          name = name.substring(0, dotIndex);
-        }
-        if (name.length < 2) {
-          name = '$albumName ${asset.id}';
-        }
+        if (dotIndex != -1) name = name.substring(0, dotIndex);
+        if (name.length < 2) name = '$albumName ${asset.id}';
       }
-
       return VideoItem(
         id: asset.id,
         path: file.path,
@@ -81,7 +78,6 @@ class LibraryProvider extends ChangeNotifier {
         subtitleTypes: [],
       );
     } catch (e) {
-      debugPrint("خطأ في بناء عنصر الفيديو: $e");
       return null;
     }
   }
@@ -90,74 +86,65 @@ class LibraryProvider extends ChangeNotifier {
     _loading = true;
     _error = null;
     notifyListeners();
-
     try {
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth && !ps.hasAccess) {
-        _error = 'لم يتم منح الإذن للوصول إلى الوسائط.';
+        _error = 'Media permission not granted.';
         _loading = false;
         notifyListeners();
         return;
       }
-
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
-
       const batchSize = 12;
       for (final album in albums) {
         final count = await album.assetCountAsync;
         final assets = await album.getAssetListRange(start: 0, end: count);
-
         for (var i = 0; i < assets.length; i += batchSize) {
           final batch = assets.skip(i).take(batchSize);
-          final items = await Future.wait(
-            batch.map((asset) => _buildVideoItem(asset, album.name)),
-          );
+          final items = await Future.wait(batch.map((asset) => _buildVideoItem(asset, album.name)));
           result.addAll(items.whereType<VideoItem>());
         }
       }
-
       result.sort((a, b) => b.modified.compareTo(a.modified));
       _videos = result;
+      _updateByFolder();
       await _saveVideosToCache();
+      ThumbnailService().clearCache();
     } catch (e) {
-      _error = 'فشل المسح: $e';
+      _error = 'Scan failed: $e';
     }
-
     _loading = false;
     notifyListeners();
   }
 
   Future<void> loadRecent() async {
-    final p = await SharedPreferences.getInstance();
-    _recentPaths = p.getStringList('recent_paths') ?? [];
+    _recentPaths = await RecentFilesService.get();
     notifyListeners();
   }
 
   Future<void> addRecent(String path) async {
-    _recentPaths.remove(path);
-    _recentPaths.insert(0, path);
-    if (_recentPaths.length > 30) _recentPaths.removeLast();
-    final p = await SharedPreferences.getInstance();
-    await p.setStringList('recent_paths', _recentPaths);
+    await RecentFilesService.add(path);
+    _recentPaths = await RecentFilesService.get();
     notifyListeners();
   }
 
   Future<void> clearRecent() async {
-    _recentPaths.clear();
-    final p = await SharedPreferences.getInstance();
-    await p.remove('recent_paths');
+    await RecentFilesService.clear();
+    _recentPaths = [];
     notifyListeners();
   }
 
   Future<void> savePosition(String path, Duration pos) async {
-    final p = await SharedPreferences.getInstance();
-    await p.setInt('pos_${path.hashCode}', pos.inMilliseconds);
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pos_${Uri.encodeComponent(path)}';
+    await prefs.setInt(key, pos.inMilliseconds);
   }
 
   Future<Duration?> getPosition(String path) async {
-    final p = await SharedPreferences.getInstance();
-    final ms = p.getInt('pos_${path.hashCode}');
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pos_${Uri.encodeComponent(path)}';
+    final ms = prefs.getInt(key);
     if (ms == null || ms == 0) return null;
     return Duration(milliseconds: ms);
   }

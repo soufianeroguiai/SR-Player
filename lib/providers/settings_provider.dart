@@ -44,9 +44,6 @@ class SettingsProvider extends ChangeNotifier {
   double _outlineWidth = 2.0;
   double get outlineWidth => _outlineWidth;
 
-  // ──────────────────────────────────────────────
-  // ظل الأحرف (Text Shadow)
-  // ──────────────────────────────────────────────
   bool _textShadowEnabled = false;
   bool get textShadowEnabled => _textShadowEnabled;
 
@@ -62,9 +59,6 @@ class SettingsProvider extends ChangeNotifier {
   double _textShadowOffsetY = 1.0;
   double get textShadowOffsetY => _textShadowOffsetY;
 
-  // ──────────────────────────────────────────────
-  // ظل الصندوق (Box Shadow)
-  // ──────────────────────────────────────────────
   bool _boxShadowEnabled = false;
   bool get boxShadowEnabled => _boxShadowEnabled;
 
@@ -152,71 +146,59 @@ class SettingsProvider extends ChangeNotifier {
   double _audioRate = 1.0;
   double get audioRate => _audioRate;
 
-  // --- Load ---
   Future<void> load() async {
-    try {
-      final p = await SharedPreferences.getInstance();
-      final themeIndex = p.getInt('themeMode') ?? 1;
-      _themeMode = themeIndex >= 0 && themeIndex < ThemeMode.values.length
-          ? ThemeMode.values[themeIndex]
-          : ThemeMode.dark;
-      _rememberPosition = p.getBool('rememberPosition') ?? true;
-      _autoPlay = p.getBool('autoPlay') ?? true;
-      _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
-      _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
-      _gridView = p.getBool('gridView') ?? false;
-      _sortBy = p.getString('sortBy') ?? 'date';
-      _sortDesc = p.getBool('sortDesc') ?? true;
-      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 30.0;
-      _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
-      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.0;
-      _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
-      _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
-      _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
-
-      _textShadowEnabled = p.getBool('textShadowEnabled') ?? false;
-      _textShadowColor = Color(p.getInt('textShadowColor') ?? 0xFF000000);
-      _textShadowBlurRadius = p.getDouble('textShadowBlurRadius') ?? 4.0;
-      _textShadowOffsetX = p.getDouble('textShadowOffsetX') ?? 1.0;
-      _textShadowOffsetY = p.getDouble('textShadowOffsetY') ?? 1.0;
-
-      _boxShadowEnabled = p.getBool('boxShadowEnabled') ?? false;
-      _boxShadowColor = Color(p.getInt('boxShadowColor') ?? 0xFF000000);
-      _boxShadowBlurRadius = p.getDouble('boxShadowBlurRadius') ?? 4.0;
-      _boxShadowOffsetX = p.getDouble('boxShadowOffsetX') ?? 1.0;
-      _boxShadowOffsetY = p.getDouble('boxShadowOffsetY') ?? 1.0;
-
-      _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
-      _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
-      _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
-      _fontFamily = p.getString('fontFamily') ?? 'Roboto';
-      _subtitleFolder = p.getString('subtitleFolder') ?? '';
-      _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
-      _preferredSubtitleLanguage = p.getString('preferredSubtitleLanguage') ?? 'ara';
-      _defaultSubtitleSync = p.getDouble('defaultSubtitleSync') ?? 0.0;
-      _subtitleHwAcceleration = p.getBool('subtitleHwAcceleration') ?? false;
-      _subtitleFontsFolder = p.getString('subtitleFontsFolder') ?? '';
-      _subtitleItalic = p.getBool('subtitleItalic') ?? false;
-      _subtitleRTL = p.getBool('subtitleRTL') ?? false;
-      _audioPlayerEngine = p.getString('audioPlayerEngine') ?? 'media_kit';
-      _audioOutput = p.getString('audioOutput') ?? 'auto';
-      _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
-      _defaultVolume = p.getDouble('defaultVolume') ?? 1.0;
-      _showVolumePanel = p.getBool('showVolumePanel') ?? true;
-      _pauseOnHeadphonesDisconnect = p.getBool('pauseOnHeadphonesDisconnect') ?? false;
-      _fadeInStart = p.getBool('fadeInStart') ?? false;
-      _fadeInSeek = p.getBool('fadeInSeek') ?? false;
-      _preferredAudioLanguage = p.getString('preferredAudioLanguage') ?? 'ara';
-      _bluetoothAudioDelayMs = p.getDouble('bluetoothAudioDelayMs') ?? 0.0;
-      _audioPassthrough = p.getBool('audioPassthrough') ?? false;
-      _audioRate = p.getDouble('audioRate') ?? 1.0;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Settings load error: $e');
-    }
+    final p = await SharedPreferences.getInstance();
+    _themeMode = ThemeMode.values[p.getInt('themeMode') ?? 1];
+    _rememberPosition = p.getBool('rememberPosition') ?? true;
+    _autoPlay = p.getBool('autoPlay') ?? true;
+    _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
+    _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
+    _gridView = p.getBool('gridView') ?? false;
+    _sortBy = p.getString('sortBy') ?? 'date';
+    _sortDesc = p.getBool('sortDesc') ?? true;
+    _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 30.0;
+    _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
+    _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.0;
+    _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
+    _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
+    _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
+    _textShadowEnabled = p.getBool('textShadowEnabled') ?? false;
+    _textShadowColor = Color(p.getInt('textShadowColor') ?? 0xFF000000);
+    _textShadowBlurRadius = p.getDouble('textShadowBlurRadius') ?? 4.0;
+    _textShadowOffsetX = p.getDouble('textShadowOffsetX') ?? 1.0;
+    _textShadowOffsetY = p.getDouble('textShadowOffsetY') ?? 1.0;
+    _boxShadowEnabled = p.getBool('boxShadowEnabled') ?? false;
+    _boxShadowColor = Color(p.getInt('boxShadowColor') ?? 0xFF000000);
+    _boxShadowBlurRadius = p.getDouble('boxShadowBlurRadius') ?? 4.0;
+    _boxShadowOffsetX = p.getDouble('boxShadowOffsetX') ?? 1.0;
+    _boxShadowOffsetY = p.getDouble('boxShadowOffsetY') ?? 1.0;
+    _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
+    _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
+    _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
+    _fontFamily = p.getString('fontFamily') ?? 'Roboto';
+    _subtitleFolder = p.getString('subtitleFolder') ?? '';
+    _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
+    _preferredSubtitleLanguage = p.getString('preferredSubtitleLanguage') ?? 'ara';
+    _defaultSubtitleSync = p.getDouble('defaultSubtitleSync') ?? 0.0;
+    _subtitleHwAcceleration = p.getBool('subtitleHwAcceleration') ?? false;
+    _subtitleFontsFolder = p.getString('subtitleFontsFolder') ?? '';
+    _subtitleItalic = p.getBool('subtitleItalic') ?? false;
+    _subtitleRTL = p.getBool('subtitleRTL') ?? false;
+    _audioPlayerEngine = p.getString('audioPlayerEngine') ?? 'media_kit';
+    _audioOutput = p.getString('audioOutput') ?? 'auto';
+    _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
+    _defaultVolume = p.getDouble('defaultVolume') ?? 1.0;
+    _showVolumePanel = p.getBool('showVolumePanel') ?? true;
+    _pauseOnHeadphonesDisconnect = p.getBool('pauseOnHeadphonesDisconnect') ?? false;
+    _fadeInStart = p.getBool('fadeInStart') ?? false;
+    _fadeInSeek = p.getBool('fadeInSeek') ?? false;
+    _preferredAudioLanguage = p.getString('preferredAudioLanguage') ?? 'ara';
+    _bluetoothAudioDelayMs = p.getDouble('bluetoothAudioDelayMs') ?? 0.0;
+    _audioPassthrough = p.getBool('audioPassthrough') ?? false;
+    _audioRate = p.getDouble('audioRate') ?? 1.0;
+    notifyListeners();
   }
 
-  // --- Save ---
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('themeMode', _themeMode.index);
@@ -233,19 +215,16 @@ class SettingsProvider extends ChangeNotifier {
     await p.setInt('subtitleBgColor', _subtitleBgColor.value);
     await p.setInt('outlineColor', _outlineColor.value);
     await p.setDouble('outlineWidth', _outlineWidth);
-
     await p.setBool('textShadowEnabled', _textShadowEnabled);
     await p.setInt('textShadowColor', _textShadowColor.value);
     await p.setDouble('textShadowBlurRadius', _textShadowBlurRadius);
     await p.setDouble('textShadowOffsetX', _textShadowOffsetX);
     await p.setDouble('textShadowOffsetY', _textShadowOffsetY);
-
     await p.setBool('boxShadowEnabled', _boxShadowEnabled);
     await p.setInt('boxShadowColor', _boxShadowColor.value);
     await p.setDouble('boxShadowBlurRadius', _boxShadowBlurRadius);
     await p.setDouble('boxShadowOffsetX', _boxShadowOffsetX);
     await p.setDouble('boxShadowOffsetY', _boxShadowOffsetY);
-
     await p.setInt('fontWeightIndex', _fontWeightIndex);
     await p.setDouble('bottomPadding', _bottomPadding);
     await p.setDouble('horizontalMargin', _horizontalMargin);
@@ -272,7 +251,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('audioRate', _audioRate);
   }
 
-  // Setters
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
@@ -287,19 +265,16 @@ class SettingsProvider extends ChangeNotifier {
   void setSubtitleBgColor(Color c) { _subtitleBgColor = c; notifyListeners(); _save(); }
   void setOutlineColor(Color c) { _outlineColor = c; notifyListeners(); _save(); }
   void setOutlineWidth(double v) { _outlineWidth = v; notifyListeners(); _save(); }
-
   void setTextShadowEnabled(bool v) { _textShadowEnabled = v; notifyListeners(); _save(); }
   void setTextShadowColor(Color c) { _textShadowColor = c; notifyListeners(); _save(); }
   void setTextShadowBlurRadius(double v) { _textShadowBlurRadius = v; notifyListeners(); _save(); }
   void setTextShadowOffsetX(double v) { _textShadowOffsetX = v; notifyListeners(); _save(); }
   void setTextShadowOffsetY(double v) { _textShadowOffsetY = v; notifyListeners(); _save(); }
-
   void setBoxShadowEnabled(bool v) { _boxShadowEnabled = v; notifyListeners(); _save(); }
   void setBoxShadowColor(Color c) { _boxShadowColor = c; notifyListeners(); _save(); }
   void setBoxShadowBlurRadius(double v) { _boxShadowBlurRadius = v; notifyListeners(); _save(); }
   void setBoxShadowOffsetX(double v) { _boxShadowOffsetX = v; notifyListeners(); _save(); }
   void setBoxShadowOffsetY(double v) { _boxShadowOffsetY = v; notifyListeners(); _save(); }
-
   void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
   void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }
   void setHorizontalMargin(double v) { _horizontalMargin = v; notifyListeners(); _save(); }

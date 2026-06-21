@@ -14,7 +14,7 @@ void main() async {
 
   FlutterError.onError = (details) => FlutterError.presentError(details);
   PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('❌ خطأ غير معالج: $error');
+    debugPrint('Error: $error');
     runApp(ErrorApp(error.toString()));
     return true;
   };
@@ -22,7 +22,7 @@ void main() async {
   try {
     MediaKit.ensureInitialized();
   } catch (e) {
-    runApp(ErrorApp('فشل تهيئة MediaKit:\n$e'));
+    runApp(ErrorApp('MediaKit initialization failed:\n$e'));
     return;
   }
 
@@ -37,7 +37,7 @@ void main() async {
     settings = SettingsProvider();
     await settings.load();
   } catch (e) {
-    runApp(ErrorApp('فشل تحميل الإعدادات:\n$e'));
+    runApp(ErrorApp('Settings load failed:\n$e'));
     return;
   }
 
@@ -67,7 +67,6 @@ class SPlayerApp extends StatelessWidget {
   }
 }
 
-/// شاشة تطلب الصلاحيات الضرورية قبل الدخول للتطبيق
 class PermissionGate extends StatefulWidget {
   final Widget child;
   const PermissionGate({super.key, required this.child});
@@ -88,12 +87,8 @@ class _PermissionGateState extends State<PermissionGate> {
 
   Future<void> _requestPermissions() async {
     setState(() => _checking = true);
-
-    // طلب صلاحية الوسائط (الفيديوهات)
     final mediaStatus = await Permission.videos.request();
-    final storageStatus = await Permission.storage.request();
-
-    if (mediaStatus.isGranted || storageStatus.isGranted) {
+    if (mediaStatus.isGranted) {
       setState(() {
         _allGranted = true;
         _checking = false;
@@ -115,7 +110,7 @@ class _PermissionGateState extends State<PermissionGate> {
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             CircularProgressIndicator(color: Colors.white),
             SizedBox(height: 20),
-            Text('جاري طلب الصلاحيات...', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            Text('Requesting permissions...', style: TextStyle(color: Colors.white70, fontSize: 16)),
           ]),
         ),
       );
@@ -130,22 +125,14 @@ class _PermissionGateState extends State<PermissionGate> {
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.folder_off_rounded, color: Colors.white38, size: 80),
               const SizedBox(height: 24),
-              const Text(
-                'الصلاحيات مطلوبة',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
+              const Text('Permissions required', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              const Text(
-                'يحتاج التطبيق إلى إذن الوصول إلى الوسائط لعرض الفيديوهات.',
-                style: TextStyle(color: Colors.white60, fontSize: 15),
-                textAlign: TextAlign.center,
-              ),
+              const Text('This app needs media access to display videos.', style: TextStyle(color: Colors.white60, fontSize: 15), textAlign: TextAlign.center),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: _requestPermissions,
                 icon: const Icon(Icons.security_rounded),
-                label: const Text('منح الصلاحيات'),
+                label: const Text('Grant permissions'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
@@ -155,10 +142,8 @@ class _PermissionGateState extends State<PermissionGate> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () {
-                  setState(() => _allGranted = true); // تخطي
-                },
-                child: const Text('تخطي', style: TextStyle(color: Colors.white38)),
+                onPressed: () => setState(() => _allGranted = true),
+                child: const Text('Skip', style: TextStyle(color: Colors.white38)),
               ),
             ]),
           ),
@@ -186,14 +171,14 @@ class ErrorApp extends StatelessWidget {
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 24),
-              const Text('عذراً، حدث خطأ', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              const Text('Sorry, an error occurred', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Text(message, style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.5), textAlign: TextAlign.center),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: () => main(),
                 icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
+                label: const Text('Retry'),
               ),
             ]),
           ),
