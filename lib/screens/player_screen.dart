@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data'; // تم الإضافة لدعم تحميل الخطوط
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -309,50 +309,33 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- دالة جلب الخط من ذاكرة الهاتف ---
   Future<void> _pickCustomFont() async {
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['ttf', 'otf'],
       );
-
       if (result != null && result.files.single.path != null) {
         final path = result.files.single.path!;
         final fileName = result.files.single.name;
-        
-        // إنشاء اسم برمجي فريد للخط
         final fontFamilyName = 'CustomFont_${DateTime.now().millisecondsSinceEpoch}';
-
-        // قراءة الملف من الهاتف كبيانات ثنائية
         final fontFile = File(path);
         final fontBytes = await fontFile.readAsBytes();
-
-        // تحميل الخط برمجياً
         final fontLoader = FontLoader(fontFamilyName);
         fontLoader.addFont(Future.value(ByteData.view(fontBytes.buffer)));
         await fontLoader.load();
-
-        // حفظ الخط الجديد في إعدادات التطبيق وتطبيقه
         final settings = context.read<SettingsProvider>();
         settings.setFontFamily(fontFamilyName);
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('تم تطبيق الخط: $fileName بنجاح', textDirection: TextDirection.rtl),
-              backgroundColor: Colors.green,
-            ),
+            SnackBar(content: Text('تم تطبيق الخط: $fileName بنجاح', textDirection: TextDirection.rtl), backgroundColor: Colors.green),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('حدث خطأ أثناء تحميل الخط: $e', textDirection: TextDirection.rtl),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('حدث خطأ أثناء تحميل الخط: $e', textDirection: TextDirection.rtl), backgroundColor: Colors.red),
         );
       }
     }
@@ -407,7 +390,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget _buildAudioPanelContent() {
     final cs = Theme.of(context).colorScheme;
     final uniqueAudio = _audioTracks.toSet().toList();
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: ListView(
@@ -429,12 +411,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- نافذة إعدادات الترجمة بالبلوكات ---
   Widget _buildSubtitlePanelContent() {
     final cs = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final uniqueTracks = _subtitleTracks.toSet().toList();
-
     final tileDecoration = BoxDecoration(
       color: Colors.white.withOpacity(0.05),
       borderRadius: BorderRadius.circular(12),
@@ -446,9 +426,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // ----------------------------------------
-          // البلوك الأول: إدارة الترجمة
-          // ----------------------------------------
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: tileDecoration,
@@ -507,10 +484,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
           ),
-
-          // ----------------------------------------
-          // البلوك الثاني: مزامنة التوقيت
-          // ----------------------------------------
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: tileDecoration,
@@ -590,10 +563,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
             ),
           ),
-
-          // ----------------------------------------
-          // البلوك الثالث: الخط والمظهر
-          // ----------------------------------------
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: tileDecoration,
@@ -611,12 +580,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     dense: true,
                     leading: const Icon(Symbols.match_case_rounded, color: Colors.blueAccent, size: 20),
                     title: const Text('تطبيق خط Adobe Arabic', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    trailing: settings.fontFamily == 'Adobe Arabic' 
-                        ? Icon(Symbols.check_circle_rounded, color: cs.primary, size: 18) 
-                        : null,
-                    onTap: () {
-                      settings.setFontFamily('Adobe Arabic');
-                    },
+                    trailing: settings.fontFamily == 'Adobe Arabic' ? Icon(Symbols.check_circle_rounded, color: cs.primary, size: 18) : null,
+                    onTap: () { settings.setFontFamily('Adobe Arabic'); },
                   ),
                   ListTile(
                     dense: true,
@@ -824,18 +789,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           controller: _controller,
                           fit: getBoxFit(_fitMode),
                           controls: NoVideoControls,
-                          // تم إضافة السطر التالي لإخفاء الترجمة الافتراضية
                           subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
                         ),
                       ),
                     ),
                   ),
                 ),
+
+                // ========== طبقة الترجمة (معدّلة) ==========
                 Positioned(
                   bottom: s.bottomPadding,
                   left: 0,
                   right: 0,
                   child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
                     onScaleStart: (details) {
                       if (details.pointerCount == 2) {
                         _startSubtitleSize = s.subtitleFontSize;
@@ -844,11 +811,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       }
                     },
                     onScaleUpdate: (details) {
-                      if (details.pointerCount == 2) {
+                      if (details.pointerCount == 2 && !_isPlaying) {
                         double newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
                         s.setSubtitleFontSize(newSize);
                         double dy = details.focalPoint.dy - _startFocalPoint.dy;
-                        double newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.8);
+                        double newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.9);
                         s.setBottomPadding(newPadding);
                       }
                     },
@@ -885,6 +852,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     ),
                   ),
                 ),
+
+                // بقية عناصر التحكم
                 ValueListenableBuilder<bool>(
                   valueListenable: _showSeekNotifier,
                   builder: (context, show, child) {
