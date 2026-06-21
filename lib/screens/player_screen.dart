@@ -477,7 +477,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ListTile(
                     dense: true,
                     leading: const Icon(Symbols.upload_file_rounded, color: Colors.orangeAccent, size: 20),
-                    title: const Text('إضافة ملف ترجمة خارجي', style: TextStyle(color: Colors.orangeAccent, fontSize: 14)),
+                    title: const Text('إضافة ترجمة', style: TextStyle(color: Colors.orangeAccent, fontSize: 14)),
                     onTap: () => _pickSubtitle(),
                   ),
                 ],
@@ -578,15 +578,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 children: [
                   ListTile(
                     dense: true,
-                    leading: const Icon(Symbols.match_case_rounded, color: Colors.blueAccent, size: 20),
-                    title: const Text('تطبيق خط Adobe Arabic', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    trailing: settings.fontFamily == 'Adobe Arabic' ? Icon(Symbols.check_circle_rounded, color: cs.primary, size: 18) : null,
-                    onTap: () { settings.setFontFamily('Adobe Arabic'); },
-                  ),
-                  ListTile(
-                    dense: true,
                     leading: const Icon(Symbols.folder_open_rounded, color: Colors.greenAccent, size: 20),
-                    title: const Text('جلب خط من تخزين الهاتف', style: TextStyle(color: Colors.greenAccent, fontSize: 14)),
+                    title: const Text('إضافة خط', style: TextStyle(color: Colors.greenAccent, fontSize: 14)),
                     subtitle: const Text('يدعم صيغ .ttf و .otf', style: TextStyle(color: Colors.white38, fontSize: 11)),
                     onTap: () => _pickCustomFont(),
                   ),
@@ -652,9 +645,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     return Container(
       width: 50,
       height: 160,
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6), 
+        color: Colors.black.withOpacity(0.6),
         borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
       ),
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
@@ -668,7 +666,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 data: SliderThemeData(
                   trackHeight: 8.0,
                   activeTrackColor: color,
-                  inactiveTrackColor: Colors.white24, 
+                  inactiveTrackColor: Colors.white24,
                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0.0),
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 0.0),
                   trackShape: const RoundedRectSliderTrackShape(),
@@ -796,7 +794,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                // ========== طبقة الترجمة (معدّلة) ==========
                 Positioned(
                   bottom: s.bottomPadding,
                   left: 0,
@@ -853,7 +850,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                // بقية عناصر التحكم
                 ValueListenableBuilder<bool>(
                   valueListenable: _showSeekNotifier,
                   builder: (context, show, child) {

@@ -68,14 +68,6 @@ class LibraryProvider extends ChangeNotifier {
         if (dotIndex != -1) name = name.substring(0, dotIndex);
         if (name.length < 2) name = '$albumName ${asset.id}';
       }
-      Uint8List? thumbBytes;
-      try {
-        // استخدام thumbDataWithOption (الأحدث في photo_manager 3.x)
-        final thumbData = await asset.thumbDataWithOption(
-          ThumbOption(width: 256, height: 256, format: ThumbFormat.jpeg),
-        );
-        thumbBytes = thumbData;
-      } catch (_) {}
       return VideoItem(
         id: asset.id,
         path: file.path,
@@ -85,7 +77,6 @@ class LibraryProvider extends ChangeNotifier {
         folder: albumName,
         duration: asset.videoDuration,
         subtitleTypes: [],
-        thumbnail: thumbBytes,
       );
     } catch (e) {
       return null;
@@ -106,7 +97,7 @@ class LibraryProvider extends ChangeNotifier {
       }
       final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
-      const batchSize = 6;
+      const batchSize = 12;
       for (final album in albums) {
         final count = await album.assetCountAsync;
         final assets = await album.getAssetListRange(start: 0, end: count);
