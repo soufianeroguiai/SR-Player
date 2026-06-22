@@ -804,81 +804,78 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   bottom: s.bottomPadding,
                   left: 0,
                   right: 0,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Listener(
-                        onPointerDown: (event) {
-                          final dyFromBottom = constraints.maxHeight - event.localPosition.dy;
-                          if (dyFromBottom >= 0 && dyFromBottom <= 200) {
-                            _subtitlePointerCount++;
-                            _lastPointerInSubtitleArea = true;
-                          } else {
-                            _lastPointerInSubtitleArea = false;
-                          }
-                          setState(() {});
-                        },
-                        onPointerUp: (event) {
-                          if (_lastPointerInSubtitleArea) {
-                            _subtitlePointerCount--;
-                          }
-                          setState(() {});
-                        },
-                        child: IgnorePointer(
-                          ignoring: _subtitlePointerCount < 2 || _isPlaying || !_lastPointerInSubtitleArea,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onScaleStart: (details) {
-                              if (details.pointerCount == 2 && !_isPlaying) {
-                                _startSubtitleSize = s.subtitleFontSize;
-                                _startBottomPadding = s.bottomPadding;
-                                _startFocalPoint = details.focalPoint;
-                              }
-                            },
-                            onScaleUpdate: (details) {
-                              if (details.pointerCount == 2 && !_isPlaying) {
-                                double newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
-                                s.setSubtitleFontSize(newSize);
-                                double dy = details.focalPoint.dy - _startFocalPoint.dy;
-                                double newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.9);
-                                s.setBottomPadding(newPadding);
-                              }
-                            },
-                            child: Container(
-                              color: Colors.transparent,
-                              width: double.infinity,
-                              height: 200,
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: s.horizontalMargin),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: StreamBuilder<String>(
-                                    stream: _player.stream.subtitle.map((s) => s.join('\n')),
-                                    builder: (context, snapshot) {
-                                      if (!_showSubtitles || !snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-                                      return Text(
-                                        snapshot.data!,
-                                        textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: s.subtitleFontSize,
-                                          color: s.subtitleColor,
-                                          fontWeight: _getFontWeight(s.fontWeightIndex),
-                                          fontFamily: s.fontFamily == 'Default' ? null : s.fontFamily,
-                                          fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-                                          backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-                                          shadows: s.textShadowEnabled
-                                              ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius, offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
-                                              : null,
-                                        ),
-                                      );
-                                    },
-                                  ),
+                  child: SizedBox(
+                    height: 200,
+                    child: Listener(
+                      onPointerDown: (event) {
+                        final dyFromBottom = 200 - event.localPosition.dy;
+                        if (dyFromBottom >= 0 && dyFromBottom <= 200) {
+                          _subtitlePointerCount++;
+                          _lastPointerInSubtitleArea = true;
+                        } else {
+                          _lastPointerInSubtitleArea = false;
+                        }
+                        setState(() {});
+                      },
+                      onPointerUp: (event) {
+                        if (_lastPointerInSubtitleArea) {
+                          _subtitlePointerCount--;
+                        }
+                        setState(() {});
+                      },
+                      child: IgnorePointer(
+                        ignoring: _subtitlePointerCount < 2 || _isPlaying || !_lastPointerInSubtitleArea,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onScaleStart: (details) {
+                            if (details.pointerCount == 2 && !_isPlaying) {
+                              _startSubtitleSize = s.subtitleFontSize;
+                              _startBottomPadding = s.bottomPadding;
+                              _startFocalPoint = details.focalPoint;
+                            }
+                          },
+                          onScaleUpdate: (details) {
+                            if (details.pointerCount == 2 && !_isPlaying) {
+                              double newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
+                              s.setSubtitleFontSize(newSize);
+                              double dy = details.focalPoint.dy - _startFocalPoint.dy;
+                              double newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.9);
+                              s.setBottomPadding(newPadding);
+                            }
+                          },
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: s.horizontalMargin),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: StreamBuilder<String>(
+                                  stream: _player.stream.subtitle.map((s) => s.join('\n')),
+                                  builder: (context, snapshot) {
+                                    if (!_showSubtitles || !snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+                                    return Text(
+                                      snapshot.data!,
+                                      textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: s.subtitleFontSize,
+                                        color: s.subtitleColor,
+                                        fontWeight: _getFontWeight(s.fontWeightIndex),
+                                        fontFamily: s.fontFamily == 'Default' ? null : s.fontFamily,
+                                        fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                                        backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+                                        shadows: s.textShadowEnabled
+                                            ? [Shadow(color: s.textShadowColor, blurRadius: s.textShadowBlurRadius, offset: Offset(s.textShadowOffsetX, s.textShadowOffsetY))]
+                                            : null,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
                 ValueListenableBuilder<bool>(
