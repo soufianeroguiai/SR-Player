@@ -7,12 +7,16 @@ import 'package:path_provider/path_provider.dart';
 import '../models/video_item.dart';
 
 /// يدير مكتبة الفيديوهات: المسح عبر photo_manager، التخزين المؤقت
-/// المحلي، قائمة "الأخيرة"، ومواضع الاستئناف لكل فيديو.
+/// المحلي، قائمة "الأخيرة"، مواضع الاستئناف، وقائمة الملفات المخفية.
 class LibraryProvider extends ChangeNotifier {
   List<VideoItem> _videos = [];
   List<String> _recentPaths = [];
   bool _loading = false;
   String? _error;
+
+  // ── قائمة الملفات المخفية ──
+  Set<String> _hiddenPaths = {};
+  Set<String> get hiddenPaths => _hiddenPaths;
 
   List<VideoItem> get videos => _videos;
   List<String> get recentPaths => _recentPaths;
@@ -152,9 +156,6 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// يحفظ آخر موضع تشغيل لملف معيّن. يُستخدم مسار الملف نفسه كجزء
-  /// من المفتاح (بدل الاعتماد فقط على hashCode) لتفادي أي احتمال
-  /// تصادم أو عدم ثبات بين تشغيلات مختلفة لتطبيق دارت.
   Future<void> savePosition(String path, Duration pos) async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('pos_$path', pos.inMilliseconds);
@@ -165,5 +166,34 @@ class LibraryProvider extends ChangeNotifier {
     final ms = p.getInt('pos_$path');
     if (ms == null || ms == 0) return null;
     return Duration(milliseconds: ms);
+  }
+
+  // ═══════════════════════════════════════════
+  // إدارة الملفات المخفية
+  // ═══════════════════════════════════════════
+
+  Future<void> loadHidden() async {
+    final p = await SharedPreferences.getInstance();
+    _hiddenPaths = (p.getStringList('hidden_paths') ?? []).toSet();
+    notifyListeners();
+  }
+
+  Future<void> hidePath(String path) async {
+    _hiddenPaths.add(path);
+    await _saveHidden();
+    notifyListeners();
+  }
+
+  Future<void> unhidePath(String path) async {
+    _hiddenPaths.remove(path);
+    await _saveHidden();
+    notifyListeners();
+  }
+
+  bool isHidden(String path) => _hiddenPaths.contains(path);
+
+  Future<void> _saveHidden() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('hidden_paths', _hiddenPaths.toList());
   }
 }

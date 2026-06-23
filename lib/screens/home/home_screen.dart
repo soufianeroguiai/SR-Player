@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (!mounted) return;
     await lib.scan();
     await lib.loadRecent();
+    await lib.loadHidden(); // تحميل قائمة الإخفاء
   }
 
   Future<void> _refreshLibrary() async {
@@ -105,9 +106,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         actions: [
           IconButton(
               icon: const Icon(Symbols.search_rounded),
-              onPressed: () => showSearch(
-                  context: context,
-                  delegate: VideoSearchDelegate(context.read<LibraryProvider>().videos, _openPlayer))),
+              onPressed: () {
+                final lib = context.read<LibraryProvider>();
+                final filteredVideos = lib.videos
+                    .where((v) => !lib.hiddenPaths.contains(v.path))
+                    .toList();
+                showSearch(
+                    context: context,
+                    delegate: VideoSearchDelegate(filteredVideos, _openPlayer));
+              }),
           IconButton(
               icon: Icon(settings.gridView ? Symbols.view_list_rounded : Symbols.grid_view_rounded),
               onPressed: () => settings.setGridView(!settings.gridView)),
@@ -152,21 +159,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onMore: (v) => _menu(v),
               gridView: settings.gridView,
               loading: lib.loading,
+              hiddenPaths: lib.hiddenPaths,
             ),
           ),
           RefreshIndicator(
             onRefresh: _refreshLibrary,
-            child:
-                RecentTab(paths: lib.recentPaths, all: lib.videos, onOpen: _openByPath, onClear: lib.clearRecent),
+            child: RecentTab(
+              paths: lib.recentPaths,
+              all: lib.videos,
+              onOpen: _openByPath,
+              onClear: lib.clearRecent,
+              hiddenPaths: lib.hiddenPaths,
+            ),
           ),
           RefreshIndicator(
             onRefresh: _refreshLibrary,
             child: FoldersTab(
-                byFolder: lib.byFolder,
-                onTap: (f) {
-                  setState(() => _selectedFolder = f);
-                  _tabs.animateTo(0);
-                }),
+              byFolder: lib.byFolder,
+              onTap: (f) {
+                setState(() => _selectedFolder = f);
+                _tabs.animateTo(0);
+              },
+              hiddenPaths: lib.hiddenPaths,
+            ),
           ),
         ]);
       }),
@@ -217,6 +232,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _menu(VideoItem video) {
     final cs = Theme.of(context).colorScheme;
+    final lib = context.read<LibraryProvider>();
+
     showModalBottomSheet(
         context: context,
         builder: (_) => Padding(
@@ -251,6 +268,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Navigator.pop(context);
                       Share.shareXFiles([XFile(video.path)], subject: video.name);
                     }),
+                const Divider(height: 1),
+                // خيار الإخفاء/الإظهار
+                ListTile(
+                  leading: _mIcon(
+                    lib.isHidden(video.path)
+                        ? Symbols.visibility_rounded
+                        : Symbols.visibility_off_rounded,
+                    cs.errorContainer,
+                    cs.onErrorContainer,
+                  ),
+                  title: Text(lib.isHidden(video.path) ? 'إظهار' : 'إخفاء'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    if (lib.isHidden(video.path)) {
+                      lib.unhidePath(video.path);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('تم إظهار ${video.name}')),
+                      );
+                    } else {
+                      lib.hidePath(video.path);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('تم إخفاء ${video.name}')),
+                      );
+                    }
+                  },
+                ),
               ]),
             ));
   }

@@ -78,6 +78,10 @@ class PlayerBottomBar extends StatelessWidget {
   final Duration duration;
   final ValueChanged<double> onSeek;
   final Color primaryColor;
+  final bool isPlaying;
+  final VoidCallback onPlayPause;
+  final VoidCallback onSkipBack;
+  final VoidCallback onSkipForward;
 
   const PlayerBottomBar({
     super.key,
@@ -85,6 +89,10 @@ class PlayerBottomBar extends StatelessWidget {
     required this.duration,
     required this.onSeek,
     required this.primaryColor,
+    required this.isPlaying,
+    required this.onPlayPause,
+    required this.onSkipBack,
+    required this.onSkipForward,
   });
 
   String _fmt(Duration d) {
@@ -96,16 +104,12 @@ class PlayerBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withOpacity(0.85), Colors.transparent]),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // شريط التقدّم
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
           child: Row(children: [
             Text(_fmt(position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
             Expanded(
@@ -127,7 +131,17 @@ class PlayerBottomBar extends StatelessWidget {
             Text(_fmt(duration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ]),
         ),
-      ),
+        // أزرار التحكم
+        PlayerCenterButtons(
+          isPlaying: isPlaying,
+          onPlayPause: onPlayPause,
+          onSkipBack: onSkipBack,
+          onSkipForward: onSkipForward,
+          primaryColor: primaryColor,
+          onPrimaryContainer: Colors.white,
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
@@ -155,17 +169,22 @@ class PlayerCenterButtons extends StatelessWidget {
     return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       CtrlBtn(Symbols.replay_10_rounded, onSkipBack),
       const SizedBox(width: 28),
-      Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPlayPause,
-          borderRadius: BorderRadius.circular(34),
-          child: Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(color: primaryColor.withOpacity(0.9), shape: BoxShape.circle),
-            child: Icon(isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
-                color: onPrimaryContainer, size: 38),
+      // زر التشغيل - شفاف بحدود بيضاء
+      GestureDetector(
+        onTap: onPlayPause,
+        child: Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Center(
+            child: Icon(
+              isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
+              color: Colors.white,
+              size: 38,
+            ),
           ),
         ),
       ),
@@ -185,7 +204,10 @@ class CtrlBtn extends StatelessWidget {
         child: Container(
           width: 50,
           height: 50,
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 1.5),
+          ),
           child: Icon(icon, color: Colors.white, size: 28),
         ),
       );

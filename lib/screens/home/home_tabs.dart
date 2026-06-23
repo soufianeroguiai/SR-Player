@@ -13,6 +13,7 @@ class AllTab extends StatelessWidget {
   final void Function(VideoItem) onMore;
   final bool gridView;
   final bool loading;
+  final Set<String> hiddenPaths;
 
   const AllTab({
     super.key,
@@ -24,10 +25,15 @@ class AllTab extends StatelessWidget {
     required this.onMore,
     required this.gridView,
     this.loading = false,
+    required this.hiddenPaths,
   });
 
-  List<VideoItem> get filtered =>
-      selectedFolder == null ? videos : videos.where((v) => v.folder == selectedFolder).toList();
+  List<VideoItem> get filtered {
+    final base = selectedFolder == null
+        ? videos
+        : videos.where((v) => v.folder == selectedFolder).toList();
+    return base.where((v) => !hiddenPaths.contains(v.path)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +114,16 @@ class RecentTab extends StatelessWidget {
   final List<VideoItem> all;
   final void Function(String) onOpen;
   final VoidCallback onClear;
-  const RecentTab({super.key, required this.paths, required this.all, required this.onOpen, required this.onClear});
+  final Set<String> hiddenPaths;
+
+  const RecentTab({
+    super.key,
+    required this.paths,
+    required this.all,
+    required this.onOpen,
+    required this.onClear,
+    required this.hiddenPaths,
+  });
 
   List<VideoItem> get list {
     final map = {for (final v in all) v.path: v};
@@ -124,6 +139,7 @@ class RecentTab extends StatelessWidget {
           }
         })
         .whereType<VideoItem>()
+        .where((v) => !hiddenPaths.contains(v.path))
         .toList();
   }
 
@@ -159,7 +175,14 @@ class RecentTab extends StatelessWidget {
 class FoldersTab extends StatelessWidget {
   final Map<String, List<VideoItem>> byFolder;
   final void Function(String) onTap;
-  const FoldersTab({super.key, required this.byFolder, required this.onTap});
+  final Set<String> hiddenPaths;
+
+  const FoldersTab({
+    super.key,
+    required this.byFolder,
+    required this.onTap,
+    required this.hiddenPaths,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +194,11 @@ class FoldersTab extends StatelessWidget {
       itemCount: keys.length,
       itemBuilder: (_, i) {
         final folder = keys[i];
-        final videos = byFolder[folder]!;
+        final videos = byFolder[folder]!
+            .where((v) => !hiddenPaths.contains(v.path))
+            .toList();
+        if (videos.isEmpty) return const SizedBox.shrink();
+
         final total = videos.fold<int>(0, (s, v) => s + v.size);
         final size = total < 1024 * 1024 * 1024
             ? '${(total / (1024 * 1024)).toStringAsFixed(0)} MB'
