@@ -73,7 +73,7 @@ class _FloatingBar extends StatelessWidget {
 
           // النسبة المئوية
           Text(
-            labelText,
+            label,  // <-- تم التصحيح هنا
             style: TextStyle(
               color: color,
               fontSize: 11,
