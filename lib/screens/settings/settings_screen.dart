@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/library_provider.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 
@@ -170,6 +171,56 @@ class SettingsScreen extends StatelessWidget {
               value: s.gridView,
               onChanged: s.setGridView),
         ]),
+
+        // ── قسم الملفات المخفية ──
+        Consumer<LibraryProvider>(
+          builder: (context, lib, _) {
+            if (lib.hiddenPaths.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                settingsHeader(context, 'الملفات المخفية', Symbols.visibility_off_rounded),
+                settingsCard(context, [
+                  for (final path in lib.hiddenPaths)
+                    ListTile(
+                      leading: Container(
+                        width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Symbols.visibility_off_rounded,
+                            color: Theme.of(context).colorScheme.onErrorContainer),
+                      ),
+                      title: Text(
+                        path.split('/').last,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        path,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Symbols.delete_rounded, color: Theme.of(context).colorScheme.error),
+                        onPressed: () {
+                          lib.unhidePath(path);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('تم إظهار ${path.split('/').last}')),
+                          );
+                        },
+                      ),
+                    ),
+                ]),
+              ],
+            );
+          },
+        ),
+
         const SizedBox(height: 20),
         settingsHeader(context, 'عن التطبيق', Symbols.info_rounded),
         settingsCard(context, [

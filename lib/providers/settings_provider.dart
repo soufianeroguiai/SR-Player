@@ -1,276 +1,288 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flex_color_picker/flex_color_picker.dart';
-import 'package:material_symbols_icons/symbols.dart';
-import '../../providers/settings_provider.dart';
-import '../../providers/library_provider.dart';
-import 'settings_widgets.dart';
-import 'settings_dialogs.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+/// يخزّن جميع تفضيلات المستخدم (المظهر، الصوت، الترجمة، المكتبة)
+/// ويحمّلها/يحفظها تلقائياً عبر SharedPreferences.
+///
+/// ملاحظة: تمت إزالة الإعدادات التي لم تكن مرتبطة بأي تنفيذ فعلي
+/// في المشغل (audioOutput, audioPlayerEngine, audioRate, audioPassthrough,
+/// bluetoothAudioDelayMs, pauseOnHeadphonesDisconnect, fadeInStart,
+/// fadeInSeek, showVolumePanel, defaultVolume, subtitleHwAcceleration,
+/// subtitleFontsFolder) لأنها كانت تُحفظ دون أي تأثير حقيقي على التشغيل.
+/// كل إعداد متبقٍ هنا مطبَّق فعلياً في PlayerScreen.
+class SettingsProvider extends ChangeNotifier {
+  // ──────────────────────────────────────────────
+  // المظهر العام
+  // ──────────────────────────────────────────────
+  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode get themeMode => _themeMode;
 
-  @override
-  Widget build(BuildContext context) {
-    final s = context.watch<SettingsProvider>();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الإعدادات'),
-        leading: IconButton(icon: const Icon(Symbols.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
-      ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        settingsHeader(context, 'المظهر', Symbols.palette_rounded),
-        settingsCard(context, [
-          settingsChoiceTile(context,
-              icon: Symbols.dark_mode_rounded,
-              title: 'المظهر',
-              subtitle: themeName(s.themeMode),
-              onTap: () => showThemePicker(context, s)),
-        ]),
-        const SizedBox(height: 20),
-        settingsHeader(context, 'المشغل', Symbols.play_circle_rounded),
-        settingsCard(context, [
-          settingsSwitchTile(context,
-              icon: Symbols.resume_rounded,
-              title: 'تذكر موضع التشغيل',
-              subtitle: 'متابعة من آخر موضع',
-              value: s.rememberPosition,
-              onChanged: s.setRememberPosition),
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.play_arrow_rounded,
-              title: 'تشغيل تلقائي',
-              subtitle: 'تشغيل الفيديو فور الفتح',
-              value: s.autoPlay,
-              onChanged: s.setAutoPlay),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.speed_rounded,
-              title: 'سرعة التشغيل الافتراضية',
-              subtitle: '${s.defaultSpeed}x',
-              onTap: () => showSpeedPicker(context, s)),
-        ]),
-        const SizedBox(height: 20),
-        settingsHeader(context, 'الصوت', Symbols.graphic_eq_rounded),
-        settingsCard(context, [
-          settingsChoiceTile(context,
-              icon: Symbols.volume_up_rounded,
-              title: 'تضخيم الصوت الافتراضي',
-              subtitle: '${s.defaultAudioBoost.round()}%',
-              onTap: () => showBoostDialog(context, s)),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.language_rounded,
-              title: 'لغة الصوت المفضلة',
-              subtitle: langName(s.preferredAudioLanguage),
-              onTap: () => showAudioLanguagePicker(context, s)),
-        ]),
-        const SizedBox(height: 20),
-        settingsHeader(context, 'الترجمة', Symbols.subtitles_rounded),
-        settingsCard(context, [
-          settingsSwitchTile(context,
-              icon: Symbols.subtitles_rounded,
-              title: 'إظهار الترجمة تلقائياً',
-              subtitle: 'تفعيل عند بدء التشغيل',
-              value: s.showSubtitlesByDefault,
-              onChanged: s.setShowSubtitlesByDefault),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.folder_open_rounded,
-              title: 'مجلد الترجمة',
-              subtitle: s.subtitleFolder.isEmpty ? 'غير محدد' : s.subtitleFolder,
-              onTap: () async {
-                final result = await FilePicker.getDirectoryPath();
-                if (result != null) s.setSubtitleFolder(result);
-              }),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.text_fields_rounded,
-              title: 'ترميز الأحرف',
-              subtitle: s.subtitleEncoding,
-              onTap: () => showEncodingPicker(context, s)),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.language_rounded,
-              title: 'لغة الترجمة المفضلة',
-              subtitle: langName(s.preferredSubtitleLanguage),
-              onTap: () => showSubtitleLanguagePicker(context, s)),
-          settingsDivider(),
-          settingsChoiceTile(context,
-              icon: Symbols.timeline_rounded,
-              title: 'مزامنة افتراضية',
-              subtitle: '${s.defaultSubtitleSync.toStringAsFixed(1)} ثانية',
-              onTap: () => showSyncDialog(context, s)),
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.format_italic_rounded,
-              title: 'تأثير مائل',
-              subtitle: 'تفعيل الخط المائل للترجمة',
-              value: s.subtitleItalic,
-              onChanged: s.setSubtitleItalic),
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.format_textdirection_r_to_l_rounded,
-              title: 'اتجاه النص',
-              subtitle: s.subtitleRTL ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين',
-              value: s.subtitleRTL,
-              onChanged: s.setSubtitleRTL),
-        ]),
-        const SizedBox(height: 20),
-        settingsHeader(context, 'حدّ ومظهر الترجمة', Symbols.format_color_text_rounded),
-        settingsCard(context, [
-          settingsSwitchTile(context,
-              icon: Symbols.border_color_rounded,
-              title: 'حدّ خارجي للنص',
-              subtitle: 'إطار حول كل حرف لتحسين الوضوح',
-              value: s.outlineEnabled,
-              onChanged: s.setOutlineEnabled),
-          if (s.outlineEnabled) ...[
-            settingsDivider(),
-            _colorRow(context, 'لون الحدّ', s.outlineColor, s.setOutlineColor),
-            settingsDivider(),
-            _sliderRow(context, 'سماكة الحدّ', s.outlineWidth, 0.5, 6.0, s.outlineWidth.toStringAsFixed(1),
-                s.setOutlineWidth),
-          ],
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.blur_on_rounded,
-              title: 'ظل الصندوق',
-              subtitle: 'ظل خلف نص الترجمة',
-              value: s.boxShadowEnabled,
-              onChanged: s.setBoxShadowEnabled),
-          if (s.boxShadowEnabled) ...[
-            settingsDivider(),
-            _colorRow(context, 'لون الظل', s.boxShadowColor, s.setBoxShadowColor),
-            settingsDivider(),
-            _sliderRow(context, 'حجم الظل', s.boxShadowBlurRadius, 0, 20, '${s.boxShadowBlurRadius.toInt()}',
-                s.setBoxShadowBlurRadius),
-          ],
-        ]),
-        const SizedBox(height: 20),
-        settingsHeader(context, 'المكتبة', Symbols.video_library_rounded),
-        settingsCard(context, [
-          settingsChoiceTile(context,
-              icon: Symbols.sort_rounded,
-              title: 'الترتيب الافتراضي',
-              subtitle: sortName(s.sortBy),
-              onTap: () => showSortPicker(context, s)),
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.arrow_downward_rounded,
-              title: 'ترتيب تنازلي',
-              subtitle: 'من الأحدث إلى الأقدم',
-              value: s.sortDesc,
-              onChanged: s.setSortDesc),
-          settingsDivider(),
-          settingsSwitchTile(context,
-              icon: Symbols.grid_view_rounded,
-              title: 'عرض الشبكة',
-              subtitle: 'عرض الفيديوهات كبطاقات',
-              value: s.gridView,
-              onChanged: s.setGridView),
-        ]),
+  // ──────────────────────────────────────────────
+  // المشغل
+  // ──────────────────────────────────────────────
+  bool _rememberPosition = true;
+  bool get rememberPosition => _rememberPosition;
 
-        // ── قسم الملفات المخفية ──
-        Consumer<LibraryProvider>(
-          builder: (context, lib, _) {
-            if (lib.hiddenPaths.isEmpty) return const SizedBox.shrink();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                settingsHeader(context, 'الملفات المخفية', Symbols.visibility_off_rounded),
-                settingsCard(context, [
-                  for (final path in lib.hiddenPaths)
-                    ListTile(
-                      leading: Container(
-                        width: 42, height: 42,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Symbols.visibility_off_rounded,
-                            color: Theme.of(context).colorScheme.onErrorContainer),
-                      ),
-                      title: Text(
-                        path.split('/').last,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        path,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Symbols.delete_rounded, color: Theme.of(context).colorScheme.error),
-                        onPressed: () {
-                          lib.unhidePath(path);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('تم إظهار ${path.split('/').last}')),
-                          );
-                        },
-                      ),
-                    ),
-                ]),
-              ],
-            );
-          },
-        ),
+  bool _autoPlay = true;
+  bool get autoPlay => _autoPlay;
 
-        const SizedBox(height: 20),
-        settingsHeader(context, 'عن التطبيق', Symbols.info_rounded),
-        settingsCard(context, [
-          ListTile(
-            leading: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
-                child: Icon(Symbols.play_arrow_rounded, color: Theme.of(context).colorScheme.onPrimaryContainer)),
-            title: const Text('SR Player', style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: const Text('الإصدار 1.0.0'),
-          ),
-        ]),
-        const SizedBox(height: 32),
-      ]),
-    );
+  double _defaultSpeed = 1.0;
+  double get defaultSpeed => _defaultSpeed;
+
+  // ──────────────────────────────────────────────
+  // المكتبة
+  // ──────────────────────────────────────────────
+  bool _gridView = false;
+  bool get gridView => _gridView;
+
+  String _sortBy = 'date';
+  String get sortBy => _sortBy;
+
+  bool _sortDesc = true;
+  bool get sortDesc => _sortDesc;
+
+  // ──────────────────────────────────────────────
+  // الترجمة — العرض والتخصيص
+  // ──────────────────────────────────────────────
+  bool _showSubtitlesByDefault = true;
+  bool get showSubtitlesByDefault => _showSubtitlesByDefault;
+
+  double _subtitleFontSize = 30.0;
+  double get subtitleFontSize => _subtitleFontSize;
+
+  int _subtitleColorValue = 0xFFFFFFFF;
+  Color get subtitleColor => Color(_subtitleColorValue);
+
+  double _subtitleBgOpacity = 0.0;
+  double get subtitleBgOpacity => _subtitleBgOpacity;
+
+  Color _subtitleBgColor = const Color(0xFF000000);
+  Color get subtitleBgColor => _subtitleBgColor;
+
+  Color _outlineColor = const Color(0xFF000000);
+  Color get outlineColor => _outlineColor;
+
+  double _outlineWidth = 2.0;
+  double get outlineWidth => _outlineWidth;
+
+  bool _outlineEnabled = true;
+  bool get outlineEnabled => _outlineEnabled;
+
+  int _fontWeightIndex = 2;
+  int get fontWeightIndex => _fontWeightIndex;
+
+  double _bottomPadding = 48.0;
+  double get bottomPadding => _bottomPadding;
+
+  double _horizontalMargin = 24.0;
+  double get horizontalMargin => _horizontalMargin;
+
+  String _fontFamily = 'Roboto';
+  String get fontFamily => _fontFamily;
+
+  String _subtitleFolder = '';
+  String get subtitleFolder => _subtitleFolder;
+
+  String _subtitleEncoding = 'UTF-8';
+  String get subtitleEncoding => _subtitleEncoding;
+
+  String _preferredSubtitleLanguage = 'ara';
+  String get preferredSubtitleLanguage => _preferredSubtitleLanguage;
+
+  double _defaultSubtitleSync = 0.0;
+  double get defaultSubtitleSync => _defaultSubtitleSync;
+
+  bool _subtitleItalic = false;
+  bool get subtitleItalic => _subtitleItalic;
+
+  bool _subtitleRTL = false;
+  bool get subtitleRTL => _subtitleRTL;
+
+  // ──────────────────────────────────────────────
+  // ظل الأحرف (Text Shadow)
+  // ──────────────────────────────────────────────
+  bool _textShadowEnabled = false;
+  bool get textShadowEnabled => _textShadowEnabled;
+
+  Color _textShadowColor = const Color(0xFF000000);
+  Color get textShadowColor => _textShadowColor;
+
+  double _textShadowBlurRadius = 4.0;
+  double get textShadowBlurRadius => _textShadowBlurRadius;
+
+  double _textShadowOffsetX = 1.0;
+  double get textShadowOffsetX => _textShadowOffsetX;
+
+  double _textShadowOffsetY = 1.0;
+  double get textShadowOffsetY => _textShadowOffsetY;
+
+  // ──────────────────────────────────────────────
+  // ظل الصندوق المحيط بنص الترجمة (Box Shadow)
+  // ──────────────────────────────────────────────
+  bool _boxShadowEnabled = false;
+  bool get boxShadowEnabled => _boxShadowEnabled;
+
+  Color _boxShadowColor = const Color(0xFF000000);
+  Color get boxShadowColor => _boxShadowColor;
+
+  double _boxShadowBlurRadius = 4.0;
+  double get boxShadowBlurRadius => _boxShadowBlurRadius;
+
+  double _boxShadowOffsetX = 1.0;
+  double get boxShadowOffsetX => _boxShadowOffsetX;
+
+  double _boxShadowOffsetY = 1.0;
+  double get boxShadowOffsetY => _boxShadowOffsetY;
+
+  // ──────────────────────────────────────────────
+  // الصوت
+  // ──────────────────────────────────────────────
+  double _defaultAudioBoost = 100.0;
+  double get defaultAudioBoost => _defaultAudioBoost;
+
+  String _preferredAudioLanguage = 'ara';
+  String get preferredAudioLanguage => _preferredAudioLanguage;
+
+  // --- Load ---
+  Future<void> load() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final themeIndex = p.getInt('themeMode') ?? 1;
+      _themeMode = themeIndex >= 0 && themeIndex < ThemeMode.values.length
+          ? ThemeMode.values[themeIndex]
+          : ThemeMode.dark;
+      _rememberPosition = p.getBool('rememberPosition') ?? true;
+      _autoPlay = p.getBool('autoPlay') ?? true;
+      _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
+      _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
+      _gridView = p.getBool('gridView') ?? false;
+      _sortBy = p.getString('sortBy') ?? 'date';
+      _sortDesc = p.getBool('sortDesc') ?? true;
+      _subtitleFontSize = p.getDouble('subtitleFontSize') ?? 30.0;
+      _subtitleColorValue = p.getInt('subtitleColorValue') ?? 0xFFFFFFFF;
+      _subtitleBgOpacity = p.getDouble('subtitleBgOpacity') ?? 0.0;
+      _subtitleBgColor = Color(p.getInt('subtitleBgColor') ?? 0xFF000000);
+      _outlineColor = Color(p.getInt('outlineColor') ?? 0xFF000000);
+      _outlineWidth = p.getDouble('outlineWidth') ?? 2.0;
+      _outlineEnabled = p.getBool('outlineEnabled') ?? true;
+
+      _textShadowEnabled = p.getBool('textShadowEnabled') ?? false;
+      _textShadowColor = Color(p.getInt('textShadowColor') ?? 0xFF000000);
+      _textShadowBlurRadius = p.getDouble('textShadowBlurRadius') ?? 4.0;
+      _textShadowOffsetX = p.getDouble('textShadowOffsetX') ?? 1.0;
+      _textShadowOffsetY = p.getDouble('textShadowOffsetY') ?? 1.0;
+
+      _boxShadowEnabled = p.getBool('boxShadowEnabled') ?? false;
+      _boxShadowColor = Color(p.getInt('boxShadowColor') ?? 0xFF000000);
+      _boxShadowBlurRadius = p.getDouble('boxShadowBlurRadius') ?? 4.0;
+      _boxShadowOffsetX = p.getDouble('boxShadowOffsetX') ?? 1.0;
+      _boxShadowOffsetY = p.getDouble('boxShadowOffsetY') ?? 1.0;
+
+      _fontWeightIndex = p.getInt('fontWeightIndex') ?? 2;
+      _bottomPadding = p.getDouble('bottomPadding') ?? 48.0;
+      _horizontalMargin = p.getDouble('horizontalMargin') ?? 24.0;
+      _fontFamily = p.getString('fontFamily') ?? 'Roboto';
+      _subtitleFolder = p.getString('subtitleFolder') ?? '';
+      _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
+      _preferredSubtitleLanguage =
+          p.getString('preferredSubtitleLanguage') ?? 'ara';
+      _defaultSubtitleSync = p.getDouble('defaultSubtitleSync') ?? 0.0;
+      _subtitleItalic = p.getBool('subtitleItalic') ?? false;
+      _subtitleRTL = p.getBool('subtitleRTL') ?? false;
+      _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
+      _preferredAudioLanguage = p.getString('preferredAudioLanguage') ?? 'ara';
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Settings load error: $e');
+    }
   }
 
-  Widget _colorRow(BuildContext ctx, String label, Color color, ValueChanged<Color> onChanged) {
-    return ListTile(
-      title: Text(label),
-      trailing: GestureDetector(
-        onTap: () async {
-          final picked = await showColorPickerDialog(ctx, color);
-          onChanged(picked);
-        },
-        child: ColorIndicator(color: color, width: 30, height: 30, borderRadius: 8),
-      ),
-    );
+  // --- Save ---
+  Future<void> _save() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setInt('themeMode', _themeMode.index);
+    await p.setBool('rememberPosition', _rememberPosition);
+    await p.setBool('autoPlay', _autoPlay);
+    await p.setDouble('defaultSpeed', _defaultSpeed);
+    await p.setBool('showSubtitles', _showSubtitlesByDefault);
+    await p.setBool('gridView', _gridView);
+    await p.setString('sortBy', _sortBy);
+    await p.setBool('sortDesc', _sortDesc);
+    await p.setDouble('subtitleFontSize', _subtitleFontSize);
+    await p.setInt('subtitleColorValue', _subtitleColorValue);
+    await p.setDouble('subtitleBgOpacity', _subtitleBgOpacity);
+    await p.setInt('subtitleBgColor', _subtitleBgColor.toARGB32());
+    await p.setInt('outlineColor', _outlineColor.toARGB32());
+    await p.setDouble('outlineWidth', _outlineWidth);
+    await p.setBool('outlineEnabled', _outlineEnabled);
+
+    await p.setBool('textShadowEnabled', _textShadowEnabled);
+    await p.setInt('textShadowColor', _textShadowColor.toARGB32());
+    await p.setDouble('textShadowBlurRadius', _textShadowBlurRadius);
+    await p.setDouble('textShadowOffsetX', _textShadowOffsetX);
+    await p.setDouble('textShadowOffsetY', _textShadowOffsetY);
+
+    await p.setBool('boxShadowEnabled', _boxShadowEnabled);
+    await p.setInt('boxShadowColor', _boxShadowColor.toARGB32());
+    await p.setDouble('boxShadowBlurRadius', _boxShadowBlurRadius);
+    await p.setDouble('boxShadowOffsetX', _boxShadowOffsetX);
+    await p.setDouble('boxShadowOffsetY', _boxShadowOffsetY);
+
+    await p.setInt('fontWeightIndex', _fontWeightIndex);
+    await p.setDouble('bottomPadding', _bottomPadding);
+    await p.setDouble('horizontalMargin', _horizontalMargin);
+    await p.setString('fontFamily', _fontFamily);
+    await p.setString('subtitleFolder', _subtitleFolder);
+    await p.setString('subtitleEncoding', _subtitleEncoding);
+    await p.setString('preferredSubtitleLanguage', _preferredSubtitleLanguage);
+    await p.setDouble('defaultSubtitleSync', _defaultSubtitleSync);
+    await p.setBool('subtitleItalic', _subtitleItalic);
+    await p.setBool('subtitleRTL', _subtitleRTL);
+    await p.setDouble('defaultAudioBoost', _defaultAudioBoost);
+    await p.setString('preferredAudioLanguage', _preferredAudioLanguage);
   }
 
-  Widget _sliderRow(
-      BuildContext ctx, String label, double value, double min, double max, String display, ValueChanged<double> onChanged) {
-    final cs = Theme.of(ctx).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-              Text(display, style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold, fontSize: 13)),
-            ],
-          ),
-          Slider(value: value, min: min, max: max, onChanged: onChanged, activeColor: cs.primary),
-        ],
-      ),
-    );
-  }
+  // ──────────────────────────────────────────────
+  // Setters
+  // ──────────────────────────────────────────────
+  void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
+  void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
+  void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
+  void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
+  void setShowSubtitlesByDefault(bool v) { _showSubtitlesByDefault = v; notifyListeners(); _save(); }
+  void setGridView(bool v) { _gridView = v; notifyListeners(); _save(); }
+  void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
+  void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
+  void setSubtitleFontSize(double v) { _subtitleFontSize = v; notifyListeners(); _save(); }
+  void setSubtitleColor(Color c) { _subtitleColorValue = c.toARGB32(); notifyListeners(); _save(); }
+  void setSubtitleBgOpacity(double v) { _subtitleBgOpacity = v; notifyListeners(); _save(); }
+  void setSubtitleBgColor(Color c) { _subtitleBgColor = c; notifyListeners(); _save(); }
+  void setOutlineColor(Color c) { _outlineColor = c; notifyListeners(); _save(); }
+  void setOutlineWidth(double v) { _outlineWidth = v; notifyListeners(); _save(); }
+  void setOutlineEnabled(bool v) { _outlineEnabled = v; notifyListeners(); _save(); }
+
+  void setTextShadowEnabled(bool v) { _textShadowEnabled = v; notifyListeners(); _save(); }
+  void setTextShadowColor(Color c) { _textShadowColor = c; notifyListeners(); _save(); }
+  void setTextShadowBlurRadius(double v) { _textShadowBlurRadius = v; notifyListeners(); _save(); }
+  void setTextShadowOffsetX(double v) { _textShadowOffsetX = v; notifyListeners(); _save(); }
+  void setTextShadowOffsetY(double v) { _textShadowOffsetY = v; notifyListeners(); _save(); }
+
+  void setBoxShadowEnabled(bool v) { _boxShadowEnabled = v; notifyListeners(); _save(); }
+  void setBoxShadowColor(Color c) { _boxShadowColor = c; notifyListeners(); _save(); }
+  void setBoxShadowBlurRadius(double v) { _boxShadowBlurRadius = v; notifyListeners(); _save(); }
+  void setBoxShadowOffsetX(double v) { _boxShadowOffsetX = v; notifyListeners(); _save(); }
+  void setBoxShadowOffsetY(double v) { _boxShadowOffsetY = v; notifyListeners(); _save(); }
+
+  void setFontWeightIndex(int v) { _fontWeightIndex = v; notifyListeners(); _save(); }
+  void setBottomPadding(double v) { _bottomPadding = v; notifyListeners(); _save(); }
+  void setHorizontalMargin(double v) { _horizontalMargin = v; notifyListeners(); _save(); }
+  void setFontFamily(String v) { _fontFamily = v; notifyListeners(); _save(); }
+  void setSubtitleFolder(String v) { _subtitleFolder = v; notifyListeners(); _save(); }
+  void setSubtitleEncoding(String v) { _subtitleEncoding = v; notifyListeners(); _save(); }
+  void setPreferredSubtitleLanguage(String v) { _preferredSubtitleLanguage = v; notifyListeners(); _save(); }
+  void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
+  void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
+  void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
+  void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
+  void setPreferredAudioLanguage(String v) { _preferredAudioLanguage = v; notifyListeners(); _save(); }
 }
