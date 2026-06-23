@@ -173,6 +173,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  // النقر المزدوج لتشغيل / إيقاف
+  void _togglePlayPause() {
+    if (_isPlaying) {
+      _player.pause();
+    } else {
+      _player.play();
+    }
+  }
+
   Future<void> _initPlayer() async {
     final settings = context.read<SettingsProvider>();
     try {
@@ -576,16 +585,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             : Stack(children: [
                 GestureDetector(
                   onTap: _toggleControls,
-                  onDoubleTapDown: _isLocked
-                      ? null
-                      : (details) {
-                          final isRight = details.localPosition.dx > screenWidth / 2;
-                          final target = isRight
-                              ? (_position + const Duration(seconds: 10))
-                              : (_position - const Duration(seconds: 10));
-                          _player.seek(
-                              target.isNegative ? Duration.zero : (target > _duration ? _duration : target));
-                        },
+                  onDoubleTap: _togglePlayPause, // النقر المزدوج للتشغيل/الإيقاف
                   onScaleStart: (details) {
                     if (_isLocked) return;
                     if (details.pointerCount == 2) {
@@ -625,18 +625,19 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       } else {
                         double delta = -details.focalPointDelta.dy / 200.0;
                         if (isRight) {
+                          // السطوع (يمين)
+                          double newBright = (_brightnessNotifier.value + delta).clamp(0.0, 1.0);
+                          _brightnessNotifier.value = newBright;
+                          ScreenBrightness.instance.setApplicationScreenBrightness(newBright);
+                          _showBrightNotifier.value = true;
+                          _showVolNotifier.value = false;
+                          _showSeekNotifier.value = false;
+                        } else {
+                          // الصوت (يسار)
                           _onVolumeChanged(_volumeLevel + delta);
                           _showVolNotifier.value = true;
                           _showSeekNotifier.value = false;
                           _showBrightNotifier.value = false;
-                        } else {
-                          double newBright = (_brightnessNotifier.value + delta).clamp(0.0, 1.0);
-                          _brightnessNotifier.value = newBright;
-                          ScreenBrightness.instance.setApplicationScreenBrightness(newBright);
-
-                          _showBrightNotifier.value = true;
-                          _showVolNotifier.value = false;
-                          _showSeekNotifier.value = false;
                         }
                         _resetIndicatorTimer();
                       }
@@ -692,14 +693,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   },
                 ),
 
-                // مؤشر الصوت (على اليمين، لأن المستخدم يستخدم الإبهام الأيمن للصوت)
+                // مؤشر الصوت (يسار)
                 ValueListenableBuilder<bool>(
                   valueListenable: _showVolNotifier,
                   builder: (context, show, child) {
                     if (!show) return const SizedBox.shrink();
                     final bool isBoosted = _volumeLevel > 1.0;
                     return Positioned(
-                      right: 24,
+                      left: 24,
                       top: MediaQuery.of(context).size.height * 0.25,
                       child: PlayerIndicators.buildFloatingIndicator(
                         icon: _volumeLevel == 0
@@ -713,7 +714,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   },
                 ),
 
-                // مؤشر الإضاءة (على اليسار، لأن المستخدم يستخدم الإبهام الأيسر للسطوع)
+                // مؤشر السطوع (يمين)
                 ValueListenableBuilder<bool>(
                   valueListenable: _showBrightNotifier,
                   builder: (context, show, child) {
@@ -722,7 +723,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       valueListenable: _brightnessNotifier,
                       builder: (context, brightness, child) {
                         return Positioned(
-                          left: 24,
+                          right: 24,
                           top: MediaQuery.of(context).size.height * 0.25,
                           child: PlayerIndicators.buildFloatingIndicator(
                             icon: brightness < 0.15 ? Icons.brightness_low_rounded : Icons.brightness_6_rounded,
@@ -768,7 +769,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     ),
                   ),
 
-                // واجهة التحكم العلوية
+                // واجهة التحكم العلوية (بدون أزرار fit/pip)
                 if (_showControls && !_isLocked) ...[
                   Positioned(
                     top: 0,
@@ -803,10 +804,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       },
                       isLandscape: _isLandscape,
                       showSubtitles: _showSubtitles,
+                      hideFitAndPip: true, // نخفيها من الأعلى
                     ),
                   ),
 
-                  // شريط التقدّم السفلي مع أزرار التحكم
+                  // شريط التقدّم والأزرار السفلية
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -817,7 +819,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       onSeek: (v) => _player.seek(Duration(milliseconds: (v * _duration.inMilliseconds).toInt())),
                       primaryColor: cs.primary,
                       isPlaying: _isPlaying,
-                      onPlayPause: () => _isPlaying ? _player.pause() : _player.play(),
+                      onPlayPause: _togglePlayPause,
                       onSkipBack: () {
                         final target = _position - const Duration(seconds: 10);
                         _player.seek(target.isNegative ? Duration.zero : target);
@@ -826,6 +828,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         final target = _position + const Duration(seconds: 10);
                         _player.seek(target > _duration ? _duration : target);
                       },
+                      fitMode: _fitMode,
+                      onToggleFit: _toggleFit,
+                      onPip: _enterPip,
+                      isLandscape: _isLandscape,
+                      onToggleOrientation: _toggleOrientation,
                     ),
                   ),
                 ],

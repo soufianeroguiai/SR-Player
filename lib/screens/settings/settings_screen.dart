@@ -172,50 +172,62 @@ class SettingsScreen extends StatelessWidget {
               onChanged: s.setGridView),
         ]),
 
-        // ── قسم الملفات المخفية ──
+        // الملفات المخفية
         Consumer<LibraryProvider>(
           builder: (context, lib, _) {
-            if (lib.hiddenPaths.isEmpty) return const SizedBox.shrink();
+            if (lib.hiddenPaths.isEmpty && lib.hiddenFolders.isEmpty) return const SizedBox.shrink();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
-                settingsHeader(context, 'الملفات المخفية', Symbols.visibility_off_rounded),
-                settingsCard(context, [
-                  for (final path in lib.hiddenPaths)
-                    ListTile(
-                      leading: Container(
-                        width: 42, height: 42,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(12),
+                if (lib.hiddenPaths.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  settingsHeader(context, 'الملفات المخفية', Symbols.visibility_off_rounded),
+                  settingsCard(context, [
+                    for (final path in lib.hiddenPaths)
+                      ListTile(
+                        leading: Container(
+                          width: 42, height: 42,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Symbols.visibility_off_rounded,
+                              color: Theme.of(context).colorScheme.onErrorContainer),
                         ),
-                        child: Icon(Symbols.visibility_off_rounded,
-                            color: Theme.of(context).colorScheme.onErrorContainer),
+                        title: Text(path.split('/').last,
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                        subtitle: Text(path,
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
+                        trailing: IconButton(
+                          icon: Icon(Symbols.delete_rounded, color: Theme.of(context).colorScheme.error),
+                          onPressed: () {
+                            lib.unhidePath(path);
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(content: Text('تم إظهار ${path.split('/').last}')));
+                          },
+                        ),
                       ),
-                      title: Text(
-                        path.split('/').last,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  ]),
+                ],
+                if (lib.hiddenFolders.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  settingsHeader(context, 'المجلدات المخفية', Symbols.folder_off_rounded),
+                  settingsCard(context, [
+                    for (final folder in lib.hiddenFolders)
+                      ListTile(
+                        leading: Icon(Icons.folder, color: Colors.orange),
+                        title: Text(folder),
+                        trailing: IconButton(
+                          icon: Icon(Symbols.delete_rounded, color: Theme.of(context).colorScheme.error),
+                          onPressed: () {
+                            lib.unhideFolder(folder);
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(content: Text('تم إظهار المجلد $folder')));
+                          },
+                        ),
                       ),
-                      subtitle: Text(
-                        path,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Symbols.delete_rounded, color: Theme.of(context).colorScheme.error),
-                        onPressed: () {
-                          lib.unhidePath(path);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('تم إظهار ${path.split('/').last}')),
-                          );
-                        },
-                      ),
-                    ),
-                ]),
+                  ]),
+                ],
               ],
             );
           },

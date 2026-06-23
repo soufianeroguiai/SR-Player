@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (!mounted) return;
     await lib.scan();
     await lib.loadRecent();
-    await lib.loadHidden(); // تحميل قائمة الإخفاء
+    await lib.loadHidden();
   }
 
   Future<void> _refreshLibrary() async {
@@ -109,11 +109,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onPressed: () {
                 final lib = context.read<LibraryProvider>();
                 final filteredVideos = lib.videos
-                    .where((v) => !lib.hiddenPaths.contains(v.path))
+                    .where((v) => !lib.hiddenPaths.contains(v.path) && !lib.hiddenFolders.contains(v.folder))
                     .toList();
-                showSearch(
-                    context: context,
-                    delegate: VideoSearchDelegate(filteredVideos, _openPlayer));
+                showSearch(context: context, delegate: VideoSearchDelegate(filteredVideos, _openPlayer));
               }),
           IconButton(
               icon: Icon(settings.gridView ? Symbols.view_list_rounded : Symbols.grid_view_rounded),
@@ -160,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               gridView: settings.gridView,
               loading: lib.loading,
               hiddenPaths: lib.hiddenPaths,
+              hiddenFolders: lib.hiddenFolders,
             ),
           ),
           RefreshIndicator(
@@ -170,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onOpen: _openByPath,
               onClear: lib.clearRecent,
               hiddenPaths: lib.hiddenPaths,
+              hiddenFolders: lib.hiddenFolders,
             ),
           ),
           RefreshIndicator(
@@ -181,6 +181,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 _tabs.animateTo(0);
               },
               hiddenPaths: lib.hiddenPaths,
+              hiddenFolders: lib.hiddenFolders,
+              onHideFolder: lib.hideFolder,
+              onUnhideFolder: lib.unhideFolder,
             ),
           ),
         ]);
@@ -269,28 +272,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Share.shareXFiles([XFile(video.path)], subject: video.name);
                     }),
                 const Divider(height: 1),
-                // خيار الإخفاء/الإظهار
                 ListTile(
                   leading: _mIcon(
-                    lib.isHidden(video.path)
-                        ? Symbols.visibility_rounded
-                        : Symbols.visibility_off_rounded,
+                    lib.isPathHidden(video.path) ? Symbols.visibility_rounded : Symbols.visibility_off_rounded,
                     cs.errorContainer,
                     cs.onErrorContainer,
                   ),
-                  title: Text(lib.isHidden(video.path) ? 'إظهار' : 'إخفاء'),
+                  title: Text(lib.isPathHidden(video.path) ? 'إظهار' : 'إخفاء'),
                   onTap: () {
                     Navigator.pop(context);
-                    if (lib.isHidden(video.path)) {
+                    if (lib.isPathHidden(video.path)) {
                       lib.unhidePath(video.path);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم إظهار ${video.name}')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إظهار ${video.name}')));
                     } else {
                       lib.hidePath(video.path);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم إخفاء ${video.name}')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إخفاء ${video.name}')));
                     }
                   },
                 ),

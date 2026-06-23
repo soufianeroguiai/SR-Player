@@ -7,12 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import '../models/video_item.dart';
 
-/// يولّد ويخزّن الصور المصغّرة لفيديوهات المكتبة.
-///
-/// المصدر الأساسي هو [AssetEntity.thumbnailDataWithSize] من photo_manager:
-/// استخراج native سريع لا يفتح أي مشغل فيديو ولا ينتظر أي مهلة يدوية.
-/// يُستخدم video_thumbnail كحل ثانٍ للملفات اليدوية أو صيغ MKV/HEVC.
-/// يُستخدم استخراج لقطة عبر media_kit فقط كحل بديل أخير.
 class ThumbnailService {
   static final ThumbnailService _instance = ThumbnailService._internal();
   factory ThumbnailService() => _instance;
@@ -44,17 +38,14 @@ class ThumbnailService {
 
       Uint8List? bytes;
 
-      // 1. للفيديوهات من المكتبة، نجرب AssetEntity أولاً
       if (video.id != path) {
         bytes = await _fromAssetEntity(video.id);
       }
 
-      // 2. نجرب video_thumbnail (أسرع ويدعم MKV/HEVC)
       if (bytes == null) {
         bytes = await _fromVideoThumbnail(path);
       }
 
-      // 3. كحل أخير، media_kit
       if (bytes == null) {
         bytes = await _fromMediaKitScreenshot(path);
       }
@@ -84,23 +75,30 @@ class ThumbnailService {
     }
   }
 
-  /// استخدام مكتبة video_thumbnail لاستخراج الصورة المصغرة (يدعم MKV/HEVC)
   Future<Uint8List?> _fromVideoThumbnail(String path) async {
     try {
-      final thumbnail = await VideoThumbnail.thumbnailData(
+      final tempPath = await _tempThumbnailPath();
+      final file = await VideoThumbnail.thumbnailFile(
         video: path,
+        thumbnailPath: tempPath,
         imageFormat: ImageFormat.JPEG,
         maxWidth: 360,
         quality: 80,
       );
-      return thumbnail;
+      if (file != null) {
+        return await File(file).readAsBytes();
+      }
     } catch (e) {
-      debugPrint('فشل استخراج الصورة المصغرة عبر video_thumbnail: $e');
-      return null;
+      debugPrint('فشل video_thumbnail: $e');
     }
+    return null;
   }
 
-  /// حل بديل فقط لملف فُتح يدوياً وليس جزءاً من مكتبة الوسائط الممسوحة.
+  Future<String> _tempThumbnailPath() async {
+    final dir = await getTemporaryDirectory();
+    return '${dir.path}/thumb_temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  }
+
   Future<Uint8List?> _fromMediaKitScreenshot(String path) async {
     Player? player;
     try {
