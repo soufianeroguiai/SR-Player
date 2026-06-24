@@ -33,13 +33,15 @@ class VideoThumbnailLoader extends StatelessWidget {
                 bytes,
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(errorNotifier),
+                errorBuilder: (_, __, ___) =>
+                    _buildPlaceholder('فشل تحميل الصورة'),
               );
             }
-            // لا توجد صورة بعد ← نعرض خطأ التوليد إن وُجد
+            // لا صورة بعد: نعرض خطأ التوليد إن وُجد
             return ValueListenableBuilder<String?>(
               valueListenable: errorNotifier,
-              builder: (context, errorText, _) => _buildPlaceholder(errorText),
+              builder: (context, errorText, _) =>
+                  _buildPlaceholder(errorText),
             );
           },
         ),
@@ -49,25 +51,30 @@ class VideoThumbnailLoader extends StatelessWidget {
 
   Widget _buildPlaceholder(String? errorText) {
     if (errorText != null && errorText.isNotEmpty) {
-      // عرض نص الخطأ داخل الصندوق الرمادي
+      // عرض نص الخطأ مكان الأيقونة
       return Container(
         color: const Color(0xFF1A1A1A),
         padding: const EdgeInsets.all(4),
         alignment: Alignment.center,
         child: Text(
           errorText,
-          style: const TextStyle(color: Colors.redAccent, fontSize: 8, height: 1.2),
+          style: const TextStyle(
+            color: Colors.redAccent,
+            fontSize: 8,
+            height: 1.2,
+          ),
           textAlign: TextAlign.center,
           maxLines: 4,
           overflow: TextOverflow.ellipsis,
         ),
       );
     }
-    // الرمز الافتراضي عند عدم وجود خطأ بعد
+    // الأيقونة الافتراضية (لم يحدث خطأ بعد)
     return Container(
       color: Colors.grey[900],
       child: const Center(
-        child: Icon(Icons.video_file_rounded, color: Colors.white30, size: 36),
+        child: Icon(Icons.video_file_rounded,
+            color: Colors.white30, size: 36),
       ),
     );
   }
