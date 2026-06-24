@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:photo_manager/photo_manager.dart';
+import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/video_item.dart';
 
@@ -15,7 +15,7 @@ class ThumbnailService {
   final Map<String, ValueNotifier<String?>> _errors = {};
   final Set<String> _pending = {};
   int _active = 0;
-  static const _maxConcurrent = 2;
+  static const _maxConcurrent = 1; // FFmpeg ثقيل نسبياً، نحدده بواحد
   final List<Future<void> Function()> _queue = [];
 
   ValueNotifier<Uint8List?> getNotifier(VideoItem video) {
@@ -56,7 +56,7 @@ class ThumbnailService {
     final path = video.path;
     if (_pending.contains(path)) return;
     _pending.add(path);
-    _errors[path]?.value = null; // نبدأ بدون أخطاء
+    _errors[path]?.value = null;
 
     try {
       final cacheFile = await _cacheFile(path);
@@ -64,41 +64,18 @@ class ThumbnailService {
         final bytes = await cacheFile.readAsBytes();
         if (bytes.isNotEmpty) {
           _notifiers[path]?.value = bytes;
-          _errors[path]?.value = null; // ✅ تأكيد عدم وجود خطأ
           return;
         }
       }
 
-      Uint8List? bytes;
-
-      // 1. photo_manager (أسرع)
-      if (video.id != path) {
-        try {
-          bytes = await _fromPhotoManager(video.id);
-        } catch (e) {
-          // نترك الخطأ مؤقتاً فقط، وسنمسحه إذا نجح media_kit
-          _errors[path]?.value = null; // لا نعرض خطأ photo_manager الآن
-        }
-      }
-
-      // 2. media_kit (لجميع الصيغ)
-      if (bytes == null) {
-        try {
-          bytes = await _fromMediaKit(video.path, cacheFile.path);
-          _errors[path]?.value = null; // ✅ نجحنا → لا خطأ
-        } catch (e) {
-          _errors[path]?.value = 'media_kit: $e';
-        }
-      }
-
+      final bytes = await _fromFFmpeg(path, cacheFile.path);
       if (bytes != null && bytes.isNotEmpty) {
         if (!await cacheFile.exists()) {
           await cacheFile.writeAsBytes(bytes);
         }
         _notifiers[path]?.value = bytes;
       } else {
-        // إذا لم يكن هناك خطأ مُسجَّل، نضع خطأً عاماً
-        _errors[path]?.value ??= 'تعذر إنشاء صورة مصغرة';
+        _errors[path]?.value ??= 'فشل استخراج الصورة (FFmpeg)';
       }
     } catch (e) {
       _errors[path]?.value = 'خطأ: $e';
@@ -107,36 +84,33 @@ class ThumbnailService {
     }
   }
 
-  Future<Uint8List?> _fromPhotoManager(String assetId) async {
-    final asset = await AssetEntity.fromId(assetId);
-    if (asset == null) return null;
-    return await asset.thumbnailDataWithSize(
-      const ThumbnailSize(360, 240),
-      quality: 85,
-    );
-  }
-
-  Future<Uint8List?> _fromMediaKit(String videoPath, String savePath) async {
-    final player = Player();
+  /// يستخرج إطاراً واحداً من الثانية 5 بصيغة JPEG باستخدام FFmpeg
+  Future<Uint8List?> _fromFFmpeg(String videoPath, String savePath) async {
     try {
-      await player.open(Media(videoPath), play: false);
-      final duration = player.state.duration;
-      final seekPos = duration.inSeconds > 10
-          ? const Duration(seconds: 5)
-          : duration * 0.3;
-      await player.seek(seekPos);
-      await Future.delayed(const Duration(milliseconds: 500));
-      final Uint8List? screenshotBytes = await player.screenshot(
-        format: 'image/jpeg',
-      );
-      if (screenshotBytes != null) {
-        final file = File(savePath);
-        await file.writeAsBytes(screenshotBytes);
-        return screenshotBytes;
+      final file = File(videoPath);
+      if (!await file.exists()) {
+        _errors[videoPath]?.value = 'الملف غير موجود';
+        return null;
+      }
+
+      // أمر FFmpeg لاستخراج إطار واحد
+      final command = '-y -i "$videoPath" -ss 5 -vframes 1 -s 360x240 -q:v 2 "$savePath"';
+      final session = await FFmpegKit.execute(command);
+      final returnCode = await session.getReturnCode();
+
+      if (ReturnCode.isSuccess(returnCode)) {
+        final outputFile = File(savePath);
+        if (await outputFile.exists()) {
+          return await outputFile.readAsBytes();
+        }
+      } else {
+        final logs = await session.getOutput();
+        _errors[videoPath]?.value = 'FFmpeg: ${logs ?? "فشل غير معروف"}';
       }
       return null;
-    } finally {
-      player.dispose();
+    } catch (e) {
+      _errors[videoPath]?.value = 'FFmpeg خطأ: $e';
+      return null;
     }
   }
 
