@@ -24,9 +24,6 @@ dependencies:
   # 🔐 Permissions
   permission_handler: ^12.0.3
 
-  # 🎞️ FFmpeg (معالجة الفيديو والصور المصغرة)
-  ffmpeg_kit_flutter_new: ^4.2.1
-
   # 📦 State
   provider: ^6.1.5+1
   shared_preferences: ^2.5.5
