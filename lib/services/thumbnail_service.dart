@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:video_thumbnail_gen/video_thumbnail_gen.dart';
+import 'package:video_thumbnail_gen/video_thumbnail_gen.dart'; // ✅ الاستيراد الصحيح
 import '../models/video_item.dart';
 
 /// يولّد ويخزّن الصور المصغّرة لفيديوهات المكتبة.
@@ -102,14 +102,14 @@ class ThumbnailService {
 
   Future<Uint8List?> _fromVideoThumbnailGen(String videoPath, String savePath) async {
     try {
-      // video_thumbnail_gen يستخدم ffmpeg تحت الغطاء ويدعم MKV/HEVC/AV1
-      final thumbPath = await VideoThumbnailGen.genThumbnailFile(
+      // ✅ استخدام الوظيفة الصحيحة من المكتبة حسب التوثيق
+      final thumbPath = await VideoThumbnail.thumbnailFile(
         video: videoPath,
-        thumbnailPath: savePath,
+        thumbnailPath: savePath, // يمكن أن يكون مسار ملف كامل أو مجلد
         imageFormat: ImageFormat.JPEG,
         maxWidth: 360,
         quality: 85,
-        timeMs: 5000, // اللقطة عند الثانية 5
+        timeMs: 5000,
       );
       if (thumbPath == null) return null;
       final file = File(thumbPath);
@@ -123,11 +123,9 @@ class ThumbnailService {
 
   Future<File> _cacheFile(String videoPath) async {
     final dir = await getTemporaryDirectory();
-    // نستخدم hashCode كاسم ملف مؤقت فقط (ليس معرفاً دائماً)
     return File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
   }
 
-  /// مسح كامل لذاكرة التخزين المؤقت (للتطوير أو إعادة التهيئة)
   Future<void> clearCache() async {
     final dir = await getTemporaryDirectory();
     final files = dir.listSync().where((f) => f.path.contains('thumb_'));
