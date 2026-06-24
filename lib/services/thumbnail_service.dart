@@ -15,10 +15,9 @@ class ThumbnailService {
   final Map<String, ValueNotifier<String?>> _errors = {};
   final Set<String> _pending = {};
   int _active = 0;
-  static const _maxConcurrent = 2; // يمكن تخفيضه إلى 1 لتقليل استهلاك الموارد
+  static const _maxConcurrent = 2;
   final List<Future<void> Function()> _queue = [];
 
-  /// يُرجع Notifier للصورة المصغرة
   ValueNotifier<Uint8List?> getNotifier(VideoItem video) {
     final path = video.path;
     if (!_notifiers.containsKey(path)) {
@@ -29,7 +28,6 @@ class ThumbnailService {
     return _notifiers[path]!;
   }
 
-  /// يُرجع Notifier لآخر خطأ (إن وُجد)
   ValueNotifier<String?> getErrorNotifier(VideoItem video) {
     final path = video.path;
     if (!_errors.containsKey(path)) {
@@ -72,7 +70,7 @@ class ThumbnailService {
 
       Uint8List? bytes;
 
-      // 1. photo_manager (أسرع للملفات التي في معرض الصور)
+      // 1. photo_manager (أسرع)
       if (video.id != path) {
         try {
           bytes = await _fromPhotoManager(video.id);
@@ -81,7 +79,7 @@ class ThumbnailService {
         }
       }
 
-      // 2. media_kit (يعمل مع جميع الصيغ)
+      // 2. media_kit (لجميع الصيغ)
       bytes ??= await _fromMediaKit(video.path, cacheFile.path);
 
       if (bytes != null && bytes.isNotEmpty) {
@@ -119,12 +117,19 @@ class ThumbnailService {
           : duration * 0.3;
       await player.seek(seekPos);
 
-      // انتظار قصير لتحضير الإطار
+      // انتظار لتحضير الإطار
       await Future.delayed(const Duration(milliseconds: 500));
 
-      final screenshotPath = await player.screenshot(file: savePath);
-      if (screenshotPath != null && File(screenshotPath).existsSync()) {
-        return await File(screenshotPath).readAsBytes();
+      // ✅ التقاط اللقطة بصيغة JPEG مباشرة (حسب توثيق media_kit)
+      final Uint8List? screenshotBytes = await player.screenshot(
+        format: 'image/jpeg',
+      );
+
+      if (screenshotBytes != null) {
+        // حفظ إلى ملف الكاش للاستخدام المستقبلي
+        final file = File(savePath);
+        await file.writeAsBytes(screenshotBytes);
+        return screenshotBytes;
       }
       return null;
     } catch (e) {
