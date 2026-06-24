@@ -6,33 +6,60 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/video_item.dart';
 
+/// يدير مكتبة الفيديوهات: المسح عبر photo_manager، التخزين المؤقت
+/// المحلي، قائمة "الأخيرة"، ومواضع الاستئناف لكل فيديو.
 class LibraryProvider extends ChangeNotifier {
   List<VideoItem> _videos = [];
   List<String> _recentPaths = [];
+  Set<String> _hiddenPaths = {};
   bool _loading = false;
   String? _error;
 
-  Set<String> _hiddenPaths = {};
-  Set<String> get hiddenPaths => _hiddenPaths;
-
-  Set<String> _hiddenFolders = {};
-  Set<String> get hiddenFolders => _hiddenFolders;
-
-  List<VideoItem> get videos => _videos;
+  List<VideoItem> get videos => _videos.where((v) => !_hiddenPaths.contains(v.path)).toList();
+  List<VideoItem> get allVideos => _videos; // بما فيها المخفية
   List<String> get recentPaths => _recentPaths;
+  Set<String> get hiddenPaths => _hiddenPaths;
   bool get loading => _loading;
   String? get error => _error;
 
   Map<String, List<VideoItem>> get byFolder {
     final map = <String, List<VideoItem>>{};
-    for (final v in _videos) {
+    for (final v in videos) {
       map.putIfAbsent(v.folder, () => []).add(v);
     }
     return map;
   }
 
+  Future<void> loadHidden() async {
+    final p = await SharedPreferences.getInstance();
+    _hiddenPaths = Set<String>.from(p.getStringList('hidden_paths') ?? []);
+    notifyListeners();
+  }
+
+  Future<void> hideVideo(String path) async {
+    _hiddenPaths.add(path);
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('hidden_paths', _hiddenPaths.toList());
+    notifyListeners();
+  }
+
+  Future<void> unhideVideo(String path) async {
+    _hiddenPaths.remove(path);
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('hidden_paths', _hiddenPaths.toList());
+    notifyListeners();
+  }
+
+  Future<void> clearHidden() async {
+    _hiddenPaths.clear();
+    final p = await SharedPreferences.getInstance();
+    await p.remove('hidden_paths');
+    notifyListeners();
+  }
+
   Future<void> loadCachedVideos() async {
     try {
+      await loadHidden();
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/video_cache.json');
       if (await file.exists()) {
@@ -156,6 +183,9 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// يحفظ آخر موضع تشغيل لملف معيّن. يُستخدم مسار الملف نفسه كجزء
+  /// من المفتاح (بدل الاعتماد فقط على hashCode) لتفادي أي احتمال
+  /// تصادم أو عدم ثبات بين تشغيلات مختلفة لتطبيق دارت.
   Future<void> savePosition(String path, Duration pos) async {
     final p = await SharedPreferences.getInstance();
     await p.setInt('pos_$path', pos.inMilliseconds);
@@ -166,46 +196,5 @@ class LibraryProvider extends ChangeNotifier {
     final ms = p.getInt('pos_$path');
     if (ms == null || ms == 0) return null;
     return Duration(milliseconds: ms);
-  }
-
-  // إدارة الملفات والمجلدات المخفية
-  Future<void> loadHidden() async {
-    final p = await SharedPreferences.getInstance();
-    _hiddenPaths = (p.getStringList('hidden_paths') ?? []).toSet();
-    _hiddenFolders = (p.getStringList('hidden_folders') ?? []).toSet();
-    notifyListeners();
-  }
-
-  Future<void> hidePath(String path) async {
-    _hiddenPaths.add(path);
-    await _saveHidden();
-    notifyListeners();
-  }
-
-  Future<void> unhidePath(String path) async {
-    _hiddenPaths.remove(path);
-    await _saveHidden();
-    notifyListeners();
-  }
-
-  Future<void> hideFolder(String folder) async {
-    _hiddenFolders.add(folder);
-    await _saveHidden();
-    notifyListeners();
-  }
-
-  Future<void> unhideFolder(String folder) async {
-    _hiddenFolders.remove(folder);
-    await _saveHidden();
-    notifyListeners();
-  }
-
-  bool isPathHidden(String path) => _hiddenPaths.contains(path);
-  bool isFolderHidden(String folder) => _hiddenFolders.contains(folder);
-
-  Future<void> _saveHidden() async {
-    final p = await SharedPreferences.getInstance();
-    await p.setStringList('hidden_paths', _hiddenPaths.toList());
-    await p.setStringList('hidden_folders', _hiddenFolders.toList());
   }
 }

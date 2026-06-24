@@ -13,8 +13,6 @@ class AllTab extends StatelessWidget {
   final void Function(VideoItem) onMore;
   final bool gridView;
   final bool loading;
-  final Set<String> hiddenPaths;
-  final Set<String> hiddenFolders;
 
   const AllTab({
     super.key,
@@ -26,24 +24,16 @@ class AllTab extends StatelessWidget {
     required this.onMore,
     required this.gridView,
     this.loading = false,
-    required this.hiddenPaths,
-    required this.hiddenFolders,
   });
 
-  List<VideoItem> get filtered {
-    var base = selectedFolder == null ? videos : videos.where((v) => v.folder == selectedFolder).toList();
-    base = base.where((v) => !hiddenPaths.contains(v.path) && !hiddenFolders.contains(v.folder)).toList();
-    return base;
-  }
+  List<VideoItem> get filtered =>
+      selectedFolder == null ? videos : videos.where((v) => v.folder == selectedFolder).toList();
 
   @override
   Widget build(BuildContext context) {
     final list = filtered;
     return Column(children: [
-      if (folders.isNotEmpty) FolderChips(
-          folders: folders.where((f) => !hiddenFolders.contains(f)).toSet(),
-          selected: selectedFolder,
-          onChanged: onFolderChanged),
+      if (folders.isNotEmpty) FolderChips(folders: folders, selected: selectedFolder, onChanged: onFolderChanged),
       if (loading && videos.isNotEmpty) LinearProgressIndicator(color: Theme.of(context).colorScheme.primary),
       Expanded(
         child: list.isEmpty && !loading
@@ -101,11 +91,13 @@ class FolderChips extends StatelessWidget {
           color: sel ? cs.secondaryContainer : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color: sel ? cs.onSecondaryContainer : cs.onSurfaceVariant,
-                fontSize: 13,
-                fontWeight: sel ? FontWeight.w600 : FontWeight.normal)),
+        child: Text(
+          label,
+          style: TextStyle(
+              color: sel ? cs.onSecondaryContainer : cs.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: sel ? FontWeight.w600 : FontWeight.normal),
+        ),
       ),
     );
   }
@@ -116,18 +108,7 @@ class RecentTab extends StatelessWidget {
   final List<VideoItem> all;
   final void Function(String) onOpen;
   final VoidCallback onClear;
-  final Set<String> hiddenPaths;
-  final Set<String> hiddenFolders;
-
-  const RecentTab({
-    super.key,
-    required this.paths,
-    required this.all,
-    required this.onOpen,
-    required this.onClear,
-    required this.hiddenPaths,
-    required this.hiddenFolders,
-  });
+  const RecentTab({super.key, required this.paths, required this.all, required this.onOpen, required this.onClear});
 
   List<VideoItem> get list {
     final map = {for (final v in all) v.path: v};
@@ -143,7 +124,6 @@ class RecentTab extends StatelessWidget {
           }
         })
         .whereType<VideoItem>()
-        .where((v) => !hiddenPaths.contains(v.path) && !hiddenFolders.contains(v.folder))
         .toList();
   }
 
@@ -179,38 +159,19 @@ class RecentTab extends StatelessWidget {
 class FoldersTab extends StatelessWidget {
   final Map<String, List<VideoItem>> byFolder;
   final void Function(String) onTap;
-  final Set<String> hiddenPaths;
-  final Set<String> hiddenFolders;
-  final void Function(String) onHideFolder;
-  final void Function(String) onUnhideFolder;
-
-  const FoldersTab({
-    super.key,
-    required this.byFolder,
-    required this.onTap,
-    required this.hiddenPaths,
-    required this.hiddenFolders,
-    required this.onHideFolder,
-    required this.onUnhideFolder,
-  });
+  const FoldersTab({super.key, required this.byFolder, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final keys = byFolder.keys
-        .where((f) => !hiddenFolders.contains(f))
-        .toList()
-      ..sort();
+    final keys = byFolder.keys.toList()..sort();
     if (keys.isEmpty) return const EmptyState('ما لقينا مجلدات', Symbols.folder_off_rounded);
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 90),
       itemCount: keys.length,
       itemBuilder: (_, i) {
         final folder = keys[i];
-        final videos = byFolder[folder]!
-            .where((v) => !hiddenPaths.contains(v.path))
-            .toList();
-        if (videos.isEmpty) return const SizedBox.shrink();
+        final videos = byFolder[folder]!;
         final total = videos.fold<int>(0, (s, v) => s + v.size);
         final size = total < 1024 * 1024 * 1024
             ? '${(total / (1024 * 1024)).toStringAsFixed(0)} MB'
@@ -228,34 +189,9 @@ class FoldersTab extends StatelessWidget {
             subtitle: Text('${videos.length} فيديو  •  $size', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
             trailing: Icon(Symbols.chevron_right_rounded, color: cs.onSurfaceVariant),
             onTap: () => onTap(folder),
-            onLongPress: () => _showFolderMenu(context, folder),
           ),
         );
       },
-    );
-  }
-
-  void _showFolderMenu(BuildContext context, String folder) {
-    final isHidden = hiddenFolders.contains(folder);
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Icon(isHidden ? Icons.visibility : Icons.visibility_off),
-            title: Text(isHidden ? 'إظهار المجلد' : 'إخفاء المجلد'),
-            onTap: () {
-              Navigator.pop(context);
-              if (isHidden) {
-                onUnhideFolder(folder);
-              } else {
-                onHideFolder(folder);
-              }
-            },
-          ),
-        ],
-      ),
     );
   }
 }

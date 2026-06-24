@@ -1,122 +1,140 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:video_thumbnail_gen/video_thumbnail_gen.dart';
 import '../models/video_item.dart';
 
+/// يولّد ويخزّن الصور المصغّرة لفيديوهات المكتبة.
+///
+/// ترتيب الأولوية:
+/// 1. ذاكرة التخزين المؤقت (ملف JPEG محلي) — فوري
+/// 2. photo_manager (AssetEntity) — سريع وnative للـ MP4
+/// 3. video_thumbnail_gen — يدعم MKV/HEVC/أي صيغة يدعمها ffmpeg
 class ThumbnailService {
   static final ThumbnailService _instance = ThumbnailService._internal();
   factory ThumbnailService() => _instance;
   ThumbnailService._internal();
 
   final Map<String, ValueNotifier<Uint8List?>> _notifiers = {};
-  final Set<String> _pendingPaths = {};
+  final Set<String> _pending = {};
+  int _active = 0;
+  static const _maxConcurrent = 3;
+  final List<Future<void> Function()> _queue = [];
 
   ValueNotifier<Uint8List?> getNotifier(VideoItem video) {
     final path = video.path;
     if (!_notifiers.containsKey(path)) {
       _notifiers[path] = ValueNotifier(null);
-      _generate(video);
+      _enqueue(video);
     }
     return _notifiers[path]!;
   }
 
+  void _enqueue(VideoItem video) {
+    _queue.add(() => _generate(video));
+    _drain();
+  }
+
+  void _drain() {
+    while (_active < _maxConcurrent && _queue.isNotEmpty) {
+      final task = _queue.removeAt(0);
+      _active++;
+      task().whenComplete(() {
+        _active--;
+        _drain();
+      });
+    }
+  }
+
   Future<void> _generate(VideoItem video) async {
     final path = video.path;
-    if (_pendingPaths.contains(path)) return;
-    _pendingPaths.add(path);
+    if (_pending.contains(path)) return;
+    _pending.add(path);
 
     try {
+      // 1. ذاكرة التخزين المؤقت
       final cacheFile = await _cacheFile(path);
       if (await cacheFile.exists()) {
-        _notifiers[path]?.value = await cacheFile.readAsBytes();
-        return;
+        final bytes = await cacheFile.readAsBytes();
+        if (bytes.isNotEmpty) {
+          _notifiers[path]?.value = bytes;
+          return;
+        }
       }
 
       Uint8List? bytes;
 
+      // 2. photo_manager — سريع للـ MP4/WebM (لها AssetEntity حقيقي)
       if (video.id != path) {
-        bytes = await _fromAssetEntity(video.id);
+        bytes = await _fromPhotoManager(video.id);
       }
 
-      if (bytes == null) {
-        bytes = await _fromVideoThumbnail(path);
-      }
+      // 3. video_thumbnail_gen — يدعم MKV/HEVC وأي صيغة
+      bytes ??= await _fromVideoThumbnailGen(path, cacheFile.path);
 
-      if (bytes == null) {
-        bytes = await _fromMediaKitScreenshot(path);
-      }
-
-      if (bytes != null) {
-        await cacheFile.writeAsBytes(bytes);
+      if (bytes != null && bytes.isNotEmpty) {
+        if (!await cacheFile.exists()) {
+          await cacheFile.writeAsBytes(bytes);
+        }
         _notifiers[path]?.value = bytes;
       }
     } catch (e) {
-      debugPrint('تعذّر توليد الصورة المصغّرة لـ $path: $e');
+      debugPrint('ThumbnailService: $e');
     } finally {
-      _pendingPaths.remove(path);
+      _pending.remove(path);
     }
   }
 
-  Future<Uint8List?> _fromAssetEntity(String assetId) async {
+  Future<Uint8List?> _fromPhotoManager(String assetId) async {
     try {
       final asset = await AssetEntity.fromId(assetId);
       if (asset == null) return null;
       return await asset.thumbnailDataWithSize(
         const ThumbnailSize(360, 240),
-        quality: 80,
+        quality: 85,
       );
     } catch (e) {
-      debugPrint('فشل استخراج صورة مصغّرة عبر photo_manager: $e');
+      debugPrint('ThumbnailService/photo_manager: $e');
       return null;
     }
   }
 
-  Future<Uint8List?> _fromVideoThumbnail(String path) async {
+  Future<Uint8List?> _fromVideoThumbnailGen(String videoPath, String savePath) async {
     try {
-      final tempPath = await _tempThumbnailPath();
-      final file = await VideoThumbnail.thumbnailFile(
-        video: path,
-        thumbnailPath: tempPath,
+      // video_thumbnail_gen يستخدم ffmpeg تحت الغطاء ويدعم MKV/HEVC/AV1
+      final thumbPath = await VideoThumbnailGen.genThumbnailFile(
+        video: videoPath,
+        thumbnailPath: savePath,
         imageFormat: ImageFormat.JPEG,
         maxWidth: 360,
-        quality: 80,
+        quality: 85,
+        timeMs: 5000, // اللقطة عند الثانية 5
       );
-      if (file != null) {
-        return await File(file).readAsBytes();
-      }
+      if (thumbPath == null) return null;
+      final file = File(thumbPath);
+      if (!await file.exists()) return null;
+      return await file.readAsBytes();
     } catch (e) {
-      debugPrint('فشل video_thumbnail: $e');
-    }
-    return null;
-  }
-
-  Future<String> _tempThumbnailPath() async {
-    final dir = await getTemporaryDirectory();
-    return '${dir.path}/thumb_temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
-  }
-
-  Future<Uint8List?> _fromMediaKitScreenshot(String path) async {
-    Player? player;
-    try {
-      player = Player();
-      await player.open(Media(path), play: false);
-      await Future.delayed(const Duration(milliseconds: 400));
-      final shot = await player.screenshot(format: 'image/jpeg');
-      return (shot != null && shot.isNotEmpty) ? shot : null;
-    } catch (e) {
-      debugPrint('فشل استخراج لقطة عبر media_kit: $e');
+      debugPrint('ThumbnailService/video_thumbnail_gen: $e');
       return null;
-    } finally {
-      await player?.dispose();
     }
   }
 
   Future<File> _cacheFile(String videoPath) async {
     final dir = await getTemporaryDirectory();
+    // نستخدم hashCode كاسم ملف مؤقت فقط (ليس معرفاً دائماً)
     return File('${dir.path}/thumb_${videoPath.hashCode}.jpg');
+  }
+
+  /// مسح كامل لذاكرة التخزين المؤقت (للتطوير أو إعادة التهيئة)
+  Future<void> clearCache() async {
+    final dir = await getTemporaryDirectory();
+    final files = dir.listSync().where((f) => f.path.contains('thumb_'));
+    for (final f in files) {
+      try { f.deleteSync(); } catch (_) {}
+    }
+    _notifiers.forEach((_, n) => n.value = null);
+    _notifiers.clear();
   }
 }

@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/settings_provider.dart';
 
-/// لوحة إعدادات الترجمة الشاملة — منظَّمة في أقسام:
-///   ① النص والخط        ② الألوان        ③ الحدّ والظل        ④ الموضع
+/// لوحة تخصيص الترجمة — accordion بـ 4 أقسام، كل شيء داخل حدود النافذة
 class SubtitleAppearancePanel extends StatefulWidget {
   const SubtitleAppearancePanel({super.key});
   @override
@@ -13,17 +12,16 @@ class SubtitleAppearancePanel extends StatefulWidget {
 }
 
 class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
-  int _openSection = 0; // القسم المفتوح حالياً (accordion)
+  int _open = 0;
 
-  // ── قائمة الخطوط المدعومة مع معاينة حية ──
-  static const _fonts = [
-    ('Roboto', 'Roboto', false),
+  static const _fontList = [
     ('sans-serif', 'System Default', false),
+    ('Roboto', 'Roboto', false),
     ('monospace', 'Monospace', false),
     ('Cairo', 'Cairo', true),
     ('Amiri', 'Amiri', true),
     ('Noto Naskh Arabic', 'Noto Naskh', true),
-    ('Noto Kufi Arabic', 'Noto Kufi', true),   // بديل حرفي لـ Adobe Arabic
+    ('Noto Kufi Arabic', 'Noto Kufi', true),
     ('Lateef', 'Lateef', true),
     ('Tajawal', 'Tajawal', true),
     ('Scheherazade New', 'Scheherazade', true),
@@ -32,352 +30,99 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<SettingsProvider>();
-    final cs = Theme.of(context).colorScheme;
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _Section(
-            index: 0,
-            openIndex: _openSection,
+          _Accordion(
+            index: 0, open: _open,
             icon: Icons.text_fields_rounded,
             title: 'النص والخط',
-            onTap: (i) => setState(() => _openSection = _openSection == i ? -1 : i),
-            child: _buildTextSection(s, cs),
+            onToggle: (i) => setState(() => _open = _open == i ? -1 : i),
+            child: _FontSection(s: s, fonts: _fontList, onPickColor: _pickColor),
           ),
-          _Section(
-            index: 1,
-            openIndex: _openSection,
+          _Accordion(
+            index: 1, open: _open,
             icon: Icons.palette_rounded,
             title: 'الألوان',
-            onTap: (i) => setState(() => _openSection = _openSection == i ? -1 : i),
-            child: _buildColorsSection(s, cs),
+            onToggle: (i) => setState(() => _open = _open == i ? -1 : i),
+            child: _ColorSection(s: s, onPickColor: _pickColor),
           ),
-          _Section(
-            index: 2,
-            openIndex: _openSection,
-            icon: Icons.blur_on_rounded,
+          _Accordion(
+            index: 2, open: _open,
+            icon: Icons.auto_fix_high_rounded,
             title: 'الحدّ والظل',
-            onTap: (i) => setState(() => _openSection = _openSection == i ? -1 : i),
-            child: _buildEffectsSection(s, cs),
+            onToggle: (i) => setState(() => _open = _open == i ? -1 : i),
+            child: _EffectsSection(s: s, onPickColor: _pickColor),
           ),
-          _Section(
-            index: 3,
-            openIndex: _openSection,
+          _Accordion(
+            index: 3, open: _open,
             icon: Icons.vertical_align_bottom_rounded,
-            title: 'الموضع والمحاذاة',
-            onTap: (i) => setState(() => _openSection = _openSection == i ? -1 : i),
-            child: _buildPositionSection(s, cs),
+            title: 'الموضع',
+            onToggle: (i) => setState(() => _open = _open == i ? -1 : i),
+            child: _PositionSection(s: s),
           ),
         ],
       ),
     );
   }
 
-  // ──────────────────────────────────────────────
-  // ① قسم النص والخط
-  // ──────────────────────────────────────────────
-  Widget _buildTextSection(SettingsProvider s, ColorScheme cs) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // حجم الخط
-      _SubLabel('حجم الخط'),
-      _SliderRow(
-        value: s.subtitleFontSize,
-        min: 10, max: 100,
-        display: '${s.subtitleFontSize.toInt()} px',
-        onChanged: s.setSubtitleFontSize,
-        activeColor: cs.primary,
-      ),
-      const SizedBox(height: 16),
-      // اختيار الخط مع معاينة حية
-      _SubLabel('نوع الخط'),
-      const SizedBox(height: 8),
-      _FontPicker(fonts: _fonts, selected: s.fontFamily, onSelect: s.setFontFamily),
-      const SizedBox(height: 16),
-      // وزن الخط
-      _SubLabel('وزن الخط'),
-      const SizedBox(height: 8),
-      _FontWeightPicker(index: s.fontWeightIndex, onChanged: s.setFontWeightIndex, primaryColor: cs.primary),
-      const SizedBox(height: 12),
-      // مائل + RTL
-      Row(children: [
-        Expanded(child: _ToggleChip(
-          label: 'مائل',
-          icon: Icons.format_italic_rounded,
-          value: s.subtitleItalic,
-          onChanged: s.setSubtitleItalic,
-          color: cs.primary,
-        )),
-        const SizedBox(width: 8),
-        Expanded(child: _ToggleChip(
-          label: 'RTL يمين→يسار',
-          icon: Icons.format_textdirection_r_to_l_rounded,
-          value: s.subtitleRTL,
-          onChanged: s.setSubtitleRTL,
-          color: cs.secondary,
-        )),
-      ]),
-    ]);
+  Future<void> _pickColor(BuildContext ctx, Color cur, ValueChanged<Color> fn) async {
+    final c = await showColorPickerDialog(ctx, cur,
+        title: const Text('اختر لوناً', style: TextStyle(fontWeight: FontWeight.bold)));
+    fn(c);
   }
-
-  // ──────────────────────────────────────────────
-  // ② قسم الألوان
-  // ──────────────────────────────────────────────
-  Widget _buildColorsSection(SettingsProvider s, ColorScheme cs) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // لون النص
-      _SubLabel('لون النص'),
-      const SizedBox(height: 8),
-      _ColorStrip(
-        colors: _textPresets,
-        selected: s.subtitleColor,
-        onSelect: s.setSubtitleColor,
-        onCustom: () => _pickColor(context, s.subtitleColor, s.setSubtitleColor),
-      ),
-      const SizedBox(height: 16),
-      // خلفية النص
-      _SubLabel('خلفية النص'),
-      const SizedBox(height: 8),
-      Row(children: [
-        Expanded(child: _ColorStrip(
-          colors: _bgPresets,
-          selected: s.subtitleBgColor,
-          onSelect: s.setSubtitleBgColor,
-          onCustom: () => _pickColor(context, s.subtitleBgColor, s.setSubtitleBgColor),
-        )),
-        const SizedBox(width: 8),
-        Switch(
-          value: s.subtitleBgOpacity > 0,
-          onChanged: (v) => s.setSubtitleBgOpacity(v ? 0.65 : 0.0),
-          activeColor: cs.primary,
-        ),
-      ]),
-      if (s.subtitleBgOpacity > 0) ...[
-        const SizedBox(height: 8),
-        _SliderRow(
-          value: s.subtitleBgOpacity,
-          min: 0.1, max: 1.0,
-          display: '${(s.subtitleBgOpacity * 100).toInt()}%',
-          onChanged: s.setSubtitleBgOpacity,
-          activeColor: cs.primary,
-        ),
-      ],
-      // ── معاينة حية ──
-      const SizedBox(height: 16),
-      _SubLabel('معاينة'),
-      const SizedBox(height: 8),
-      _SubtitlePreview(s: s),
-    ]);
-  }
-
-  // ──────────────────────────────────────────────
-  // ③ قسم الحدّ والظل
-  // ──────────────────────────────────────────────
-  Widget _buildEffectsSection(SettingsProvider s, ColorScheme cs) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // ─ الحدّ الخارجي ─
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _SubLabel('حدّ خارجي للنص'),
-        Switch(value: s.outlineEnabled, onChanged: s.setOutlineEnabled, activeColor: cs.primary),
-      ]),
-      if (s.outlineEnabled) ...[
-        _ColorStrip(
-          colors: _shadowPresets,
-          selected: s.outlineColor,
-          onSelect: s.setOutlineColor,
-          onCustom: () => _pickColor(context, s.outlineColor, s.setOutlineColor),
-        ),
-        const SizedBox(height: 8),
-        _SliderRow(
-          value: s.outlineWidth, min: 0.5, max: 6.0,
-          display: 'سماكة ${s.outlineWidth.toStringAsFixed(1)}',
-          onChanged: s.setOutlineWidth,
-          activeColor: cs.primary,
-        ),
-      ],
-      const SizedBox(height: 16),
-      // ─ ظل النص ─
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _SubLabel('ظل النص'),
-        Switch(value: s.textShadowEnabled, onChanged: s.setTextShadowEnabled, activeColor: cs.secondary),
-      ]),
-      if (s.textShadowEnabled) ...[
-        _ColorStrip(
-          colors: _shadowPresets,
-          selected: s.textShadowColor,
-          onSelect: s.setTextShadowColor,
-          onCustom: () => _pickColor(context, s.textShadowColor, s.setTextShadowColor),
-        ),
-        const SizedBox(height: 8),
-        _SliderRow(
-          value: s.textShadowBlurRadius, min: 0, max: 20,
-          display: 'ضبابية ${s.textShadowBlurRadius.toInt()}',
-          onChanged: s.setTextShadowBlurRadius,
-          activeColor: cs.secondary,
-        ),
-      ],
-      const SizedBox(height: 16),
-      // ─ ظل الصندوق ─
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _SubLabel('ظل الصندوق'),
-        Switch(value: s.boxShadowEnabled, onChanged: s.setBoxShadowEnabled, activeColor: cs.tertiary),
-      ]),
-      if (s.boxShadowEnabled) ...[
-        _ColorStrip(
-          colors: _shadowPresets,
-          selected: s.boxShadowColor,
-          onSelect: s.setBoxShadowColor,
-          onCustom: () => _pickColor(context, s.boxShadowColor, s.setBoxShadowColor),
-        ),
-        const SizedBox(height: 8),
-        _SliderRow(
-          value: s.boxShadowBlurRadius, min: 0, max: 20,
-          display: 'ضبابية ${s.boxShadowBlurRadius.toInt()}',
-          onChanged: s.setBoxShadowBlurRadius,
-          activeColor: cs.tertiary,
-        ),
-        Row(children: [
-          Expanded(child: _SliderRow(
-            value: s.boxShadowOffsetX, min: -10, max: 10,
-            display: 'أفقي ${s.boxShadowOffsetX.toStringAsFixed(1)}',
-            onChanged: s.setBoxShadowOffsetX,
-            activeColor: cs.tertiary,
-          )),
-          Expanded(child: _SliderRow(
-            value: s.boxShadowOffsetY, min: -10, max: 10,
-            display: 'رأسي ${s.boxShadowOffsetY.toStringAsFixed(1)}',
-            onChanged: s.setBoxShadowOffsetY,
-            activeColor: cs.tertiary,
-          )),
-        ]),
-      ],
-    ]);
-  }
-
-  // ──────────────────────────────────────────────
-  // ④ قسم الموضع والمحاذاة
-  // ──────────────────────────────────────────────
-  Widget _buildPositionSection(SettingsProvider s, ColorScheme cs) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _SubLabel('الارتفاع عن أسفل الشاشة'),
-      _SliderRow(
-        value: s.bottomPadding, min: 0, max: 300,
-        display: '${s.bottomPadding.toInt()} px',
-        onChanged: s.setBottomPadding,
-        activeColor: cs.primary,
-      ),
-      const SizedBox(height: 12),
-      _SubLabel('الهامش الأفقي'),
-      _SliderRow(
-        value: s.horizontalMargin, min: 0, max: 120,
-        display: '${s.horizontalMargin.toInt()} px',
-        onChanged: s.setHorizontalMargin,
-        activeColor: cs.primary,
-      ),
-    ]);
-  }
-
-  Future<void> _pickColor(BuildContext ctx, Color current, ValueChanged<Color> onPicked) async {
-    final picked = await showColorPickerDialog(ctx, current,
-        title: const Text('اختر لون', style: TextStyle(fontWeight: FontWeight.bold)));
-    onPicked(picked);
-  }
-
-  // ── ألوان سريعة مقترحة ──
-  static const _textPresets = [
-    Colors.white, Colors.yellow, Color(0xFFFFE680),
-    Color(0xFF80FF80), Color(0xFF80D4FF), Color(0xFFFFB3B3),
-  ];
-  static const _bgPresets = [
-    Colors.black, Color(0xFF1A1A1A), Color(0xFF001133),
-    Color(0xFF002200), Color(0xFF220000), Color(0xFF222200),
-  ];
-  static const _shadowPresets = [
-    Colors.black, Color(0xFF1A1A2E), Color(0xFF0D0D0D),
-    Color(0xFF003366), Color(0xFF330000), Colors.white,
-  ];
 }
 
-// ══════════════════════════════════════════════
-// Widgets المساعدة
-// ══════════════════════════════════════════════
-
-/// عنوان فرعي موحَّد
-class _SubLabel extends StatelessWidget {
-  final String text;
-  const _SubLabel(this.text);
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: const TextStyle(
-      color: Colors.white70,
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.5,
-    ),
-  );
-}
-
-/// قسم accordion قابل للطي
-class _Section extends StatelessWidget {
-  final int index;
-  final int openIndex;
+// ─────────────────────────────────────────────
+// Accordion wrapper
+// ─────────────────────────────────────────────
+class _Accordion extends StatelessWidget {
+  final int index, open;
   final IconData icon;
   final String title;
   final Widget child;
-  final void Function(int) onTap;
-  const _Section({
-    required this.index,
-    required this.openIndex,
-    required this.icon,
-    required this.title,
-    required this.child,
-    required this.onTap,
-  });
+  final void Function(int) onToggle;
+  const _Accordion({required this.index, required this.open, required this.icon,
+    required this.title, required this.child, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
-    final open = openIndex == index;
+    final isOpen = open == index;
     final cs = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: open ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(14),
+        color: isOpen ? Colors.white.withOpacity(0.07) : Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: open ? cs.primary.withOpacity(0.4) : Colors.white12,
+          color: isOpen ? cs.primary.withOpacity(0.5) : Colors.white.withOpacity(0.1),
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => onTap(index),
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => onToggle(index),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             child: Row(children: [
-              Icon(icon, size: 20, color: open ? cs.primary : Colors.white54),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(title,
-                    style: TextStyle(
-                      color: open ? Colors.white : Colors.white70,
-                      fontWeight: open ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 14,
-                    )),
-              ),
-              Icon(
-                open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                color: open ? cs.primary : Colors.white38,
-                size: 20,
-              ),
+              Icon(icon, size: 18, color: isOpen ? cs.primary : Colors.white54),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title,
+                  style: TextStyle(
+                    color: isOpen ? Colors.white : Colors.white70,
+                    fontSize: 13,
+                    fontWeight: isOpen ? FontWeight.w700 : FontWeight.w500,
+                  ))),
+              Icon(isOpen ? Icons.expand_less : Icons.expand_more,
+                  color: isOpen ? cs.primary : Colors.white38, size: 20),
             ]),
           ),
         ),
-        if (open)
+        if (isOpen)
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
             child: child,
           ),
       ]),
@@ -385,150 +130,350 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// منتقي خط مع معاينة حية لكل خط
-class _FontPicker extends StatelessWidget {
+// ─────────────────────────────────────────────
+// قسم النص والخط
+// ─────────────────────────────────────────────
+class _FontSection extends StatelessWidget {
+  final SettingsProvider s;
   final List<(String, String, bool)> fonts;
-  final String selected;
-  final ValueChanged<String> onSelect;
-  const _FontPicker({required this.fonts, required this.selected, required this.onSelect});
+  final Future<void> Function(BuildContext, Color, ValueChanged<Color>) onPickColor;
+  const _FontSection({required this.s, required this.fonts, required this.onPickColor});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Wrap(spacing: 8, runSpacing: 8, children: [
-      for (final (id, label, isGoogle) in fonts)
-        GestureDetector(
-          onTap: () => onSelect(id),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: selected == id ? cs.primary.withOpacity(0.2) : Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: selected == id ? cs.primary : Colors.white24,
-                width: selected == id ? 1.5 : 1,
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // حجم الخط
+      _Label('حجم الخط'),
+      _SliderRow(value: s.subtitleFontSize, min: 10, max: 100,
+          display: '${s.subtitleFontSize.toInt()} px',
+          onChanged: s.setSubtitleFontSize, color: cs.primary),
+      const SizedBox(height: 12),
+
+      // اختيار الخط — شبكة 2 عمود
+      _Label('نوع الخط'),
+      const SizedBox(height: 6),
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 6, crossAxisSpacing: 6,
+          childAspectRatio: 2.6,
+        ),
+        itemCount: fonts.length,
+        itemBuilder: (ctx, i) {
+          final (id, label, isGoogle) = fonts[i];
+          final sel = s.fontFamily == id;
+          return GestureDetector(
+            onTap: () => s.setFontFamily(id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: sel ? cs.primary.withOpacity(0.18) : Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: sel ? cs.primary : Colors.white.withOpacity(0.15),
+                    width: sel ? 1.5 : 1),
+              ),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('مرحباً Hello',
+                    style: _style(id, isGoogle).copyWith(
+                      fontSize: 13,
+                      color: sel ? cs.primary : Colors.white,
+                    ),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(label,
+                    style: TextStyle(fontSize: 10,
+                        color: sel ? cs.primary.withOpacity(0.7) : Colors.white38),
+                    maxLines: 1),
+              ]),
+            ),
+          );
+        },
+      ),
+      const SizedBox(height: 12),
+
+      // وزن + مائل + RTL
+      _Label('وزن الخط'),
+      const SizedBox(height: 6),
+      Row(children: [
+        for (final (i, lbl, fw) in [
+          (0, 'خفيف', FontWeight.w300), (1, 'عادي', FontWeight.normal),
+          (2, 'متوسط', FontWeight.w500), (3, 'عريض', FontWeight.bold),
+        ]) ...[
+          if (i > 0) const SizedBox(width: 5),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => s.setFontWeightIndex(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 130),
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(
+                  color: s.fontWeightIndex == i
+                      ? cs.primary.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                      color: s.fontWeightIndex == i ? cs.primary : Colors.white24),
+                ),
+                child: Center(
+                  child: Text(lbl,
+                      style: TextStyle(
+                        color: s.fontWeightIndex == i ? cs.primary : Colors.white54,
+                        fontWeight: fw, fontSize: 11,
+                      )),
+                ),
               ),
             ),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(
-                'مرحباً Hello',
-                style: _fontStyle(id, isGoogle).copyWith(
-                  fontSize: 15,
-                  color: selected == id ? cs.primary : Colors.white,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: selected == id ? cs.primary.withOpacity(0.8) : Colors.white38,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ]),
           ),
-        ),
+        ],
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: _Chip(label: 'مائل', icon: Icons.format_italic_rounded,
+            value: s.subtitleItalic, onChanged: s.setSubtitleItalic, color: cs.primary)),
+        const SizedBox(width: 8),
+        Expanded(child: _Chip(label: 'يمين←يسار', icon: Icons.format_textdirection_r_to_l_rounded,
+            value: s.subtitleRTL, onChanged: s.setSubtitleRTL, color: cs.secondary)),
+      ]),
     ]);
   }
 
-  TextStyle _fontStyle(String id, bool isGoogle) {
+  TextStyle _style(String id, bool isGoogle) {
     if (!isGoogle) return TextStyle(fontFamily: id == 'Roboto' ? null : id);
     try {
-      return GoogleFonts.getFont(id.replaceAll(' New', '').replaceAll(' Arabic', ''));
-    } catch (_) {
-      return const TextStyle();
-    }
+      final name = id.replaceAll(' New', '').replaceAll(' Arabic', '');
+      return GoogleFonts.getFont(name);
+    } catch (_) { return const TextStyle(); }
   }
 }
 
-/// منتقي وزن الخط
-class _FontWeightPicker extends StatelessWidget {
-  final int index;
-  final ValueChanged<int> onChanged;
-  final Color primaryColor;
-  const _FontWeightPicker({required this.index, required this.onChanged, required this.primaryColor});
+// ─────────────────────────────────────────────
+// قسم الألوان
+// ─────────────────────────────────────────────
+class _ColorSection extends StatelessWidget {
+  final SettingsProvider s;
+  final Future<void> Function(BuildContext, Color, ValueChanged<Color>) onPickColor;
+  const _ColorSection({required this.s, required this.onPickColor});
 
-  static const _weights = [
-    (0, 'خفيف', FontWeight.w300),
-    (1, 'عادي', FontWeight.normal),
-    (2, 'متوسط', FontWeight.w500),
-    (3, 'عريض', FontWeight.bold),
+  static const _textColors = [
+    Colors.white, Colors.yellow, Color(0xFFFFE680),
+    Color(0xFF80FF80), Color(0xFF80D4FF), Color(0xFFFFB3B3),
+  ];
+  static const _bgColors = [
+    Colors.black, Color(0xFF1A1A1A), Color(0xFF001133),
+    Color(0xFF002200), Color(0xFF220000), Color(0xFF222200),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      for (final (i, label, fw) in _weights) ...[
-        if (i > 0) const SizedBox(width: 6),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: index == i ? primaryColor.withOpacity(0.2) : Colors.white.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: index == i ? primaryColor : Colors.white24),
-              ),
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: index == i ? primaryColor : Colors.white54,
-                    fontWeight: fw,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _Label('لون النص'),
+      const SizedBox(height: 6),
+      _ColorRow(
+        colors: _textColors, selected: s.subtitleColor,
+        onSelect: s.setSubtitleColor,
+        onCustom: () => onPickColor(context, s.subtitleColor, s.setSubtitleColor),
+      ),
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(child: _Label('خلفية النص')),
+        Switch(value: s.subtitleBgOpacity > 0,
+            onChanged: (v) => s.setSubtitleBgOpacity(v ? 0.65 : 0.0),
+            activeColor: cs.primary),
+      ]),
+      const SizedBox(height: 6),
+      _ColorRow(
+        colors: _bgColors, selected: s.subtitleBgColor,
+        onSelect: s.setSubtitleBgColor,
+        onCustom: () => onPickColor(context, s.subtitleBgColor, s.setSubtitleBgColor),
+      ),
+      if (s.subtitleBgOpacity > 0) ...[
+        const SizedBox(height: 8),
+        _SliderRow(value: s.subtitleBgOpacity, min: 0.1, max: 1.0,
+            display: '${(s.subtitleBgOpacity * 100).toInt()}%',
+            onChanged: s.setSubtitleBgOpacity, color: cs.primary),
+      ],
+      const SizedBox(height: 14),
+      _Label('معاينة'),
+      const SizedBox(height: 6),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white12),
         ),
+        child: Center(
+          child: Text('مرحباً • Hello World',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: (s.subtitleFontSize * 0.55).clamp(12.0, 32.0),
+                color: s.subtitleColor,
+                fontWeight: _fw(s.fontWeightIndex),
+                fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
+                backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
+              )),
+        ),
+      ),
+    ]);
+  }
+
+  FontWeight _fw(int i) => [FontWeight.w300, FontWeight.normal, FontWeight.w500, FontWeight.bold][i.clamp(0, 3)];
+}
+
+// ─────────────────────────────────────────────
+// قسم الحدّ والظل
+// ─────────────────────────────────────────────
+class _EffectsSection extends StatelessWidget {
+  final SettingsProvider s;
+  final Future<void> Function(BuildContext, Color, ValueChanged<Color>) onPickColor;
+  const _EffectsSection({required this.s, required this.onPickColor});
+
+  static const _shadowColors = [
+    Colors.black, Color(0xFF0D0D0D), Color(0xFF1A1A2E),
+    Color(0xFF003366), Color(0xFF330000), Colors.white,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // حدّ خارجي
+      _SwitchRow(label: 'حدّ خارجي للنص', value: s.outlineEnabled, onChanged: s.setOutlineEnabled, color: cs.primary),
+      if (s.outlineEnabled) ...[
+        const SizedBox(height: 6),
+        _ColorRow(colors: _shadowColors, selected: s.outlineColor,
+            onSelect: s.setOutlineColor,
+            onCustom: () => onPickColor(context, s.outlineColor, s.setOutlineColor)),
+        const SizedBox(height: 6),
+        _SliderRow(value: s.outlineWidth, min: 0.5, max: 6.0,
+            display: 'سماكة ${s.outlineWidth.toStringAsFixed(1)}',
+            onChanged: s.setOutlineWidth, color: cs.primary),
+      ],
+      const SizedBox(height: 10),
+
+      // ظل النص
+      _SwitchRow(label: 'ظل النص', value: s.textShadowEnabled, onChanged: s.setTextShadowEnabled, color: cs.secondary),
+      if (s.textShadowEnabled) ...[
+        const SizedBox(height: 6),
+        _ColorRow(colors: _shadowColors, selected: s.textShadowColor,
+            onSelect: s.setTextShadowColor,
+            onCustom: () => onPickColor(context, s.textShadowColor, s.setTextShadowColor)),
+        const SizedBox(height: 6),
+        _SliderRow(value: s.textShadowBlurRadius, min: 0, max: 20,
+            display: 'ضبابية ${s.textShadowBlurRadius.toInt()}',
+            onChanged: s.setTextShadowBlurRadius, color: cs.secondary),
+      ],
+      const SizedBox(height: 10),
+
+      // ظل الصندوق
+      _SwitchRow(label: 'ظل الصندوق', value: s.boxShadowEnabled, onChanged: s.setBoxShadowEnabled, color: cs.tertiary),
+      if (s.boxShadowEnabled) ...[
+        const SizedBox(height: 6),
+        _ColorRow(colors: _shadowColors, selected: s.boxShadowColor,
+            onSelect: s.setBoxShadowColor,
+            onCustom: () => onPickColor(context, s.boxShadowColor, s.setBoxShadowColor)),
+        const SizedBox(height: 6),
+        _SliderRow(value: s.boxShadowBlurRadius, min: 0, max: 20,
+            display: 'ضبابية ${s.boxShadowBlurRadius.toInt()}',
+            onChanged: s.setBoxShadowBlurRadius, color: cs.tertiary),
       ],
     ]);
   }
 }
 
-/// toggle chip موحَّد
-class _ToggleChip extends StatelessWidget {
+// ─────────────────────────────────────────────
+// قسم الموضع
+// ─────────────────────────────────────────────
+class _PositionSection extends StatelessWidget {
+  final SettingsProvider s;
+  const _PositionSection({required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _Label('الارتفاع عن الأسفل'),
+      _SliderRow(value: s.bottomPadding, min: 0, max: 300,
+          display: '${s.bottomPadding.toInt()} px',
+          onChanged: s.setBottomPadding, color: cs.primary),
+      const SizedBox(height: 10),
+      _Label('الهامش الأفقي'),
+      _SliderRow(value: s.horizontalMargin, min: 0, max: 120,
+          display: '${s.horizontalMargin.toInt()} px',
+          onChanged: s.setHorizontalMargin, color: cs.primary),
+    ]);
+  }
+}
+
+// ══════════════════════════════════════════════
+// Widgets مساعدة مشتركة
+// ══════════════════════════════════════════════
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+  @override
+  Widget build(BuildContext context) => Text(text,
+      style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600));
+}
+
+class _SwitchRow extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color color;
+  const _SwitchRow({required this.label, required this.value, required this.onChanged, required this.color});
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+          Switch(value: value, onChanged: onChanged, activeColor: color),
+        ],
+      );
+}
+
+class _Chip extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool value;
   final ValueChanged<bool> onChanged;
   final Color color;
-  const _ToggleChip({required this.label, required this.icon, required this.value, required this.onChanged, required this.color});
-
+  const _Chip({required this.label, required this.icon, required this.value,
+    required this.onChanged, required this.color});
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          color: value ? color.withOpacity(0.18) : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: value ? color : Colors.white24),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => onChanged(!value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 130),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            color: value ? color.withOpacity(0.18) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: value ? color : Colors.white24),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 14, color: value ? color : Colors.white38),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: value ? color : Colors.white54)),
+          ]),
         ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 15, color: value ? color : Colors.white38),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 12, color: value ? color : Colors.white54)),
-        ]),
-      ),
-    );
-  }
+      );
 }
 
-/// شريط ألوان سريعة مع زر "مخصص"
-class _ColorStrip extends StatelessWidget {
+/// شريط ألوان سريعة + زر مخصص
+class _ColorRow extends StatelessWidget {
   final List<Color> colors;
   final Color selected;
   final ValueChanged<Color> onSelect;
   final VoidCallback onCustom;
-  const _ColorStrip({required this.colors, required this.selected, required this.onSelect, required this.onCustom});
+  const _ColorRow({required this.colors, required this.selected,
+    required this.onSelect, required this.onCustom});
 
   @override
   Widget build(BuildContext context) {
@@ -537,26 +482,26 @@ class _ColorStrip extends StatelessWidget {
         GestureDetector(
           onTap: () => onSelect(c),
           child: Container(
-            margin: const EdgeInsets.only(left: 6),
-            width: 32, height: 32,
+            margin: const EdgeInsets.only(left: 5),
+            width: 30, height: 30,
             decoration: BoxDecoration(
               color: c,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected == c ? Colors.white : Colors.white24,
-                width: selected == c ? 2.5 : 1,
+                color: selected.value == c.value ? Colors.white : Colors.white30,
+                width: selected.value == c.value ? 2.5 : 1,
               ),
             ),
-            child: selected == c
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+            child: selected.value == c.value
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
                 : null,
           ),
         ),
-      const SizedBox(width: 8),
+      const SizedBox(width: 6),
       GestureDetector(
         onTap: onCustom,
         child: Container(
-          width: 32, height: 32,
+          width: 30, height: 30,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white38),
@@ -572,53 +517,14 @@ class _ColorStrip extends StatelessWidget {
   }
 }
 
-/// معاينة حية للترجمة
-class _SubtitlePreview extends StatelessWidget {
-  final SettingsProvider s;
-  const _SubtitlePreview({required this.s});
-
-  @override
-  Widget build(BuildContext context) {
-    TextStyle style = TextStyle(
-      fontSize: (s.subtitleFontSize * 0.6).clamp(12, 36),
-      color: s.subtitleColor,
-      fontWeight: _fw(s.fontWeightIndex),
-      fontStyle: s.subtitleItalic ? FontStyle.italic : FontStyle.normal,
-      backgroundColor: s.subtitleBgColor.withOpacity(s.subtitleBgOpacity),
-    );
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Center(
-        child: Text('مرحباً • Hello World', style: style, textAlign: TextAlign.center),
-      ),
-    );
-  }
-
-  FontWeight _fw(int i) {
-    switch (i) {
-      case 0: return FontWeight.w300;
-      case 1: return FontWeight.normal;
-      case 3: return FontWeight.bold;
-      default: return FontWeight.w500;
-    }
-  }
-}
-
-/// slider موحَّد
+/// slider موحّد مع label على اليمين
 class _SliderRow extends StatelessWidget {
   final double value, min, max;
   final String display;
   final ValueChanged<double> onChanged;
-  final Color activeColor;
+  final Color color;
   const _SliderRow({required this.value, required this.min, required this.max,
-    required this.display, required this.onChanged, required this.activeColor});
+    required this.display, required this.onChanged, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -629,19 +535,19 @@ class _SliderRow extends StatelessWidget {
             trackHeight: 3,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-            activeTrackColor: activeColor,
+            activeTrackColor: color,
             inactiveTrackColor: Colors.white12,
-            thumbColor: activeColor,
-            overlayColor: activeColor.withOpacity(0.2),
+            thumbColor: color,
+            overlayColor: color.withOpacity(0.2),
           ),
-          child: Slider(value: value.clamp(min, max), min: min, max: max, onChanged: onChanged),
+          child: Slider(
+              value: value.clamp(min, max), min: min, max: max, onChanged: onChanged),
         ),
       ),
       SizedBox(
-        width: 72,
-        child: Text(display,
-            textAlign: TextAlign.end,
-            style: TextStyle(color: activeColor, fontSize: 11, fontWeight: FontWeight.bold)),
+        width: 70,
+        child: Text(display, textAlign: TextAlign.end,
+            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
       ),
     ]);
   }

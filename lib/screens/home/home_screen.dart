@@ -36,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (!mounted) return;
     await lib.scan();
     await lib.loadRecent();
-    await lib.loadHidden();
   }
 
   Future<void> _refreshLibrary() async {
@@ -106,17 +105,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         actions: [
           IconButton(
               icon: const Icon(Symbols.search_rounded),
-              onPressed: () {
-                final lib = context.read<LibraryProvider>();
-                final filteredVideos = lib.videos
-                    .where((v) => !lib.hiddenPaths.contains(v.path) && !lib.hiddenFolders.contains(v.folder))
-                    .toList();
-                showSearch(context: context, delegate: VideoSearchDelegate(filteredVideos, _openPlayer));
-              }),
+              onPressed: () => showSearch(
+                  context: context,
+                  delegate: VideoSearchDelegate(context.read<LibraryProvider>().videos, _openPlayer))),
           IconButton(
               icon: Icon(settings.gridView ? Symbols.view_list_rounded : Symbols.grid_view_rounded),
               onPressed: () => settings.setGridView(!settings.gridView)),
           IconButton(icon: const Icon(Symbols.sort_rounded), onPressed: () => _sortSheet(settings)),
+          IconButton(
+              icon: const Icon(Symbols.visibility_off_rounded),
+              tooltip: 'الملفات المخفية',
+              onPressed: _showHiddenVideos),
           IconButton(
               icon: const Icon(Symbols.settings_rounded),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
@@ -157,34 +156,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onMore: (v) => _menu(v),
               gridView: settings.gridView,
               loading: lib.loading,
-              hiddenPaths: lib.hiddenPaths,
-              hiddenFolders: lib.hiddenFolders,
             ),
           ),
           RefreshIndicator(
             onRefresh: _refreshLibrary,
-            child: RecentTab(
-              paths: lib.recentPaths,
-              all: lib.videos,
-              onOpen: _openByPath,
-              onClear: lib.clearRecent,
-              hiddenPaths: lib.hiddenPaths,
-              hiddenFolders: lib.hiddenFolders,
-            ),
+            child:
+                RecentTab(paths: lib.recentPaths, all: lib.videos, onOpen: _openByPath, onClear: lib.clearRecent),
           ),
           RefreshIndicator(
             onRefresh: _refreshLibrary,
             child: FoldersTab(
-              byFolder: lib.byFolder,
-              onTap: (f) {
-                setState(() => _selectedFolder = f);
-                _tabs.animateTo(0);
-              },
-              hiddenPaths: lib.hiddenPaths,
-              hiddenFolders: lib.hiddenFolders,
-              onHideFolder: lib.hideFolder,
-              onUnhideFolder: lib.unhideFolder,
-            ),
+                byFolder: lib.byFolder,
+                onTap: (f) {
+                  setState(() => _selectedFolder = f);
+                  _tabs.animateTo(0);
+                }),
           ),
         ]);
       }),
@@ -236,6 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _menu(VideoItem video) {
     final cs = Theme.of(context).colorScheme;
     final lib = context.read<LibraryProvider>();
+    final isHidden = lib.hiddenPaths.contains(video.path);
 
     showModalBottomSheet(
         context: context,
@@ -271,27 +258,110 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Navigator.pop(context);
                       Share.shareXFiles([XFile(video.path)], subject: video.name);
                     }),
-                const Divider(height: 1),
                 ListTile(
-                  leading: _mIcon(
-                    lib.isPathHidden(video.path) ? Symbols.visibility_rounded : Symbols.visibility_off_rounded,
-                    cs.errorContainer,
-                    cs.onErrorContainer,
-                  ),
-                  title: Text(lib.isPathHidden(video.path) ? 'إظهار' : 'إخفاء'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    if (lib.isPathHidden(video.path)) {
-                      lib.unhidePath(video.path);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إظهار ${video.name}')));
-                    } else {
-                      lib.hidePath(video.path);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم إخفاء ${video.name}')));
-                    }
-                  },
-                ),
+                    leading: _mIcon(
+                      isHidden ? Symbols.visibility_rounded : Symbols.visibility_off_rounded,
+                      isHidden ? cs.secondaryContainer : cs.errorContainer,
+                      isHidden ? cs.onSecondaryContainer : cs.onErrorContainer,
+                    ),
+                    title: Text(isHidden ? 'إلغاء الإخفاء' : 'إخفاء'),
+                    subtitle: Text(
+                      isHidden ? 'سيظهر في المكتبة مجدداً' : 'لن يظهر في القائمة الرئيسية',
+                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (isHidden) {
+                        lib.unhideVideo(video.path);
+                      } else {
+                        lib.hideVideo(video.path);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('تم إخفاء الفيديو'),
+                            action: SnackBarAction(
+                              label: 'تراجع',
+                              onPressed: () => lib.unhideVideo(video.path),
+                            ),
+                          ),
+                        );
+                      }
+                    }),
               ]),
             ));
+  }
+
+  void _showHiddenVideos() {
+    final lib = context.read<LibraryProvider>();
+    final hidden = lib.allVideos.where((v) => lib.hiddenPaths.contains(v.path)).toList();
+    final cs = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        expand: false,
+        builder: (ctx, scroll) => Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(children: [
+              Icon(Symbols.visibility_off_rounded, color: cs.primary, size: 20),
+              const SizedBox(width: 8),
+              Text('الملفات المخفية (${hidden.length})',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: cs.onSurface)),
+              const Spacer(),
+              if (hidden.isNotEmpty)
+                TextButton(
+                  onPressed: () {
+                    lib.clearHidden();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('إظهار الكل'),
+                ),
+            ]),
+          ),
+          const Divider(height: 1),
+          if (hidden.isEmpty)
+            Expanded(
+              child: Center(
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Symbols.visibility_rounded, size: 48, color: cs.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('لا يوجد ملفات مخفية', style: TextStyle(color: cs.onSurfaceVariant)),
+                ]),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                controller: scroll,
+                itemCount: hidden.length,
+                itemBuilder: (_, i) {
+                  final v = hidden[i];
+                  return ListTile(
+                    leading: Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Symbols.video_file_rounded, color: cs.onSurfaceVariant),
+                    ),
+                    title: Text(v.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(v.formattedSize, style: const TextStyle(fontSize: 12)),
+                    trailing: TextButton(
+                      onPressed: () => lib.unhideVideo(v.path),
+                      child: const Text('إظهار'),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ]),
+      ),
+    );
   }
 
   Widget _mIcon(IconData icon, Color bg, Color fg) => Container(
