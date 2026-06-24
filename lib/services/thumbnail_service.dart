@@ -56,7 +56,7 @@ class ThumbnailService {
     final path = video.path;
     if (_pending.contains(path)) return;
     _pending.add(path);
-    _errors[path]?.value = null;
+    _errors[path]?.value = null; // نبدأ بدون أخطاء
 
     try {
       final cacheFile = await _cacheFile(path);
@@ -64,6 +64,7 @@ class ThumbnailService {
         final bytes = await cacheFile.readAsBytes();
         if (bytes.isNotEmpty) {
           _notifiers[path]?.value = bytes;
+          _errors[path]?.value = null; // ✅ تأكيد عدم وجود خطأ
           return;
         }
       }
@@ -75,12 +76,20 @@ class ThumbnailService {
         try {
           bytes = await _fromPhotoManager(video.id);
         } catch (e) {
-          _errors[path]?.value = 'photo_manager: $e';
+          // نترك الخطأ مؤقتاً فقط، وسنمسحه إذا نجح media_kit
+          _errors[path]?.value = null; // لا نعرض خطأ photo_manager الآن
         }
       }
 
       // 2. media_kit (لجميع الصيغ)
-      bytes ??= await _fromMediaKit(video.path, cacheFile.path);
+      if (bytes == null) {
+        try {
+          bytes = await _fromMediaKit(video.path, cacheFile.path);
+          _errors[path]?.value = null; // ✅ نجحنا → لا خطأ
+        } catch (e) {
+          _errors[path]?.value = 'media_kit: $e';
+        }
+      }
 
       if (bytes != null && bytes.isNotEmpty) {
         if (!await cacheFile.exists()) {
@@ -88,6 +97,7 @@ class ThumbnailService {
         }
         _notifiers[path]?.value = bytes;
       } else {
+        // إذا لم يكن هناك خطأ مُسجَّل، نضع خطأً عاماً
         _errors[path]?.value ??= 'تعذر إنشاء صورة مصغرة';
       }
     } catch (e) {
@@ -110,30 +120,20 @@ class ThumbnailService {
     final player = Player();
     try {
       await player.open(Media(videoPath), play: false);
-
       final duration = player.state.duration;
       final seekPos = duration.inSeconds > 10
           ? const Duration(seconds: 5)
           : duration * 0.3;
       await player.seek(seekPos);
-
-      // انتظار لتحضير الإطار
       await Future.delayed(const Duration(milliseconds: 500));
-
-      // ✅ التقاط اللقطة بصيغة JPEG مباشرة (حسب توثيق media_kit)
       final Uint8List? screenshotBytes = await player.screenshot(
         format: 'image/jpeg',
       );
-
       if (screenshotBytes != null) {
-        // حفظ إلى ملف الكاش للاستخدام المستقبلي
         final file = File(savePath);
         await file.writeAsBytes(screenshotBytes);
         return screenshotBytes;
       }
-      return null;
-    } catch (e) {
-      _errors[videoPath]?.value = 'media_kit: $e';
       return null;
     } finally {
       player.dispose();
