@@ -37,7 +37,6 @@ class VideoThumbnailLoader extends StatelessWidget {
                     _buildPlaceholder('فشل تحميل الصورة'),
               );
             }
-            // لا صورة بعد: نعرض خطأ التوليد إن وُجد
             return ValueListenableBuilder<String?>(
               valueListenable: errorNotifier,
               builder: (context, errorText, _) =>
@@ -51,7 +50,6 @@ class VideoThumbnailLoader extends StatelessWidget {
 
   Widget _buildPlaceholder(String? errorText) {
     if (errorText != null && errorText.isNotEmpty) {
-      // عرض نص الخطأ مكان الأيقونة
       return Container(
         color: const Color(0xFF1A1A1A),
         padding: const EdgeInsets.all(4),
@@ -69,7 +67,6 @@ class VideoThumbnailLoader extends StatelessWidget {
         ),
       );
     }
-    // الأيقونة الافتراضية (لم يحدث خطأ بعد)
     return Container(
       color: Colors.grey[900],
       child: const Center(

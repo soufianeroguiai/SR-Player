@@ -20,7 +20,6 @@ dependencies:
   file_picker: ^12.0.0-beta.7
   photo_manager: ^3.9.0
   path_provider: ^2.1.6
-  video_thumbnail_gen: ^0.6.3
 
   # 🔐 Permissions
   permission_handler: ^12.0.3
