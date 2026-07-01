@@ -767,14 +767,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Widget _buildPlaylistEditor() {
-    final videos = _libraryProvider.playlistPaths.isNotEmpty
+    final isCustom = _libraryProvider.playlistPaths.isNotEmpty;
+    final videos = isCustom
         ? _libraryProvider.playlistPaths
             .map((path) => _libraryProvider.allVideos.where((v) => v.path == path).firstOrNull)
             .whereType<VideoItem>()
             .toList()
         : _libraryProvider.allVideos
             .where((v) => v.folder == widget.video.folder)
-            .toList();
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+
+    void remove(String path) {
+      _libraryProvider.removeFromPlaylist(path);
+      setState(() {});
+    }
 
     return Container(
       color: Colors.black.withOpacity(0.65),
@@ -793,6 +800,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               itemCount: videos.length,
               onReorder: (oldIndex, newIndex) {
                 _libraryProvider.reorderPlaylist(oldIndex, newIndex);
+                setState(() {});
               },
               itemBuilder: (context, index) {
                 final video = videos[index];
@@ -806,9 +814,26 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       child: VideoThumbnailLoader(video: video, width: 80, height: 50),
                     ),
                   ),
-                  title: Text(video.name, style: const TextStyle(color: Colors.white, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(video.formattedDuration, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  trailing: const Icon(Icons.drag_handle, color: Colors.white54),
+                  title: Text(video.name,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  subtitle: Text(video.formattedDuration,
+                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isCustom)
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
+                          onPressed: () => remove(video.path),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.drag_handle, color: Colors.white54),
+                    ],
+                  ),
                 );
               },
             ),
