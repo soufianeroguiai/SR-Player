@@ -1,0 +1,72 @@
+name: sr_player
+description: SR Player - Advanced Video Player
+publish_to: 'none'
+
+version: 1.0.1+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 🎬 Video Stack
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+
+  # 📁 File & Media
+  file_picker: ^12.0.0-beta.7
+  photo_manager: ^3.9.0
+  path_provider: ^2.1.6
+
+  # 🔐 Permissions
+  permission_handler: ^12.0.3
+
+  # 🎞️ FFmpeg Extended
+  ffmpeg_kit_extended_flutter: ^0.5.10
+
+  url_launcher: ^6.3.2
+
+  # 📦 State
+  provider: ^6.1.5+1
+  shared_preferences: ^2.5.5
+
+  # 🎨 UI
+  material_symbols_icons: ^4.2951.0
+  flex_color_picker: ^3.8.0
+  google_fonts: ^8.1.0
+
+  # ⚙️ Utilities
+  share_plus: ^13.1.0
+  wakelock_plus: ^1.6.1
+  screen_brightness: ^2.1.11
+
+  # 📱 Sensors (للتدوير الذكي)
+  sensors_plus: ^7.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+
+# تكوين FFmpeg Extended (ضبط البناء)
+ffmpeg_kit_extended_config:
+  type: "base" # pre-bundled builds: debug, base, full, audio, video, video_hw
+  gpl: true # enable to include GPL libraries
+  small: true # enable to use smaller builds
+  # == OR ==
+  # -------------------------------------------------------------
+  # You can specify remote or local path to libffmpegkit libraries for each platform
+  # This allows you to deploy custom builds of libffmpegkit.
+  # See: https://github.com/akashskypatel/ffmpeg-kit-builders
+  # -------------------------------------------------------------
+  # windows: "path/to/ffmpeg-kit/libraries"
+  # ios: "https://path/to/bundle.xcframework.zip"
