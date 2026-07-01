@@ -1,5 +1,3 @@
-// FILE: lib/screens/player/player_screen.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +17,7 @@ import '../../services/pip_service.dart';
 import '../../services/subtitle_service.dart';
 import '../../services/player_control_service.dart';
 import '../../widgets/color_adjustment_panel.dart';
+import '../../widgets/video_thumbnail_loader.dart';
 import '../../services/smart_enhance_service.dart';
 import '../info_screen.dart';
 import 'player_controls.dart';
@@ -799,9 +798,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 final video = videos[index];
                 return ListTile(
                   key: Key(video.path),
-                  leading: const Icon(Icons.drag_handle),
-                  title: Text(video.name),
-                  subtitle: Text(video.formattedDuration),
+                  leading: SizedBox(
+                    width: 80,
+                    height: 50,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: VideoThumbnailLoader(video: video, width: 80, height: 50),
+                    ),
+                  ),
+                  title: Text(video.name, style: const TextStyle(color: Colors.white, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(video.formattedDuration, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  trailing: const Icon(Icons.drag_handle, color: Colors.white54),
                 );
               },
             ),
