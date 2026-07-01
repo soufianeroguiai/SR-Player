@@ -804,35 +804,59 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               },
               itemBuilder: (context, index) {
                 final video = videos[index];
+                final isPlaying = video.path == widget.video.path;
+
                 return ListTile(
                   key: Key(video.path),
-                  leading: SizedBox(
-                    width: 80,
-                    height: 50,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: VideoThumbnailLoader(video: video, width: 80, height: 50),
-                    ),
-                  ),
-                  title: Text(video.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  subtitle: Text(video.formattedDuration,
-                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  trailing: Row(
+                  leading: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.drag_handle, color: Colors.white54),
-                      if (isCustom)
-                        IconButton(
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 80,
+                        height: 50,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              VideoThumbnailLoader(video: video, width: 80, height: 50),
+                              if (isPlaying)
+                                Container(
+                                  color: Colors.black.withOpacity(0.55),
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  child: const Center(
+                                    child: PlayingIndicator(),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  title: Text(
+                    video.name,
+                    style: TextStyle(
+                      color: isPlaying ? Theme.of(context).colorScheme.primary : Colors.white,
+                      fontSize: 13,
+                      fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(video.formattedDuration,
+                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  trailing: isCustom
+                      ? IconButton(
                           icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
                           onPressed: () => remove(video.path),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                        ),
-                    ],
-                  ),
+                        )
+                      : null,
                 );
               },
             ),
@@ -1219,5 +1243,54 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _player.dispose();
     super.dispose();
+  }
+}
+
+class PlayingIndicator extends StatefulWidget {
+  const PlayingIndicator({super.key});
+
+  @override
+  State<PlayingIndicator> createState() => _PlayingIndicatorState();
+}
+
+class _PlayingIndicatorState extends State<PlayingIndicator> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(3, (index) {
+        return AnimatedBuilder(
+          animation: _ctrl,
+          builder: (context, child) {
+            final height = 6.0 + (index == 1 ? 10.0 * _ctrl.value : 8.0 * (1 - _ctrl.value));
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 3.0,
+              height: height,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            );
+          },
+        );
+      }),
+    );
   }
 }
