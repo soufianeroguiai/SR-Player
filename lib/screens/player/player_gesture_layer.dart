@@ -7,6 +7,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import 'player_indicators.dart';
 
+enum GestureType { none, seek, volume, brightness, subtitle }
+
 class PlayerGestureLayer extends StatefulWidget {
   final Player player;
   final bool isLocked;
@@ -61,6 +63,10 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   int? _hintSeconds;
   Timer? _seekHintTimer;
+
+  GestureType _activeGesture = GestureType.none;
+  Offset _startPanOffset = Offset.zero;
+  bool _isPanLocked = false;
 
   @override
   void dispose() {
@@ -135,14 +141,21 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           onScaleStart: (details) {
             if (widget.isLocked) return;
             final sub = s.subtitleSettings;
+
+            _activeGesture = GestureType.none;
+            _isPanLocked = false;
+            _startPanOffset = details.focalPoint;
+
             if (details.pointerCount == 3) {
               _startSubtitleScale = sub.subtitleScale;
+              _activeGesture = GestureType.subtitle;
               return;
             }
             if (details.pointerCount == 2 && !widget.isPlaying) {
               _startSubtitleSize = sub.fontSize;
               _startBottomPadding = sub.bottomMargin;
               _startFocalPoint = details.focalPoint;
+              _activeGesture = GestureType.subtitle;
               _subtitleGestureActive = true;
             } else {
               widget.seekMsNotifier.value = widget.position.inMilliseconds.toDouble();
@@ -152,12 +165,13 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           onScaleUpdate: (details) {
             if (widget.isLocked) return;
             final sub = s.subtitleSettings;
-            if (details.pointerCount == 3) {
+
+            if (details.pointerCount == 3 && _activeGesture == GestureType.subtitle) {
               final newScale = (_startSubtitleScale * details.scale).clamp(0.5, 3.0);
               s.updateSubtitleSettings(sub.copyWith(subtitleScale: newScale));
               return;
             }
-            if (details.pointerCount == 2 && _subtitleGestureActive && !widget.isPlaying) {
+            if (details.pointerCount == 2 && _activeGesture == GestureType.subtitle && !widget.isPlaying) {
               final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
               s.updateSubtitleSettings(sub.copyWith(fontSize: newSize));
               final dy = details.focalPoint.dy - _startFocalPoint.dy;
@@ -165,45 +179,65 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               s.updateSubtitleSettings(sub.copyWith(bottomMargin: newPadding));
               return;
             }
-            if (details.pointerCount != 1) return;
+
+            if (details.pointerCount != 1 || _activeGesture == GestureType.subtitle) return;
             if (details.focalPointDelta.distance < 0.5) return;
-            final isRight = details.focalPoint.dx > screenWidth / 2;
-            final dx = details.focalPointDelta.dx.abs();
-            final dy = details.focalPointDelta.dy.abs();
-            final isHorizontal = dx > dy;
-            if (isHorizontal) {
-              final seekFactor = (widget.duration.inMilliseconds * 0.25).clamp(30000.0, 600000.0);
-              final change = (details.focalPointDelta.dx / screenWidth) * seekFactor;
-              widget.seekMsNotifier.value = (widget.seekMsNotifier.value + change)
-                  .clamp(0.0, widget.duration.inMilliseconds.toDouble());
-              _showSeekNotifier.value = true;
-              _showVolNotifier.value = false;
-              _showBrightNotifier.value = false;
-            } else {
-              final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
-              if (isRight) {
+
+            if (!_isPanLocked) {
+              final totalDx = (details.focalPoint.dx - _startPanOffset.dx).abs();
+              final totalDy = (details.focalPoint.dy - _startPanOffset.dy).abs();
+
+              if (totalDx > 10 || totalDy > 10) {
+                _isPanLocked = true;
+                if (totalDx > totalDy) {
+                  _activeGesture = GestureType.seek;
+                } else {
+                  _activeGesture = details.focalPoint.dx > screenWidth / 2
+                      ? GestureType.volume
+                      : GestureType.brightness;
+                }
+              }
+            }
+
+            if (_isPanLocked) {
+              if (_activeGesture == GestureType.seek) {
+                final seekFactor = (widget.duration.inMilliseconds * 0.25).clamp(30000.0, 600000.0);
+                final change = (details.focalPointDelta.dx / screenWidth) * seekFactor;
+                widget.seekMsNotifier.value = (widget.seekMsNotifier.value + change)
+                    .clamp(0.0, widget.duration.inMilliseconds.toDouble());
+                _showSeekNotifier.value = true;
+                _showVolNotifier.value = false;
+                _showBrightNotifier.value = false;
+              } else if (_activeGesture == GestureType.volume) {
+                final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
                 widget.onVolumeChanged(widget.volumeLevel + delta);
                 _showVolNotifier.value = true;
                 _showBrightNotifier.value = false;
                 _showSeekNotifier.value = false;
-              } else {
+                _resetIndicatorTimer();
+              } else if (_activeGesture == GestureType.brightness) {
+                final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
                 final newBright = (widget.brightnessNotifier.value + delta).clamp(0.05, 1.0);
                 widget.brightnessNotifier.value = newBright;
                 ScreenBrightness.instance.setApplicationScreenBrightness(newBright);
                 _showBrightNotifier.value = true;
                 _showVolNotifier.value = false;
                 _showSeekNotifier.value = false;
+                _resetIndicatorTimer();
               }
-              _resetIndicatorTimer();
             }
           },
           onScaleEnd: (details) {
             if (widget.isLocked) return;
-            _subtitleGestureActive = false;
+
             if (_showSeekNotifier.value) {
               widget.player.seek(Duration(milliseconds: widget.seekMsNotifier.value.toInt()));
               _showSeekNotifier.value = false;
             }
+
+            _subtitleGestureActive = false;
+            _activeGesture = GestureType.none;
+            _isPanLocked = false;
           },
           child: widget.child,
         ),

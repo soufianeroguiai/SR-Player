@@ -98,6 +98,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _enableSmartRotation();
     await _service.initPlayer();
     _state.addListener(_onStateChanged);
+    _applyNativeAssSettings();
   }
 
   void _onStateChanged() {
@@ -217,6 +218,29 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  // ✅ تطبيق إعدادات التوافق على محرك mpv مباشرة
+  void _applyNativeAssSettings() {
+    final sub = _settingsProvider.subtitleSettings;
+    _player.setProperty('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
+    _player.setProperty('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
+    if (sub.hideWhenNoDialog) {
+      _player.setProperty('sub-clear-on-seek', 'yes');
+    }
+  }
+
+  // ✅ دالة ذكية لتحديد من سيعرض الترجمة (فلاتر أم المحرك الأصلي)
+  bool _shouldUseFlutterRenderer() {
+    final sub = _settingsProvider.subtitleSettings;
+    // إذا كانت الترجمة ASS والمستخدم يريد رؤية التصميم الأصلي (لم يفعل تجاهل التأثيرات)، نستخدم المحرك الأصلي
+    if (_state.hasExternalSubtitle && _state.lastSubtitleEntries != null) {
+      final path = _state.subtitleTracks.isNotEmpty ? _state.subtitleTracks.first.language ?? '' : '';
+      if (path.contains('.ass') || path.contains('.ssa')) {
+        if (!sub.ignoreAssEffects) return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _loadSubtitleFromAdjacentFile() async {
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
     final srtPath = SubtitleService.findSrt(widget.video.path);
@@ -231,11 +255,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try {
       await _player.setSubtitleTrack(SubtitleTrack.no());
       final settings = _settingsProvider.subtitleSettings;
-      final entries = await SubtitleService.load(
-        path,
-        settings: settings,
-        encoding: encoding,
-      );
+      final entries = await SubtitleService.load(path, settings: settings, encoding: encoding);
       if (entries.isEmpty) return;
       _state.lastSubtitleEntries = entries;
       await _applySubtitleSyncOffset();
@@ -899,6 +919,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final s = context.watch<SettingsProvider>();
     final subtitleSettings = s.subtitleSettings;
     final lib = context.watch<LibraryProvider>();
+    final useFlutterRenderer = _shouldUseFlutterRenderer();
 
     if (PipService.isInPipMode.value) {
       return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
@@ -946,15 +967,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     controller: _controller,
                     fit: getBoxFit(_state.fitMode),
                     controls: NoVideoControls,
-                    subtitleViewConfiguration: const SubtitleViewConfiguration(
-                      style: TextStyle(fontSize: 0, color: Colors.transparent),
-                      padding: EdgeInsets.zero,
-                      visible: false,
+                    subtitleViewConfiguration: SubtitleViewConfiguration(
+                      visible: !useFlutterRenderer,
                     ),
                   ),
                 ),
 
-                if (_state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
+                if (useFlutterRenderer && _state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
                   SubtitleRenderer(
                     currentEntry: SubtitleEntry(
                       start: Duration.zero,
@@ -1284,7 +1303,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _saveTimer?.cancel();
     _fitOverlayTimer?.cancel();
     _sleepTimer?.cancel();
-    _service.disposeTimers();
+    _service.dispose();
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

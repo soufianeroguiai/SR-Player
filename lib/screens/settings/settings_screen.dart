@@ -8,7 +8,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
-import '../../widgets/subtitle_preview.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
@@ -20,7 +19,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  int _openSection = 0;
+  // 1. تغيير القيمة الافتراضية إلى -1 لكي تكون جميع التبويبات مغلقة عند فتح الشاشة
+  int _openSection = -1; 
   int? _cacheSizeBytes;
 
   @override
@@ -132,137 +132,181 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
         _sectionHeader(context, 'الترجمة', Symbols.subtitles_rounded),
 
-        // ========== قسم المظهر ==========
+        // ========== قسم المظهر (استخدام AnimatedSize لمنع القفز) ==========
         _card(context, [
           _sectionFoldHeader(context, 'المظهر', Symbols.palette_rounded, _openSection == 0, () => setState(() => _openSection = _openSection == 0 ? -1 : 0)),
-          if (_openSection == 0) ...[
-            _fontSection(context, s, sub),
-            const SizedBox(height: 12),
-            _colorSection(context, s, sub),
-            const SizedBox(height: 12),
-            _effectsSection(context, s, sub),
-            const SizedBox(height: 12),
-            _bgSection(context, s, sub),
-            const SizedBox(height: 12),
-            _switchTile(context, Symbols.format_italic_rounded, 'تأثير مائل', 'تفعيل الخط المائل للترجمة', s.subtitleItalic, s.setSubtitleItalic),
-            const Divider(height: 1),
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  s.updateSubtitleSettings(sub.copyWith(
-                    fontSize: 30.0, subtitleScale: 1.0, fontFamily: 'Roboto',
-                    textColor: const Color(0xFFFFFFFF), textOpacity: 1.0,
-                    fontWeightIndex: 2, outlineColor: const Color(0xFF000000),
-                    outlineWidth: 2.0, outlineScale: 1.0,
-                    shadowEnabled: false, shadowColor: const Color(0xFF000000),
-                    shadowOpacity: 0.5, shadowOffsetX: 2.0, shadowOffsetY: 2.0,
-                    shadowBlurRadius: 4.0, bgColor: const Color(0xFF000000),
-                    bgOpacity: 0.0, bgBorderRadius: 4.0, bgBorderColor: const Color(0xFFFFFFFF),
-                    bgBorderWidth: 0.0, bgPadding: 8.0, bgShape: SubtitleBgShape.rounded,
-                    letterSpacing: 0.0, wordSpacing: 0.0,
-                    lineHeight: 1.2, lineSpacing: 1.0, autoWrap: true, maxLines: 2,
-                  ));
-                  s.setSubtitleItalic(false);
-                },
-                icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                label: Text('إعادة ضبط المظهر', style: TextStyle(color: cs.primary)),
-              ),
-            ),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 0
+                ? Column(
+                    children: [
+                      _fontSection(context, s, sub),
+                      const SizedBox(height: 12),
+                      _colorSection(context, s, sub),
+                      const SizedBox(height: 12),
+                      _effectsSection(context, s, sub),
+                      const SizedBox(height: 12),
+                      _bgSection(context, s, sub),
+                      const SizedBox(height: 12),
+                      _switchTile(context, Symbols.format_italic_rounded, 'تأثير مائل', 'تفعيل الخط المائل للترجمة', s.subtitleItalic, s.setSubtitleItalic),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () {
+                              s.updateSubtitleSettings(sub.copyWith(
+                                fontSize: 30.0, subtitleScale: 1.0, fontFamily: 'Roboto',
+                                textColor: const Color(0xFFFFFFFF), textOpacity: 1.0,
+                                fontWeightIndex: 2, outlineColor: const Color(0xFF000000),
+                                outlineWidth: 2.0, outlineScale: 1.0,
+                                shadowEnabled: false, shadowColor: const Color(0xFF000000),
+                                shadowOpacity: 0.5, shadowOffsetX: 2.0, shadowOffsetY: 2.0,
+                                shadowBlurRadius: 4.0, bgColor: const Color(0xFF000000),
+                                bgOpacity: 0.0, bgBorderRadius: 4.0, bgBorderColor: const Color(0xFFFFFFFF),
+                                bgBorderWidth: 0.0, bgPadding: 8.0, bgShape: SubtitleBgShape.rounded,
+                                letterSpacing: 0.0, wordSpacing: 0.0,
+                                lineHeight: 1.2, lineSpacing: 1.0, autoWrap: true, maxLines: 2,
+                              ));
+                              s.setSubtitleItalic(false);
+                            },
+                            icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                            label: Text('إعادة ضبط المظهر', style: TextStyle(color: cs.primary)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم الموضع ==========
+        // ========== قسم الموضع (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'الموضع', Symbols.open_with_rounded, _openSection == 1, () => setState(() => _openSection = _openSection == 1 ? -1 : 1)),
-          if (_openSection == 1) ...[
-            _positionSection(context, s, sub),
-            const SizedBox(height: 12),
-            _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, 'اتجاه النص',
-                sub.alignment == SubtitleAlignment.right ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين',
-                sub.alignment == SubtitleAlignment.right,
-                (v) => s.updateSubtitleSettings(sub.copyWith(alignment: v ? SubtitleAlignment.right : SubtitleAlignment.left))),
-            const Divider(height: 1),
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  s.updateSubtitleSettings(sub.copyWith(
-                    position: SubtitlePosition.bottom, bottomMargin: 48.0,
-                    alignment: SubtitleAlignment.center, horizontalMargin: 24.0,
-                    verticalMargin: 24.0, safeAreaPadding: 20.0,
-                    respectNotch: true, keepInsideVideo: true,
-                  ));
-                },
-                icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                label: Text('إعادة ضبط الموضع', style: TextStyle(color: cs.primary)),
-              ),
-            ),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 1
+                ? Column(
+                    children: [
+                      _positionSection(context, s, sub),
+                      const SizedBox(height: 12),
+                      _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, 'اتجاه النص',
+                          sub.alignment == SubtitleAlignment.right ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين',
+                          sub.alignment == SubtitleAlignment.right,
+                          (v) => s.updateSubtitleSettings(sub.copyWith(alignment: v ? SubtitleAlignment.right : SubtitleAlignment.left))),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () {
+                              s.updateSubtitleSettings(sub.copyWith(
+                                position: SubtitlePosition.bottom, bottomMargin: 48.0,
+                                alignment: SubtitleAlignment.center, horizontalMargin: 24.0,
+                                verticalMargin: 24.0, safeAreaPadding: 20.0,
+                                respectNotch: true, keepInsideVideo: true,
+                              ));
+                            },
+                            icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                            label: Text('إعادة ضبط الموضع', style: TextStyle(color: cs.primary)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم السلوك ==========
+        // ========== قسم السلوك (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'السلوك', Symbols.settings_rounded, _openSection == 2, () => setState(() => _openSection = _openSection == 2 ? -1 : 2)),
-          if (_openSection == 2) ...[
-            _switchTile(context, Symbols.subtitles_rounded, 'إظهار الترجمة تلقائياً', 'تفعيل عند بدء التشغيل', s.showSubtitlesByDefault, s.setShowSubtitlesByDefault),
-            _divider(),
-            _choiceTile(context, Symbols.folder_open_rounded, 'مجلد الترجمة', s.subtitleFolder.isEmpty ? 'غير محدد' : s.subtitleFolder, () async {
-              final result = await FilePicker.getDirectoryPath();
-              if (result != null) s.setSubtitleFolder(result);
-            }),
-            _divider(),
-            _choiceTile(context, Symbols.text_fields_rounded, 'ترميز الأحرف', s.subtitleEncoding, () => showEncodingPicker(context, s)),
-            _divider(),
-            _choiceTile(context, Symbols.language_rounded, 'لغة الترجمة المفضلة', langName(s.preferredSubtitleLanguage), () => showSubtitleLanguagePicker(context, s)),
-            _divider(),
-            _choiceTile(context, Symbols.timeline_rounded, 'مزامنة افتراضية', '${s.defaultSubtitleSync.toStringAsFixed(1)} ثانية', () => showSyncDialog(context, s)),
-            const SizedBox(height: 12),
-            _behaviorSection(context, s, sub),
-            const Divider(height: 1),
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  s.setShowSubtitlesByDefault(true);
-                  s.updateSubtitleSettings(sub.copyWith(
-                    scaleMode: SubtitleScaleMode.smart, autoShow: true,
-                    autoLanguage: 'ara', loadLastUsed: true, hideWhenNoDialog: false,
-                  ));
-                },
-                icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                label: Text('إعادة ضبط السلوك', style: TextStyle(color: cs.primary)),
-              ),
-            ),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 2
+                ? Column(
+                    children: [
+                      _switchTile(context, Symbols.subtitles_rounded, 'إظهار الترجمة تلقائياً', 'تفعيل عند بدء التشغيل', s.showSubtitlesByDefault, s.setShowSubtitlesByDefault),
+                      _divider(),
+                      _choiceTile(context, Symbols.folder_open_rounded, 'مجلد الترجمة', s.subtitleFolder.isEmpty ? 'غير محدد' : s.subtitleFolder, () async {
+                        final result = await FilePicker.getDirectoryPath();
+                        if (result != null) s.setSubtitleFolder(result);
+                      }),
+                      _divider(),
+                      _choiceTile(context, Symbols.text_fields_rounded, 'ترميز الأحرف', s.subtitleEncoding, () => showEncodingPicker(context, s)),
+                      _divider(),
+                      _choiceTile(context, Symbols.language_rounded, 'لغة الترجمة المفضلة', langName(s.preferredSubtitleLanguage), () => showSubtitleLanguagePicker(context, s)),
+                      _divider(),
+                      _choiceTile(context, Symbols.timeline_rounded, 'مزامنة افتراضية', '${s.defaultSubtitleSync.toStringAsFixed(1)} ثانية', () => showSyncDialog(context, s)),
+                      const SizedBox(height: 12),
+                      _behaviorSection(context, s, sub),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () {
+                              s.setShowSubtitlesByDefault(true);
+                              s.updateSubtitleSettings(sub.copyWith(
+                                scaleMode: SubtitleScaleMode.smart, autoShow: true,
+                                autoLanguage: 'ara', loadLastUsed: true, hideWhenNoDialog: false,
+                              ));
+                            },
+                            icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                            label: Text('إعادة ضبط السلوك', style: TextStyle(color: cs.primary)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم التوافق ==========
+        // ========== قسم التوافق (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'التوافق', Symbols.tune_rounded, _openSection == 3, () => setState(() => _openSection = _openSection == 3 ? -1 : 3)),
-          if (_openSection == 3) ...[
-            _renderingSection(context, s, sub),
-            const Divider(height: 1),
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  s.updateSubtitleSettings(sub.copyWith(
-                    improveAnimation: true, complexTextRendering: true,
-                    improveSsaAss: true, ignoreAssFonts: false,
-                    ignoreAssEffects: false, fullUnicodeRtlSupport: true,
-                    improveAntiAliasing: true, hdrSupport: false,
-                  ));
-                },
-                icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                label: Text('إعادة ضبط التوافق', style: TextStyle(color: cs.primary)),
-              ),
-            ),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 3
+                ? Column(
+                    children: [
+                      _renderingSection(context, s, sub),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () {
+                              s.updateSubtitleSettings(sub.copyWith(
+                                improveAnimation: true, complexTextRendering: true,
+                                improveSsaAss: true, ignoreAssFonts: false,
+                                ignoreAssEffects: false, fullUnicodeRtlSupport: true,
+                                improveAntiAliasing: true, hdrSupport: false,
+                              ));
+                            },
+                            icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                            label: Text('إعادة ضبط التوافق', style: TextStyle(color: cs.primary)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
-
-        const SizedBox(height: 12),
-        // ========== المعاينة المباشرة ==========
-        SubtitlePreview(settings: sub),
 
         const SizedBox(height: 16),
         _sectionHeader(context, 'المكتبة', Symbols.video_library_rounded),
