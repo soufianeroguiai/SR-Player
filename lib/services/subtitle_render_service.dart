@@ -1,87 +1,60 @@
-import 'package:flutter/material.dart';
-import '../models/subtitle_settings.dart';
-import '../screens/player/subtitle_style_builder.dart';
-import '../services/subtitle_layout_engine.dart';
-import '../services/subtitle_service.dart';
+class SubtitleRenderService {
+  static String processText(
+    String rawText, {
+    required bool ignoreAssFonts,
+    required bool ignoreAssEffects,
+    required bool fullUnicodeRtlSupport,
+  }) {
+    String processed = rawText;
 
-class SubtitleRenderer extends StatelessWidget {
-  final SubtitleEntry? currentEntry;
-  final SubtitleSettings settings;
-  final Size videoSize;
-  final Size screenSize;
-  final EdgeInsets safeArea;
-  final bool visible;
-
-  const SubtitleRenderer({
-    super.key,
-    required this.currentEntry,
-    required this.settings,
-    required this.videoSize,
-    required this.screenSize,
-    required this.safeArea,
-    this.visible = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (currentEntry == null || !visible || !settings.autoShow) {
-      return const SizedBox.shrink();
+    if (ignoreAssEffects || ignoreAssFonts) {
+      processed = _parseAssTags(processed, ignoreAssEffects, ignoreAssFonts);
     }
 
-    final layout = SubtitleLayoutEngine.calculate(
-      settings: settings,
-      videoSize: videoSize,
-      screenSize: screenSize,
-      safeArea: safeArea,
-    );
+    processed = processed.replaceAll(RegExp(r'\\[Nn]'), '\n');
 
-    final textStyle = buildSubtitleTextStyle(settings).copyWith(
-      fontSize: layout.fontSize,
-    );
-
-    final padding = buildSubtitlePadding(settings);
-    final textAlign = buildSubtitleTextAlign(settings);
-
-    Widget textWidget = AnimatedDefaultTextStyle(
-      duration: const Duration(milliseconds: 200),
-      style: textStyle,
-      textAlign: textAlign,
-      maxLines: settings.autoWrap ? settings.maxLines : 1,
-      overflow: TextOverflow.ellipsis,
-      child: Text(
-        currentEntry!.text,
-        textAlign: textAlign,
-        maxLines: settings.autoWrap ? settings.maxLines : 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-
-    if (settings.bgOpacity > 0) {
-      textWidget = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: settings.bgColor.withOpacity(settings.bgOpacity),
-          borderRadius: BorderRadius.circular(settings.bgBorderRadius),
-        ),
-        child: textWidget,
-      );
+    if (fullUnicodeRtlSupport && _containsArabic(processed)) {
+      processed = '\u2067$processed\u2069';
     }
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: layout.position.dy,
-      child: IgnorePointer(
-        child: Padding(
-          padding: padding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: layout.maxWidth),
-              child: textWidget,
-            ),
-          ),
-        ),
-      ),
-    );
+    return processed.trim();
+  }
+
+  static String _parseAssTags(String text, bool ignoreEffects, bool ignoreFonts) {
+    String result = text;
+
+    if (ignoreEffects) {
+      result = result.replaceAll(RegExp(r'\{[^}]*\}'), '');
+    } else if (ignoreFonts) {
+      result = result.replaceAll(RegExp(r'\\fn[^}\\]*'), '');
+      result = result.replaceAll(RegExp(r'\\fs\d+'), '');
+      result = result.replaceAll(RegExp(r'\\fsc[xy]?\d+'), '');
+      result = result.replaceAll(RegExp(r'\\fsp\d+'), '');
+      result = result.replaceAll(RegExp(r'\\bord\d+'), '');
+      result = result.replaceAll(RegExp(r'\\blur\d+'), '');
+      result = result.replaceAll(RegExp(r'\\be\d+'), '');
+      result = result.replaceAll(RegExp(r'\\shad\d+'), '');
+      result = result.replaceAll(RegExp(r'\\fr[xyz]?\d+'), '');
+      result = result.replaceAll(RegExp(r'\\c&H[^}&]+'), '');
+      result = result.replaceAll(RegExp(r'\\alpha&H[^}&]+'), '');
+      result = result.replaceAll(RegExp(r'\\move\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\fade\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\clip\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\t\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\q\d'), '');
+      result = result.replaceAll(RegExp(r'\\an\d'), '');
+      result = result.replaceAll(RegExp(r'\\pos\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\org\([^}]*\)'), '');
+      result = result.replaceAll(RegExp(r'\\k[f]?\d+'), '');
+      result = result.replaceAll(RegExp(r'\\K\d+'), '');
+      result = result.replaceAll(RegExp(r'\\p\d+'), '');
+      result = result.replaceAll(RegExp(r'\\pbo\d+'), '');
+    }
+
+    return result;
+  }
+
+  static bool _containsArabic(String text) {
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
   }
 }
