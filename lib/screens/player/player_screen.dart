@@ -234,7 +234,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  bool _shouldUseFlutterRenderer() => true;
+  bool _shouldUseFlutterRenderer() {
+  // استخدم Flutter Renderer إذا كانت الترجمة مفعلة، بغض النظر عن مصدرها (داخلية أو خارجية)
+  return _state.showSubtitles && _state.subtitleTracks.isNotEmpty;
+}
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
