@@ -218,23 +218,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-  // ✅ تطبيق إعدادات التوافق على محرك mpv مباشرة
   void _applyNativeAssSettings() {
     final sub = _settingsProvider.subtitleSettings;
-    _player.setProperty('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
-    _player.setProperty('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
+    _player.setOption('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
+    _player.setOption('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
     if (sub.hideWhenNoDialog) {
-      _player.setProperty('sub-clear-on-seek', 'yes');
+      _player.setOption('sub-clear-on-seek', 'yes');
     }
   }
 
-  // ✅ دالة ذكية لتحديد من سيعرض الترجمة (فلاتر أم المحرك الأصلي)
   bool _shouldUseFlutterRenderer() {
     final sub = _settingsProvider.subtitleSettings;
-    // إذا كانت الترجمة ASS والمستخدم يريد رؤية التصميم الأصلي (لم يفعل تجاهل التأثيرات)، نستخدم المحرك الأصلي
     if (_state.hasExternalSubtitle && _state.lastSubtitleEntries != null) {
-      final path = _state.subtitleTracks.isNotEmpty ? _state.subtitleTracks.first.language ?? '' : '';
-      if (path.contains('.ass') || path.contains('.ssa')) {
+      final String ext = widget.video.path.split('.').last.toLowerCase();
+      if (ext == 'ass' || ext == 'ssa') {
         if (!sub.ignoreAssEffects) return false;
       }
     }
