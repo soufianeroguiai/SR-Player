@@ -83,11 +83,11 @@ class SubtitleRenderer extends StatelessWidget {
       );
     }
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: layout.position.dy,
-      child: IgnorePointer(
+    return IgnorePointer(
+      child: Positioned(
+        left: 0,
+        right: 0,
+        bottom: layout.position.dy,
         child: Padding(
           padding: padding,
           child: Center(

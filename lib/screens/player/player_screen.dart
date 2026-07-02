@@ -946,6 +946,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     controller: _controller,
                     fit: getBoxFit(_state.fitMode),
                     controls: NoVideoControls,
+                    subtitleViewConfiguration: const SubtitleViewConfiguration(
+                      style: TextStyle(fontSize: 0, color: Colors.transparent),
+                      padding: EdgeInsets.zero,
+                      visible: false,
+                    ),
                   ),
                 ),
 
