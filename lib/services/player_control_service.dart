@@ -1,4 +1,3 @@
-// player_control_service.dart (كامل)
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -6,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit/src/player/native/player/real.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -194,6 +192,27 @@ class PlayerControlService {
     }
   }
 
+  void applyPreferredSubtitleLanguage() {
+    if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
+    for (final track in state.subtitleTracks) {
+      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
+        player.setSubtitleTrack(track);
+        state.showSubtitles = true;
+        state.autoSubtitleSelected = true;
+        state.notifyListeners();
+        return;
+      }
+    }
+    if (state.subtitleTracks.isNotEmpty) {
+      player.setSubtitleTrack(state.subtitleTracks.first);
+      state.showSubtitles = true;
+      state.autoSubtitleSelected = true;
+      state.notifyListeners();
+    } else {
+      state.autoSubtitleSelected = true;
+    }
+  }
+
   void buildPlaylistFromFolder() {
     final folder = video.folder;
     final allVideos = libraryProvider.allVideos
@@ -297,20 +316,6 @@ class PlayerControlService {
         state.notifyListeners();
       }
     });
-  }
-
-  void applyPreferredSubtitleLanguage() {
-    if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
-    for (final track in state.subtitleTracks) {
-      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
-        player.setSubtitleTrack(track);
-        state.showSubtitles = true;
-        state.autoSubtitleSelected = true;
-        state.notifyListeners();
-        return;
-      }
-    }
-    state.autoSubtitleSelected = true;
   }
 
   void applyPreferredAudioLanguage() {

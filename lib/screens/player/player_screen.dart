@@ -1,4 +1,3 @@
-// player_screen.dart (كامل)
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -101,6 +100,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     await _service.initPlayer();
     _state.addListener(_onStateChanged);
     _applyNativeAssSettings();
+    await _loadSubtitleFromAdjacentFile();
   }
 
   void _onStateChanged() {
