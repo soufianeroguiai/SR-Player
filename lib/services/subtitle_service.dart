@@ -1,227 +1,117 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
-import '../models/subtitle_settings.dart';
-import 'subtitle_encodings.dart';
-import 'subtitle_render_service.dart';
+import 'package:flutter/material.dart';
+import '../models/subtitle_settings.dart'; // تأكد من مسار الملف
+import '../services/subtitle_service.dart'; // تأكد من مسار الملف
+import '../screens/player/subtitle_style_builder.dart'; // تأكد من مسار الملف
+import '../services/subtitle_layout_engine.dart'; // تأكد من مسار الملف
 
-class SubtitleEntry {
-  final Duration start;
-  final Duration end;
-  final String text;
-  SubtitleEntry({required this.start, required this.end, required this.text});
-}
+class SubtitleRenderer extends StatelessWidget {
+  final SubtitleEntry? currentEntry;
+  final SubtitleSettings settings;
+  final Size videoSize;
+  final Size screenSize;
+  final EdgeInsets safeArea;
+  final bool visible;
 
-class SubtitleService {
-  static final Map<String, List<SubtitleEntry>> _cache = {};
+  const SubtitleRenderer({
+    super.key,
+    required this.currentEntry,
+    required this.settings,
+    required this.videoSize,
+    required this.screenSize,
+    required this.safeArea,
+    this.visible = true,
+  });
 
-  static String? findSrt(String videoPath) {
-    final base = videoPath.replaceAll(RegExp(r'\.[^.]+$'), '');
-    for (final ext in ['.srt', '.SRT', '.ssa', '.SSA', '.ass', '.ASS']) {
-      final f = File('$base$ext');
-      if (f.existsSync()) return f.path;
-    }
-    return null;
-  }
-
-  static Future<List<SubtitleEntry>> load(
-    String path, {
-    required SubtitleSettings settings,
-    String encoding = 'UTF-8',
-  }) async {
-    if (_cache.containsKey(path)) {
-      return _cache[path]!;
+  @override
+  Widget build(BuildContext context) {
+    // ميزة: إخفاء الترجمة عند عدم وجود حوار تعمل هنا تلقائياً
+    if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
+      return const SizedBox.shrink();
     }
 
-    try {
-      final bytes = await File(path).readAsBytes();
-      final ext = path.split('.').last.toLowerCase();
+    final layout = SubtitleLayoutEngine.calculate(
+      settings: settings,
+      videoSize: videoSize,
+      screenSize: screenSize,
+      safeArea: safeArea,
+    );
 
-      final entries = await compute(parseSubtitleContent, {
-        'bytes': bytes,
-        'ext': ext,
-        'encoding': encoding,
-        'ignoreAssFonts': settings.ignoreAssFonts,
-        'ignoreAssEffects': settings.ignoreAssEffects,
-        'hideWhenNoDialog': settings.hideWhenNoDialog,
-        'fullUnicodeRtlSupport': settings.fullUnicodeRtlSupport,
-      });
+    final textStyle = buildSubtitleTextStyle(settings).copyWith(
+      fontSize: layout.fontSize,
+    );
 
-      _cache[path] = entries;
-      return entries;
-    } catch (_) {
-      return [];
-    }
-  }
+    final padding = buildSubtitlePadding(settings);
+    final textAlign = buildSubtitleTextAlign(settings);
 
-  static int findCurrentEntryIndex(List<SubtitleEntry> entries, Duration position) {
-    if (entries.isEmpty) return -1;
-    int left = 0;
-    int right = entries.length - 1;
-    int result = -1;
-
-    while (left <= right) {
-      final mid = (left + right) ~/ 2;
-      if (entries[mid].start <= position) {
-        result = mid;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
+    // 🌟 السحر هنا: تنظيف النص من أكواد ASS إذا فعل المستخدم خيار "تجاهل تأثيرات ASS"
+    String displayText = currentEntry!.text;
+    if (settings.ignoreAssEffects) {
+      // يمسح أي كود بين أقواس معقوفة مثل {\an8} أو {\c&H0000FF&}
+      displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
     }
 
-    if (result != -1 && entries[result].end < position) {
-      return -1;
-    }
-    return result;
-  }
+    Widget textWidget = AnimatedDefaultTextStyle(
+      duration: const Duration(milliseconds: 200),
+      style: textStyle,
+      textAlign: textAlign,
+      maxLines: settings.autoWrap ? settings.maxLines : 1,
+      overflow: TextOverflow.ellipsis,
+      child: Text(
+        displayText,
+        textAlign: textAlign,
+        maxLines: settings.autoWrap ? settings.maxLines : 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
 
-  static void clearCache() {
-    _cache.clear();
-  }
-}
-
-List<SubtitleEntry> parseSubtitleContent(Map<String, dynamic> params) {
-  final bytes = params['bytes'] as List<int>;
-  final ext = params['ext'] as String;
-  final encodingName = params['encoding'] as String;
-
-  final bool ignoreAssFonts = params['ignoreAssFonts'] ?? false;
-  final bool ignoreAssEffects = params['ignoreAssEffects'] ?? false;
-  final bool hideWhenNoDialog = params['hideWhenNoDialog'] ?? false;
-  final bool fullUnicodeRtlSupport = params['fullUnicodeRtlSupport'] ?? true;
-
-  final content = SubtitleEncodings.decode(bytes, encodingName);
-
-  if (ext == 'ssa' || ext == 'ass') {
-    return _parseSsa(content, ignoreAssFonts, ignoreAssEffects, hideWhenNoDialog, fullUnicodeRtlSupport);
-  } else {
-    return _parseSrt(content, fullUnicodeRtlSupport);
-  }
-}
-
-List<SubtitleEntry> _parseSrt(String content, bool fullUnicodeRtlSupport) {
-  final entries = <SubtitleEntry>[];
-  final blocks = content.trim().split(RegExp(r'\r?\n\r?\n'));
-
-  for (final block in blocks) {
-    final lines = block.trim().split(RegExp(r'\r?\n'));
-    if (lines.length < 3) continue;
-    try {
-      final timeLine = lines[1];
-      final parts = timeLine.split(' --> ');
-      if (parts.length != 2) continue;
-
-      final start = _parseTime(parts[0].trim());
-      final end = _parseTime(parts[1].trim().split(' ').first);
-
-      String text = lines.sublist(2).join('\n').replaceAll(RegExp(r'<[^>]*>'), '').trim();
-
-      if (fullUnicodeRtlSupport) {
-        text = SubtitleRenderService.processText(text, ignoreAssFonts: false, ignoreAssEffects: false, fullUnicodeRtlSupport: true);
+    // بناء خلفية الترجمة (شكل الخلفية، الحدود، Padding)
+    if (settings.bgOpacity > 0) {
+      double radius;
+      switch (settings.bgShape) {
+        case SubtitleBgShape.rectangle:
+          radius = 0;
+          break;
+        case SubtitleBgShape.capsule:
+          radius = 100;
+          break;
+        case SubtitleBgShape.rounded:
+        default:
+          radius = settings.bgBorderRadius;
       }
 
-      if (text.isNotEmpty) {
-        entries.add(SubtitleEntry(start: start, end: end, text: text));
-      }
-    } catch (_) {}
+      textWidget = Container(
+        padding: EdgeInsets.all(settings.bgPadding), // الـ Padding الذي اخترته من الإعدادات
+        decoration: BoxDecoration(
+          color: settings.bgColor.withOpacity(settings.bgOpacity),
+          borderRadius: BorderRadius.circular(radius),
+          border: settings.bgBorderWidth > 0
+              ? Border.all(color: settings.bgBorderColor, width: settings.bgBorderWidth)
+              : null,
+        ),
+        child: textWidget,
+      );
+    }
+
+    // ✅ الإصلاح الجذري لمشكلة اللمس: Positioned هي الأساس
+    // ملاحظة: layout.position.dy محسوبة في SubtitleLayoutEngine كإحداثي
+    // مطلق من أعلى الشاشة (وليس كمسافة من الأسفل)، لذلك يجب استعمالها
+    // مع `top:` وليس `bottom:` — وإلا تُرسَم الترجمة قرب أعلى الشاشة
+    // خلف الشريط العلوي فتبدو غير ظاهرة إطلاقاً.
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: layout.position.dy,
+      child: IgnorePointer(
+        child: Padding(
+          padding: padding,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: layout.maxWidth),
+              child: textWidget,
+            ),
+          ),
+        ),
+      ),
+    );
   }
-  return entries;
-}
-
-List<SubtitleEntry> _parseSsa(
-  String content,
-  bool ignoreAssFonts,
-  bool ignoreAssEffects,
-  bool hideWhenNoDialog,
-  bool fullUnicodeRtlSupport,
-) {
-  final entries = <SubtitleEntry>[];
-  bool inEvents = false;
-  final lines = content.split(RegExp(r'\r?\n'));
-  int formatIndex = -1;
-
-  for (final line in lines) {
-    final trimmed = line.trim();
-    if (trimmed.startsWith('[Events]')) {
-      inEvents = true;
-      continue;
-    }
-    if (trimmed.startsWith('[') && !trimmed.startsWith('[Events]')) {
-      inEvents = false;
-      continue;
-    }
-    if (!inEvents) continue;
-    if (trimmed.startsWith('Format:')) {
-      final fields = trimmed.substring(7).split(',').map((e) => e.trim()).toList();
-      formatIndex = fields.indexOf('Text');
-      continue;
-    }
-    if (trimmed.startsWith('Dialogue:')) {
-      if (formatIndex < 0) continue;
-      final parts = _splitDialogue(trimmed.substring(9));
-      if (parts.length <= formatIndex) continue;
-      try {
-        final start = _parseSsaTime(parts[1]);
-        final end = _parseSsaTime(parts[2]);
-        final rawText = parts.sublist(formatIndex).join(',');
-        final cleanText = SubtitleRenderService.processText(
-          rawText,
-          ignoreAssFonts: ignoreAssFonts,
-          ignoreAssEffects: ignoreAssEffects,
-          fullUnicodeRtlSupport: fullUnicodeRtlSupport,
-        );
-        if (cleanText.isEmpty && hideWhenNoDialog) continue;
-        if (cleanText.isNotEmpty) {
-          entries.add(SubtitleEntry(start: start, end: end, text: cleanText));
-        }
-      } catch (_) {}
-    }
-  }
-  return entries;
-}
-
-List<String> _splitDialogue(String line) {
-  final parts = <String>[];
-  int depth = 0;
-  final current = StringBuffer();
-  for (int i = 0; i < line.length; i++) {
-    final char = line[i];
-    if (char == '{') depth++;
-    if (char == '}') depth--;
-    if (char == ',' && depth == 0) {
-      parts.add(current.toString().trim());
-      current.clear();
-    } else {
-      current.write(char);
-    }
-  }
-  parts.add(current.toString().trim());
-  return parts;
-}
-
-Duration _parseSsaTime(String s) {
-  s = s.trim();
-  final parts = s.split(':');
-  final hours = int.tryParse(parts[0]) ?? 0;
-  final minutes = int.tryParse(parts[1]) ?? 0;
-  final secParts = parts[2].split('.');
-  final seconds = int.tryParse(secParts[0]) ?? 0;
-  final centiseconds = int.tryParse(secParts[1]) ?? 0;
-  return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: centiseconds * 10);
-}
-
-Duration _parseTime(String s) {
-  final normalized = s.replaceAll(',', '.');
-  final dotIndex = normalized.lastIndexOf('.');
-  int ms = 0;
-  String hms = normalized;
-  if (dotIndex != -1) {
-    ms = int.tryParse(normalized.substring(dotIndex + 1).padRight(3, '0').substring(0, 3)) ?? 0;
-    hms = normalized.substring(0, dotIndex);
-  }
-  final parts = hms.split(':');
-  final h = int.tryParse(parts[0]) ?? 0;
-  final m = int.tryParse(parts[1]) ?? 0;
-  final sec = int.tryParse(parts[2]) ?? 0;
-  return Duration(hours: h, minutes: m, seconds: sec, milliseconds: ms);
 }

@@ -1,5 +1,4 @@
-// lib/services/player_control_service.dart
-
+// player_control_service.dart (كامل)
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -7,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit/src/player/native/player/real.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -175,10 +175,9 @@ class PlayerControlService {
       });
 
       player.stream.subtitle.listen((lines) {
-        debugPrint('🔴 Subtitle stream: $lines');
-        if (lines.isNotEmpty) {
-          state.updateSubtitleText(lines.join('\n'));
-        }
+        // لازم نمسح النص عند عدم وجود سطر نشط (lines فارغة)، وإلا يبقى آخر
+        // نص معروضاً على الشاشة حتى بعد انتهاء الحوار الفعلي في الترجمة.
+        state.updateSubtitleText(lines.isNotEmpty ? lines.join('\n') : null);
       });
 
       state.initialized = true;
@@ -192,28 +191,6 @@ class PlayerControlService {
             SnackBar(content: Text('تعذر تشغيل الملف: $e')));
         Navigator.pop(context);
       }
-    }
-  }
-
-  void applyPreferredSubtitleLanguage() {
-    debugPrint('applyPreferredSubtitleLanguage called, tracks: ${state.subtitleTracks.length}');
-    if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
-    for (final track in state.subtitleTracks) {
-      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
-        player.setSubtitleTrack(track);
-        state.showSubtitles = true;
-        state.autoSubtitleSelected = true;
-        state.notifyListeners();
-        return;
-      }
-    }
-    if (state.subtitleTracks.isNotEmpty) {
-      player.setSubtitleTrack(state.subtitleTracks.first);
-      state.showSubtitles = true;
-      state.autoSubtitleSelected = true;
-      state.notifyListeners();
-    } else {
-      state.autoSubtitleSelected = true;
     }
   }
 
@@ -320,6 +297,20 @@ class PlayerControlService {
         state.notifyListeners();
       }
     });
+  }
+
+  void applyPreferredSubtitleLanguage() {
+    if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
+    for (final track in state.subtitleTracks) {
+      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
+        player.setSubtitleTrack(track);
+        state.showSubtitles = true;
+        state.autoSubtitleSelected = true;
+        state.notifyListeners();
+        return;
+      }
+    }
+    state.autoSubtitleSelected = true;
   }
 
   void applyPreferredAudioLanguage() {

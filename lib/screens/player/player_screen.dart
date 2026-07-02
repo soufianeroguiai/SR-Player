@@ -1,5 +1,4 @@
-// lib/screens/player/player_screen.dart
-
+// player_screen.dart (كامل)
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,8 +62,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   static const double _lockBtnSize = 44.0;
   static const double _lockTrackWidth = 220.0;
 
-  bool _showDebug = false;
-
   @override
   void initState() {
     super.initState();
@@ -104,7 +101,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     await _service.initPlayer();
     _state.addListener(_onStateChanged);
     _applyNativeAssSettings();
-    await _loadSubtitleFromAdjacentFile();
   }
 
   void _onStateChanged() {
@@ -235,9 +231,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   bool _shouldUseFlutterRenderer() {
-  // استخدم Flutter Renderer إذا كانت الترجمة مفعلة، بغض النظر عن مصدرها (داخلية أو خارجية)
-  return _state.showSubtitles && _state.subtitleTracks.isNotEmpty;
-}
+    final sub = _settingsProvider.subtitleSettings;
+    if (_state.hasExternalSubtitle && _state.lastSubtitleEntries != null) {
+      final String ext = widget.video.path.split('.').last.toLowerCase();
+      if (ext == 'ass' || ext == 'ssa') {
+        if (!sub.ignoreAssEffects) return false;
+      }
+    }
+    return true;
+  }
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
@@ -911,51 +913,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _showDebugDialog() async {
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              title: const Text('تشخيص الترجمة'),
-              content: SingleChildScrollView(
-                child: StreamBuilder(
-                  stream: Stream.periodic(const Duration(milliseconds: 500)),
-                  builder: (context, _) {
-                    final track = _player.state.track.subtitle;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('showSubtitles: ${_state.showSubtitles}'),
-                        Text('hasExternalSubtitle: ${_state.hasExternalSubtitle}'),
-                        Text('lastSubtitleEntries: ${_state.lastSubtitleEntries?.length ?? 0} entries'),
-                        Text('subtitleTracks: ${_state.subtitleTracks.length}'),
-                        Text('currentSubtitleText: ${_state.currentSubtitleText?.substring(0, _state.currentSubtitleText!.length > 30 ? 30 : _state.currentSubtitleText?.length ?? 0) ?? "null"}'),
-                        Text('useFlutterRenderer: ${_shouldUseFlutterRenderer()}'),
-                        Text('active track: ${track?.id ?? "none"}'),
-                        Text('active track language: ${track?.language ?? "none"}'),
-                        const SizedBox(height: 10),
-                        Text('subtitle stream latest: ${_state.currentSubtitleText ?? "none"}'),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  child: const Text('إغلاق'),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1017,21 +974,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
 
                 if (useFlutterRenderer && _state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
-  SubtitleRenderer(
-    visible: true,
-    currentEntry: SubtitleEntry(
-      start: Duration.zero,
-      end: const Duration(hours: 1),
-      text: _state.currentSubtitleText!,
-    ),
-    settings: subtitleSettings,
-    videoSize: Size(
-      MediaQuery.of(context).size.width,
-      MediaQuery.of(context).size.height,
-    ),
-    screenSize: MediaQuery.of(context).size,
-    safeArea: MediaQuery.of(context).padding,
-  ),
+                  SubtitleRenderer(
+                    currentEntry: SubtitleEntry(
+                      start: Duration.zero,
+                      end: const Duration(hours: 1),
+                      text: _state.currentSubtitleText!,
+                    ),
+                    settings: subtitleSettings,
+                    // أبعاد الفيديو الحقيقية (وليس حجم الشاشة) لحساب "البقاء
+                    // داخل الفيديو" والتحجيم الذكي بدقة. نرجع لحجم الشاشة فقط
+                    // إذا لم تكن الأبعاد متوفرة بعد (قبل بدء فك التشفير).
+                    videoSize: (_player.state.width != null &&
+                            _player.state.height != null &&
+                            _player.state.width! > 0 &&
+                            _player.state.height! > 0)
+                        ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
+                        : MediaQuery.of(context).size,
+                    screenSize: MediaQuery.of(context).size,
+                    safeArea: MediaQuery.of(context).padding,
+                  ),
 
                 IgnorePointer(
                   child: AnimatedOpacity(
@@ -1319,16 +1280,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: _buildPlaylistEditor(),
                   ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: FloatingActionButton.small(
-                    heroTag: 'debug',
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                    child: const Icon(Icons.bug_report, color: Colors.white),
-                    onPressed: _showDebugDialog,
-                  ),
-                ),
               ]),
       ),
     );
