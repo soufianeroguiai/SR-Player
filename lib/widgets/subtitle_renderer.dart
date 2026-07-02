@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/subtitle_settings.dart'; // تأكد من مسار الملف
-import '../services/subtitle_service.dart'; // تأكد من مسار الملف
-import '../screens/player/subtitle_style_builder.dart'; // تأكد من مسار الملف
-import '../services/subtitle_layout_engine.dart'; // تأكد من مسار الملف
+import '../models/subtitle_settings.dart';
+import '../services/subtitle_service.dart';
+import '../screens/player/subtitle_style_builder.dart';
+import '../services/subtitle_layout_engine.dart';
 
 class SubtitleRenderer extends StatelessWidget {
   final SubtitleEntry? currentEntry;
@@ -24,8 +24,7 @@ class SubtitleRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ميزة: إخفاء الترجمة عند عدم وجود حوار تعمل هنا تلقائياً
-    if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
+    if (currentEntry == null || !visible || currentEntry!.text.trim().isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -43,10 +42,8 @@ class SubtitleRenderer extends StatelessWidget {
     final padding = buildSubtitlePadding(settings);
     final textAlign = buildSubtitleTextAlign(settings);
 
-    // 🌟 السحر هنا: تنظيف النص من أكواد ASS إذا فعل المستخدم خيار "تجاهل تأثيرات ASS"
     String displayText = currentEntry!.text;
     if (settings.ignoreAssEffects) {
-      // يمسح أي كود بين أقواس معقوفة مثل {\an8} أو {\c&H0000FF&}
       displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
     }
 
@@ -64,7 +61,6 @@ class SubtitleRenderer extends StatelessWidget {
       ),
     );
 
-    // بناء خلفية الترجمة (شكل الخلفية، الحدود، Padding)
     if (settings.bgOpacity > 0) {
       double radius;
       switch (settings.bgShape) {
@@ -80,7 +76,7 @@ class SubtitleRenderer extends StatelessWidget {
       }
 
       textWidget = Container(
-        padding: EdgeInsets.all(settings.bgPadding), // الـ Padding الذي اخترته من الإعدادات
+        padding: EdgeInsets.all(settings.bgPadding),
         decoration: BoxDecoration(
           color: settings.bgColor.withOpacity(settings.bgOpacity),
           borderRadius: BorderRadius.circular(radius),
@@ -92,7 +88,6 @@ class SubtitleRenderer extends StatelessWidget {
       );
     }
 
-    // ✅ الإصلاح الجذري لمشكلة اللمس: Positioned هي الأساس
     return Positioned(
       left: 0,
       right: 0,

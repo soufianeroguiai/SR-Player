@@ -1017,20 +1017,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
 
                 if (useFlutterRenderer && _state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
-                  SubtitleRenderer(
-                    currentEntry: SubtitleEntry(
-                      start: Duration.zero,
-                      end: const Duration(hours: 1),
-                      text: _state.currentSubtitleText!,
-                    ),
-                    settings: subtitleSettings,
-                    videoSize: Size(
-                      MediaQuery.of(context).size.width,
-                      MediaQuery.of(context).size.height,
-                    ),
-                    screenSize: MediaQuery.of(context).size,
-                    safeArea: MediaQuery.of(context).padding,
-                  ),
+  SubtitleRenderer(
+    visible: true,
+    currentEntry: SubtitleEntry(
+      start: Duration.zero,
+      end: const Duration(hours: 1),
+      text: _state.currentSubtitleText!,
+    ),
+    settings: subtitleSettings,
+    videoSize: Size(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    ),
+    screenSize: MediaQuery.of(context).size,
+    safeArea: MediaQuery.of(context).padding,
+  ),
 
                 IgnorePointer(
                   child: AnimatedOpacity(
