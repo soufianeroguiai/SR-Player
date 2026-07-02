@@ -173,6 +173,13 @@ class PlayerControlService {
         applyPreferredAudioLanguage();
       });
 
+      // استقبال الترجمة المدمجة وإرسالها إلى الواجهة
+      player.stream.subtitle.listen((lines) {
+        if (lines.isNotEmpty) {
+          state.updateSubtitleText(lines.join('\n'));
+        }
+      });
+
       state.initialized = true;
       state.notifyListeners();
       if (!state.showResumeDialog) scheduleHide();
