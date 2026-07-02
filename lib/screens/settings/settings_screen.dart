@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
+import '../../widgets/subtitle_preview.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
@@ -131,7 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
         _sectionHeader(context, 'الترجمة', Symbols.subtitles_rounded),
 
-        // قسم المظهر
+        // ========== قسم المظهر ==========
         _card(context, [
           _sectionFoldHeader(context, 'المظهر', Symbols.palette_rounded, _openSection == 0, () => setState(() => _openSection = _openSection == 0 ? -1 : 0)),
           if (_openSection == 0) ...[
@@ -141,6 +142,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             _effectsSection(context, s, sub),
             const SizedBox(height: 12),
+            _bgSection(context, s, sub),
+            const SizedBox(height: 12),
             _switchTile(context, Symbols.format_italic_rounded, 'تأثير مائل', 'تفعيل الخط المائل للترجمة', s.subtitleItalic, s.setSubtitleItalic),
             const Divider(height: 1),
             Center(
@@ -148,12 +151,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () {
                   s.updateSubtitleSettings(sub.copyWith(
                     fontSize: 30.0, subtitleScale: 1.0, fontFamily: 'Roboto',
-                    textColor: const Color(0xFFFFFFFF), fontWeightIndex: 2,
-                    outlineColor: const Color(0xFF000000), outlineWidth: 2.0,
+                    textColor: const Color(0xFFFFFFFF), textOpacity: 1.0,
+                    fontWeightIndex: 2, outlineColor: const Color(0xFF000000),
+                    outlineWidth: 2.0, outlineScale: 1.0,
                     shadowEnabled: false, shadowColor: const Color(0xFF000000),
                     shadowOpacity: 0.5, shadowOffsetX: 2.0, shadowOffsetY: 2.0,
                     shadowBlurRadius: 4.0, bgColor: const Color(0xFF000000),
-                    bgOpacity: 0.0, bgBorderRadius: 4.0, letterSpacing: 0.0,
+                    bgOpacity: 0.0, bgBorderRadius: 4.0, bgBorderColor: const Color(0xFFFFFFFF),
+                    bgBorderWidth: 0.0, bgPadding: 8.0, bgShape: SubtitleBgShape.rounded,
+                    letterSpacing: 0.0, wordSpacing: 0.0,
                     lineHeight: 1.2, lineSpacing: 1.0, autoWrap: true, maxLines: 2,
                   ));
                   s.setSubtitleItalic(false);
@@ -166,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // قسم الموضع
+        // ========== قسم الموضع ==========
         _card(context, [
           _sectionFoldHeader(context, 'الموضع', Symbols.open_with_rounded, _openSection == 1, () => setState(() => _openSection = _openSection == 1 ? -1 : 1)),
           if (_openSection == 1) ...[
@@ -195,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // قسم السلوك
+        // ========== قسم السلوك ==========
         _card(context, [
           _sectionFoldHeader(context, 'السلوك', Symbols.settings_rounded, _openSection == 2, () => setState(() => _openSection = _openSection == 2 ? -1 : 2)),
           if (_openSection == 2) ...[
@@ -231,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // قسم التوافق
+        // ========== قسم التوافق ==========
         _card(context, [
           _sectionFoldHeader(context, 'التوافق', Symbols.tune_rounded, _openSection == 3, () => setState(() => _openSection = _openSection == 3 ? -1 : 3)),
           if (_openSection == 3) ...[
@@ -253,6 +259,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ]),
+
+        const SizedBox(height: 12),
+        // ========== المعاينة المباشرة ==========
+        SubtitlePreview(settings: sub),
 
         const SizedBox(height: 16),
         _sectionHeader(context, 'المكتبة', Symbols.video_library_rounded),
@@ -471,8 +481,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _sliderRow(context, 'تباعد الحروف', sub.letterSpacing, -2, 10, '${sub.letterSpacing.toStringAsFixed(1)}',
           (v) => s.updateSubtitleSettings(sub.copyWith(letterSpacing: v))),
       const SizedBox(height: 8),
+      _sliderRow(context, 'تباعد الكلمات', sub.wordSpacing, -5, 20, '${sub.wordSpacing.toStringAsFixed(1)}',
+          (v) => s.updateSubtitleSettings(sub.copyWith(wordSpacing: v))),
+      const SizedBox(height: 8),
       _sliderRow(context, 'سمك الخط', sub.fontWeightIndex.toDouble(), 0, 3, _fontWeightName(sub.fontWeightIndex),
           (v) => s.updateSubtitleSettings(sub.copyWith(fontWeightIndex: v.toInt()))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'شفافية النص', sub.textOpacity, 0.1, 1.0, '${(sub.textOpacity * 100).toInt()}%',
+          (v) => s.updateSubtitleSettings(sub.copyWith(textOpacity: v))),
     ]);
   }
 
@@ -520,6 +536,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _sliderRow(context, 'سماكة الحدّ', sub.outlineWidth, 0.5, 6.0, sub.outlineWidth.toStringAsFixed(1),
             (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'مقياس مستقل للحدود', sub.outlineScale, 0.5, 3.0, '${sub.outlineScale.toStringAsFixed(1)}x',
+            (v) => s.updateSubtitleSettings(sub.copyWith(outlineScale: v))),
       ],
       const SizedBox(height: 8),
       _switchTile(context, Symbols.blur_on_rounded, 'ظل النص', 'ظل خلف نص الترجمة',
@@ -543,6 +562,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowBlurRadius: v))),
       ],
     ]);
+  }
+
+  Widget _bgSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('الخلفية', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      _choiceTile(context, Symbols.shape_line_rounded, 'شكل الخلفية', _bgShapeName(sub.bgShape),
+          () => _showBgShapePicker(context, s, sub)),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.border_style_rounded, 'حدود الخلفية', 'تفعيل حدود حول صندوق الترجمة',
+          sub.bgBorderWidth > 0,
+          (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderWidth: v ? 2.0 : 0.0))),
+      if (sub.bgBorderWidth > 0) ...[
+        const SizedBox(height: 8),
+        _colorRow(context, 'لون الحدود', sub.bgBorderColor,
+            (c) => s.updateSubtitleSettings(sub.copyWith(bgBorderColor: c))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'سماكة الحدود', sub.bgBorderWidth, 0.5, 6.0, '${sub.bgBorderWidth.toStringAsFixed(1)}',
+            (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderWidth: v))),
+      ],
+      const SizedBox(height: 8),
+      _sliderRow(context, 'Padding الخلفية', sub.bgPadding, 0, 20, '${sub.bgPadding.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(bgPadding: v))),
+    ]);
+  }
+
+  String _bgShapeName(SubtitleBgShape shape) {
+    switch (shape) {
+      case SubtitleBgShape.rectangle: return 'مستطيل';
+      case SubtitleBgShape.rounded: return 'مدور';
+      case SubtitleBgShape.capsule: return 'كبسولة';
+    }
+  }
+
+  void _showBgShapePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('شكل الخلفية', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('مستطيل'),
+            leading: const Icon(Symbols.rectangle_rounded),
+            trailing: sub.bgShape == SubtitleBgShape.rectangle ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(bgShape: SubtitleBgShape.rectangle));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('مدور'),
+            leading: const Icon(Symbols.rounded_corner_rounded),
+            trailing: sub.bgShape == SubtitleBgShape.rounded ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(bgShape: SubtitleBgShape.rounded));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('كبسولة'),
+            leading: const Icon(Symbols.circle_rounded),
+            trailing: sub.bgShape == SubtitleBgShape.capsule ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(bgShape: SubtitleBgShape.capsule));
+              Navigator.pop(ctx);
+            },
+          ),
+        ]),
+      ),
+    );
   }
 
   Widget _positionSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {

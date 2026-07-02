@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 enum SubtitlePosition { top, center, bottom }
 enum SubtitleAlignment { right, center, left }
 enum SubtitleScaleMode { fixed, byResolution, byWindow, smart }
+enum SubtitleBgShape { rectangle, rounded, capsule }
 
 class SubtitleSettings {
   final double fontSize;
   final double subtitleScale;
   final String fontFamily;
   final Color textColor;
+  final double textOpacity;
   final int fontWeightIndex;
   final Color outlineColor;
   final double outlineWidth;
+  final double outlineScale;
   final bool shadowEnabled;
   final Color shadowColor;
   final double shadowOpacity;
@@ -21,7 +24,12 @@ class SubtitleSettings {
   final Color bgColor;
   final double bgOpacity;
   final double bgBorderRadius;
+  final Color bgBorderColor;
+  final double bgBorderWidth;
+  final double bgPadding;
+  final SubtitleBgShape bgShape;
   final double letterSpacing;
+  final double wordSpacing;
   final double lineHeight;
   final double lineSpacing;
   final bool autoWrap;
@@ -53,9 +61,11 @@ class SubtitleSettings {
     this.subtitleScale = 1.0,
     this.fontFamily = 'Roboto',
     this.textColor = const Color(0xFFFFFFFF),
+    this.textOpacity = 1.0,
     this.fontWeightIndex = 2,
     this.outlineColor = const Color(0xFF000000),
     this.outlineWidth = 2.0,
+    this.outlineScale = 1.0,
     this.shadowEnabled = false,
     this.shadowColor = const Color(0xFF000000),
     this.shadowOpacity = 0.5,
@@ -65,7 +75,12 @@ class SubtitleSettings {
     this.bgColor = const Color(0xFF000000),
     this.bgOpacity = 0.0,
     this.bgBorderRadius = 4.0,
+    this.bgBorderColor = const Color(0xFFFFFFFF),
+    this.bgBorderWidth = 0.0,
+    this.bgPadding = 8.0,
+    this.bgShape = SubtitleBgShape.rounded,
     this.letterSpacing = 0.0,
+    this.wordSpacing = 0.0,
     this.lineHeight = 1.2,
     this.lineSpacing = 1.0,
     this.autoWrap = true,
@@ -98,9 +113,11 @@ class SubtitleSettings {
     double? subtitleScale,
     String? fontFamily,
     Color? textColor,
+    double? textOpacity,
     int? fontWeightIndex,
     Color? outlineColor,
     double? outlineWidth,
+    double? outlineScale,
     bool? shadowEnabled,
     Color? shadowColor,
     double? shadowOpacity,
@@ -110,7 +127,12 @@ class SubtitleSettings {
     Color? bgColor,
     double? bgOpacity,
     double? bgBorderRadius,
+    Color? bgBorderColor,
+    double? bgBorderWidth,
+    double? bgPadding,
+    SubtitleBgShape? bgShape,
     double? letterSpacing,
+    double? wordSpacing,
     double? lineHeight,
     double? lineSpacing,
     bool? autoWrap,
@@ -142,9 +164,11 @@ class SubtitleSettings {
       subtitleScale: subtitleScale ?? this.subtitleScale,
       fontFamily: fontFamily ?? this.fontFamily,
       textColor: textColor ?? this.textColor,
+      textOpacity: textOpacity ?? this.textOpacity,
       fontWeightIndex: fontWeightIndex ?? this.fontWeightIndex,
       outlineColor: outlineColor ?? this.outlineColor,
       outlineWidth: outlineWidth ?? this.outlineWidth,
+      outlineScale: outlineScale ?? this.outlineScale,
       shadowEnabled: shadowEnabled ?? this.shadowEnabled,
       shadowColor: shadowColor ?? this.shadowColor,
       shadowOpacity: shadowOpacity ?? this.shadowOpacity,
@@ -154,7 +178,12 @@ class SubtitleSettings {
       bgColor: bgColor ?? this.bgColor,
       bgOpacity: bgOpacity ?? this.bgOpacity,
       bgBorderRadius: bgBorderRadius ?? this.bgBorderRadius,
+      bgBorderColor: bgBorderColor ?? this.bgBorderColor,
+      bgBorderWidth: bgBorderWidth ?? this.bgBorderWidth,
+      bgPadding: bgPadding ?? this.bgPadding,
+      bgShape: bgShape ?? this.bgShape,
       letterSpacing: letterSpacing ?? this.letterSpacing,
+      wordSpacing: wordSpacing ?? this.wordSpacing,
       lineHeight: lineHeight ?? this.lineHeight,
       lineSpacing: lineSpacing ?? this.lineSpacing,
       autoWrap: autoWrap ?? this.autoWrap,
@@ -189,9 +218,11 @@ class SubtitleSettings {
       'subtitleScale': subtitleScale,
       'fontFamily': fontFamily,
       'textColor': textColor.value,
+      'textOpacity': textOpacity,
       'fontWeightIndex': fontWeightIndex,
       'outlineColor': outlineColor.value,
       'outlineWidth': outlineWidth,
+      'outlineScale': outlineScale,
       'shadowEnabled': shadowEnabled,
       'shadowColor': shadowColor.value,
       'shadowOpacity': shadowOpacity,
@@ -201,7 +232,12 @@ class SubtitleSettings {
       'bgColor': bgColor.value,
       'bgOpacity': bgOpacity,
       'bgBorderRadius': bgBorderRadius,
+      'bgBorderColor': bgBorderColor.value,
+      'bgBorderWidth': bgBorderWidth,
+      'bgPadding': bgPadding,
+      'bgShape': bgShape.index,
       'letterSpacing': letterSpacing,
+      'wordSpacing': wordSpacing,
       'lineHeight': lineHeight,
       'lineSpacing': lineSpacing,
       'autoWrap': autoWrap,
@@ -236,9 +272,11 @@ class SubtitleSettings {
       subtitleScale: map['subtitleScale'] ?? 1.0,
       fontFamily: map['fontFamily'] ?? 'Roboto',
       textColor: Color(map['textColor'] ?? 0xFFFFFFFF),
+      textOpacity: map['textOpacity'] ?? 1.0,
       fontWeightIndex: map['fontWeightIndex'] ?? 2,
       outlineColor: Color(map['outlineColor'] ?? 0xFF000000),
       outlineWidth: map['outlineWidth'] ?? 2.0,
+      outlineScale: map['outlineScale'] ?? 1.0,
       shadowEnabled: map['shadowEnabled'] ?? false,
       shadowColor: Color(map['shadowColor'] ?? 0xFF000000),
       shadowOpacity: map['shadowOpacity'] ?? 0.5,
@@ -248,7 +286,12 @@ class SubtitleSettings {
       bgColor: Color(map['bgColor'] ?? 0xFF000000),
       bgOpacity: map['bgOpacity'] ?? 0.0,
       bgBorderRadius: map['bgBorderRadius'] ?? 4.0,
+      bgBorderColor: Color(map['bgBorderColor'] ?? 0xFFFFFFFF),
+      bgBorderWidth: map['bgBorderWidth'] ?? 0.0,
+      bgPadding: map['bgPadding'] ?? 8.0,
+      bgShape: SubtitleBgShape.values[map['bgShape'] ?? 1],
       letterSpacing: map['letterSpacing'] ?? 0.0,
+      wordSpacing: map['wordSpacing'] ?? 0.0,
       lineHeight: map['lineHeight'] ?? 1.2,
       lineSpacing: map['lineSpacing'] ?? 1.0,
       autoWrap: map['autoWrap'] ?? true,

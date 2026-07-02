@@ -7,14 +7,15 @@ TextStyle buildSubtitleTextStyle(SubtitleSettings s) {
   final shadows = <Shadow>[];
 
   if (s.outlineWidth > 0) {
+    final effectiveOutline = s.outlineWidth * s.outlineScale;
     const steps = 16;
     for (var i = 0; i < steps; i++) {
       final angle = (2 * math.pi / steps) * i;
       shadows.add(Shadow(
         color: s.outlineColor,
         offset: Offset(
-          math.cos(angle) * s.outlineWidth,
-          math.sin(angle) * s.outlineWidth,
+          math.cos(angle) * effectiveOutline,
+          math.sin(angle) * effectiveOutline,
         ),
         blurRadius: s.improveAntiAliasing ? 0.5 : 0.0,
       ));
@@ -34,9 +35,10 @@ TextStyle buildSubtitleTextStyle(SubtitleSettings s) {
 
   final baseStyle = TextStyle(
     fontSize: effectiveFontSize,
-    color: s.textColor,
+    color: s.textColor.withOpacity(s.textOpacity),
     fontWeight: _fontWeight(s.fontWeightIndex),
     letterSpacing: s.letterSpacing,
+    wordSpacing: s.wordSpacing,
     height: effectiveHeight > 0 ? effectiveHeight : null,
     backgroundColor: s.bgOpacity > 0 ? s.bgColor.withOpacity(s.bgOpacity) : null,
     shadows: shadows.isEmpty ? null : shadows,
