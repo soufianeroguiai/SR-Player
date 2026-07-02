@@ -173,16 +173,6 @@ class PlayerControlService {
         applyPreferredAudioLanguage();
       });
 
-      player.stream.subtitle.listen((subtitle) {
-        if (subtitle is SubtitleTrack && subtitle.data != null) {
-          state.updateSubtitleText(subtitle.data);
-        } else if (subtitle is SubtitleTrack) {
-          state.updateSubtitleText(null);
-        } else {
-          state.updateSubtitleText(null);
-        }
-      });
-
       state.initialized = true;
       state.notifyListeners();
       if (!state.showResumeDialog) scheduleHide();
