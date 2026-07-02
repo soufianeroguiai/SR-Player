@@ -362,6 +362,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SizedBox(height: 8),
       _choiceTile(context, Symbols.font_download_rounded, 'نوع الخط', sub.fontFamily,
           () => showFontPicker(context, s)),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'مقياس الترجمة', sub.subtitleScale, 0.5, 3.0, '${sub.subtitleScale.toStringAsFixed(1)}x',
+          (v) => s.updateSubtitleSettings(sub.copyWith(subtitleScale: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'تباعد الأسطر', sub.lineSpacing, 0.8, 2.0, '${sub.lineSpacing.toStringAsFixed(1)}x',
+          (v) => s.updateSubtitleSettings(sub.copyWith(lineSpacing: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'أقصى عدد للأسطر', sub.maxLines.toDouble(), 1, 6, '${sub.maxLines}',
+          (v) => s.updateSubtitleSettings(sub.copyWith(maxLines: v.toInt()))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.wrap_text_rounded, 'لف النص', 'لف النص التلقائي للترجمة',
+          sub.autoWrap,
+          (v) => s.updateSubtitleSettings(sub.copyWith(autoWrap: v))),
     ]);
   }
 
@@ -412,6 +425,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _sliderRow(context, 'شفافية الظل', sub.shadowOpacity, 0.1, 1.0, '${(sub.shadowOpacity * 100).toInt()}%',
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowOpacity: v))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'إزاحة أفقية', sub.shadowOffsetX, -10, 10, '${sub.shadowOffsetX.toInt()}',
+            (v) => s.updateSubtitleSettings(sub.copyWith(shadowOffsetX: v))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'إزاحة رأسية', sub.shadowOffsetY, -10, 10, '${sub.shadowOffsetY.toInt()}',
+            (v) => s.updateSubtitleSettings(sub.copyWith(shadowOffsetY: v))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'تمويه الظل', sub.shadowBlurRadius, 0, 20, '${sub.shadowBlurRadius.toInt()}',
+            (v) => s.updateSubtitleSettings(sub.copyWith(shadowBlurRadius: v))),
       ],
     ]);
   }
@@ -425,6 +447,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SizedBox(height: 8),
       _sliderRow(context, 'الهامش الأفقي', sub.horizontalMargin, 0, 120, '${sub.horizontalMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'هامش الأمان', sub.safeAreaPadding, 0, 60, '${sub.safeAreaPadding.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(safeAreaPadding: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.videocam_rounded, 'البقاء داخل الفيديو', 'عدم خروج الترجمة خارج حدود الفيديو',
+          sub.keepInsideVideo,
+          (v) => s.updateSubtitleSettings(sub.copyWith(keepInsideVideo: v))),
     ]);
   }
 

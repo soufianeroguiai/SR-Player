@@ -49,6 +49,7 @@ class PlayerGestureLayer extends StatefulWidget {
 
 class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
   double _startSubtitleSize = 24.0;
+  double _startSubtitleScale = 1.0;
   double _startBottomPadding = 0.0;
   Offset _startFocalPoint = Offset.zero;
   bool _subtitleGestureActive = false;
@@ -133,8 +134,12 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               : () => widget.onLongPressSpeedEnd?.call(),
           onScaleStart: (details) {
             if (widget.isLocked) return;
+            final sub = s.subtitleSettings;
+            if (details.pointerCount == 3) {
+              _startSubtitleScale = sub.subtitleScale;
+              return;
+            }
             if (details.pointerCount == 2 && !widget.isPlaying) {
-              final sub = s.subtitleSettings;
               _startSubtitleSize = sub.fontSize;
               _startBottomPadding = sub.bottomMargin;
               _startFocalPoint = details.focalPoint;
@@ -146,8 +151,13 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           },
           onScaleUpdate: (details) {
             if (widget.isLocked) return;
+            final sub = s.subtitleSettings;
+            if (details.pointerCount == 3) {
+              final newScale = (_startSubtitleScale * details.scale).clamp(0.5, 3.0);
+              s.updateSubtitleSettings(sub.copyWith(subtitleScale: newScale));
+              return;
+            }
             if (details.pointerCount == 2 && _subtitleGestureActive && !widget.isPlaying) {
-              final sub = s.subtitleSettings;
               final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
               s.updateSubtitleSettings(sub.copyWith(fontSize: newSize));
               final dy = details.focalPoint.dy - _startFocalPoint.dy;
@@ -198,7 +208,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           child: widget.child,
         ),
 
-        // مؤشر التقديم الكبير
         ValueListenableBuilder<bool>(
           valueListenable: _showSeekNotifier,
           builder: (context, show, _) {
@@ -234,7 +243,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           },
         ),
 
-        // مؤشر الصوت
         ValueListenableBuilder<bool>(
           valueListenable: _showVolNotifier,
           builder: (context, show, _) {
@@ -257,7 +265,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           },
         ),
 
-        // مؤشر السطوع
         ValueListenableBuilder<bool>(
           valueListenable: _showBrightNotifier,
           builder: (context, show, _) {
@@ -284,7 +291,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           },
         ),
 
-        // تلميح النقر المزدوج
         if (_hintSeconds != null)
           Center(
             child: Container(
@@ -316,7 +322,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
             ),
           ),
 
-        // مؤشر التسريع أثناء الضغط المطول
         if (widget.isSpeedBoosted)
           Positioned(
             top: 60,

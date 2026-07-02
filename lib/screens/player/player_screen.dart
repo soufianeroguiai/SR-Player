@@ -949,6 +949,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       style: buildSubtitleTextStyle(subtitleSettings),
                       textAlign: buildSubtitleTextAlign(subtitleSettings),
                       padding: buildSubtitlePadding(subtitleSettings),
+                      maxLines: getMaxLines(subtitleSettings),
                     ),
                   ),
                 ),

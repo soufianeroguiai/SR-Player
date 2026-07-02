@@ -4,8 +4,8 @@ enum SubtitlePosition { top, center, bottom }
 enum SubtitleAlignment { right, center, left }
 
 class SubtitleSettings {
-  // 1. المظهر (Appearance)
   final double fontSize;
+  final double subtitleScale;
   final String fontFamily;
   final Color textColor;
   final int fontWeightIndex;
@@ -14,28 +14,30 @@ class SubtitleSettings {
   final bool shadowEnabled;
   final Color shadowColor;
   final double shadowOpacity;
+  final double shadowOffsetX;
+  final double shadowOffsetY;
+  final double shadowBlurRadius;
   final Color bgColor;
   final double bgOpacity;
   final double bgBorderRadius;
   final double letterSpacing;
   final double lineHeight;
-
-  // 2. الموضع (Position)
+  final double lineSpacing;
+  final bool autoWrap;
+  final int maxLines;
   final SubtitlePosition position;
-  final double bottomMargin; // رفع الترجمة
+  final double bottomMargin;
   final SubtitleAlignment alignment;
   final double horizontalMargin;
   final double verticalMargin;
+  final double safeAreaPadding;
   final bool respectNotch;
-
-  // 3. السلوك (Behavior)
+  final bool keepInsideVideo;
   final bool scaleWithVideo;
   final bool autoShow;
   final String autoLanguage;
   final bool loadLastUsed;
-  final bool hideWhenNoDialog; // لترجمات SSA
-
-  // 4. التوافق (Rendering)
+  final bool hideWhenNoDialog;
   final bool improveAnimation;
   final bool complexTextRendering;
   final bool improveSsaAss;
@@ -47,6 +49,7 @@ class SubtitleSettings {
 
   SubtitleSettings({
     this.fontSize = 30.0,
+    this.subtitleScale = 1.0,
     this.fontFamily = 'Roboto',
     this.textColor = const Color(0xFFFFFFFF),
     this.fontWeightIndex = 2,
@@ -55,17 +58,25 @@ class SubtitleSettings {
     this.shadowEnabled = false,
     this.shadowColor = const Color(0xFF000000),
     this.shadowOpacity = 0.5,
+    this.shadowOffsetX = 2.0,
+    this.shadowOffsetY = 2.0,
+    this.shadowBlurRadius = 4.0,
     this.bgColor = const Color(0xFF000000),
     this.bgOpacity = 0.0,
     this.bgBorderRadius = 4.0,
     this.letterSpacing = 0.0,
     this.lineHeight = 1.2,
+    this.lineSpacing = 1.0,
+    this.autoWrap = true,
+    this.maxLines = 2,
     this.position = SubtitlePosition.bottom,
     this.bottomMargin = 48.0,
     this.alignment = SubtitleAlignment.center,
     this.horizontalMargin = 24.0,
     this.verticalMargin = 24.0,
+    this.safeAreaPadding = 20.0,
     this.respectNotch = true,
+    this.keepInsideVideo = true,
     this.scaleWithVideo = true,
     this.autoShow = true,
     this.autoLanguage = 'ara',
@@ -83,6 +94,7 @@ class SubtitleSettings {
 
   SubtitleSettings copyWith({
     double? fontSize,
+    double? subtitleScale,
     String? fontFamily,
     Color? textColor,
     int? fontWeightIndex,
@@ -91,17 +103,25 @@ class SubtitleSettings {
     bool? shadowEnabled,
     Color? shadowColor,
     double? shadowOpacity,
+    double? shadowOffsetX,
+    double? shadowOffsetY,
+    double? shadowBlurRadius,
     Color? bgColor,
     double? bgOpacity,
     double? bgBorderRadius,
     double? letterSpacing,
     double? lineHeight,
+    double? lineSpacing,
+    bool? autoWrap,
+    int? maxLines,
     SubtitlePosition? position,
     double? bottomMargin,
     SubtitleAlignment? alignment,
     double? horizontalMargin,
     double? verticalMargin,
+    double? safeAreaPadding,
     bool? respectNotch,
+    bool? keepInsideVideo,
     bool? scaleWithVideo,
     bool? autoShow,
     String? autoLanguage,
@@ -118,6 +138,7 @@ class SubtitleSettings {
   }) {
     return SubtitleSettings(
       fontSize: fontSize ?? this.fontSize,
+      subtitleScale: subtitleScale ?? this.subtitleScale,
       fontFamily: fontFamily ?? this.fontFamily,
       textColor: textColor ?? this.textColor,
       fontWeightIndex: fontWeightIndex ?? this.fontWeightIndex,
@@ -126,17 +147,25 @@ class SubtitleSettings {
       shadowEnabled: shadowEnabled ?? this.shadowEnabled,
       shadowColor: shadowColor ?? this.shadowColor,
       shadowOpacity: shadowOpacity ?? this.shadowOpacity,
+      shadowOffsetX: shadowOffsetX ?? this.shadowOffsetX,
+      shadowOffsetY: shadowOffsetY ?? this.shadowOffsetY,
+      shadowBlurRadius: shadowBlurRadius ?? this.shadowBlurRadius,
       bgColor: bgColor ?? this.bgColor,
       bgOpacity: bgOpacity ?? this.bgOpacity,
       bgBorderRadius: bgBorderRadius ?? this.bgBorderRadius,
       letterSpacing: letterSpacing ?? this.letterSpacing,
       lineHeight: lineHeight ?? this.lineHeight,
+      lineSpacing: lineSpacing ?? this.lineSpacing,
+      autoWrap: autoWrap ?? this.autoWrap,
+      maxLines: maxLines ?? this.maxLines,
       position: position ?? this.position,
       bottomMargin: bottomMargin ?? this.bottomMargin,
       alignment: alignment ?? this.alignment,
       horizontalMargin: horizontalMargin ?? this.horizontalMargin,
       verticalMargin: verticalMargin ?? this.verticalMargin,
+      safeAreaPadding: safeAreaPadding ?? this.safeAreaPadding,
       respectNotch: respectNotch ?? this.respectNotch,
+      keepInsideVideo: keepInsideVideo ?? this.keepInsideVideo,
       scaleWithVideo: scaleWithVideo ?? this.scaleWithVideo,
       autoShow: autoShow ?? this.autoShow,
       autoLanguage: autoLanguage ?? this.autoLanguage,
@@ -156,6 +185,7 @@ class SubtitleSettings {
   Map<String, dynamic> toMap() {
     return {
       'fontSize': fontSize,
+      'subtitleScale': subtitleScale,
       'fontFamily': fontFamily,
       'textColor': textColor.value,
       'fontWeightIndex': fontWeightIndex,
@@ -164,17 +194,25 @@ class SubtitleSettings {
       'shadowEnabled': shadowEnabled,
       'shadowColor': shadowColor.value,
       'shadowOpacity': shadowOpacity,
+      'shadowOffsetX': shadowOffsetX,
+      'shadowOffsetY': shadowOffsetY,
+      'shadowBlurRadius': shadowBlurRadius,
       'bgColor': bgColor.value,
       'bgOpacity': bgOpacity,
       'bgBorderRadius': bgBorderRadius,
       'letterSpacing': letterSpacing,
       'lineHeight': lineHeight,
+      'lineSpacing': lineSpacing,
+      'autoWrap': autoWrap,
+      'maxLines': maxLines,
       'position': position.index,
       'bottomMargin': bottomMargin,
       'alignment': alignment.index,
       'horizontalMargin': horizontalMargin,
       'verticalMargin': verticalMargin,
+      'safeAreaPadding': safeAreaPadding,
       'respectNotch': respectNotch,
+      'keepInsideVideo': keepInsideVideo,
       'scaleWithVideo': scaleWithVideo,
       'autoShow': autoShow,
       'autoLanguage': autoLanguage,
@@ -194,6 +232,7 @@ class SubtitleSettings {
   factory SubtitleSettings.fromMap(Map<String, dynamic> map) {
     return SubtitleSettings(
       fontSize: map['fontSize'] ?? 30.0,
+      subtitleScale: map['subtitleScale'] ?? 1.0,
       fontFamily: map['fontFamily'] ?? 'Roboto',
       textColor: Color(map['textColor'] ?? 0xFFFFFFFF),
       fontWeightIndex: map['fontWeightIndex'] ?? 2,
@@ -202,17 +241,25 @@ class SubtitleSettings {
       shadowEnabled: map['shadowEnabled'] ?? false,
       shadowColor: Color(map['shadowColor'] ?? 0xFF000000),
       shadowOpacity: map['shadowOpacity'] ?? 0.5,
+      shadowOffsetX: map['shadowOffsetX'] ?? 2.0,
+      shadowOffsetY: map['shadowOffsetY'] ?? 2.0,
+      shadowBlurRadius: map['shadowBlurRadius'] ?? 4.0,
       bgColor: Color(map['bgColor'] ?? 0xFF000000),
       bgOpacity: map['bgOpacity'] ?? 0.0,
       bgBorderRadius: map['bgBorderRadius'] ?? 4.0,
       letterSpacing: map['letterSpacing'] ?? 0.0,
       lineHeight: map['lineHeight'] ?? 1.2,
+      lineSpacing: map['lineSpacing'] ?? 1.0,
+      autoWrap: map['autoWrap'] ?? true,
+      maxLines: map['maxLines'] ?? 2,
       position: SubtitlePosition.values[map['position'] ?? 2],
       bottomMargin: map['bottomMargin'] ?? 48.0,
       alignment: SubtitleAlignment.values[map['alignment'] ?? 1],
       horizontalMargin: map['horizontalMargin'] ?? 24.0,
       verticalMargin: map['verticalMargin'] ?? 24.0,
+      safeAreaPadding: map['safeAreaPadding'] ?? 20.0,
       respectNotch: map['respectNotch'] ?? true,
+      keepInsideVideo: map['keepInsideVideo'] ?? true,
       scaleWithVideo: map['scaleWithVideo'] ?? true,
       autoShow: map['autoShow'] ?? true,
       autoLanguage: map['autoLanguage'] ?? 'ara',
