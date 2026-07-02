@@ -24,7 +24,7 @@ class SubtitleRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (currentEntry == null || !visible || !settings.autoShow) {
+    if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
       return const SizedBox.shrink();
     }
 

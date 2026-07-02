@@ -954,7 +954,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                if (_state.currentSubtitleText != null && _state.currentSubtitleText!.isNotEmpty)
+                if (_state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
                   SubtitleRenderer(
                     currentEntry: SubtitleEntry(
                       start: Duration.zero,
