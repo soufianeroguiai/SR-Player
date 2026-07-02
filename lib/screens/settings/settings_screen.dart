@@ -160,6 +160,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _effectsSection(context, s, sub),
             const SizedBox(height: 12),
             _positionSection(context, s, sub),
+            const SizedBox(height: 12),
+            _behaviorSection(context, s, sub),
+            const SizedBox(height: 12),
+            _renderingSection(context, s, sub),
           ],
         ]),
         const SizedBox(height: 16),
@@ -375,7 +379,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _switchTile(context, Symbols.wrap_text_rounded, 'لف النص', 'لف النص التلقائي للترجمة',
           sub.autoWrap,
           (v) => s.updateSubtitleSettings(sub.copyWith(autoWrap: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'تباعد الحروف', sub.letterSpacing, -2, 10, '${sub.letterSpacing.toStringAsFixed(1)}',
+          (v) => s.updateSubtitleSettings(sub.copyWith(letterSpacing: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'سمك الخط', sub.fontWeightIndex.toDouble(), 0, 3, _fontWeightName(sub.fontWeightIndex),
+          (v) => s.updateSubtitleSettings(sub.copyWith(fontWeightIndex: v.toInt()))),
     ]);
+  }
+
+  String _fontWeightName(int index) {
+    switch (index) {
+      case 0: return 'خفيف';
+      case 1: return 'عادي';
+      case 2: return 'شبه عريض';
+      case 3: return 'عريض جداً';
+      default: return 'عادي';
+    }
   }
 
   Widget _colorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
@@ -395,6 +415,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _sliderRow(context, 'شفافية الخلفية', sub.bgOpacity, 0.1, 1.0, '${(sub.bgOpacity * 100).toInt()}%',
             (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v))),
+        const SizedBox(height: 8),
+        _sliderRow(context, 'زوايا الخلفية', sub.bgBorderRadius, 0, 20, '${sub.bgBorderRadius.toInt()}',
+            (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderRadius: v))),
       ],
     ]);
   }
@@ -442,11 +465,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('الموضع', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
+      _choiceTile(context, Symbols.vertical_align_center_rounded, 'موضع الترجمة', _positionName(sub.position),
+          () => _showPositionPicker(context, s, sub)),
+      const SizedBox(height: 8),
       _sliderRow(context, 'الارتفاع عن الأسفل', sub.bottomMargin, 0, 300, '${sub.bottomMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v))),
       const SizedBox(height: 8),
       _sliderRow(context, 'الهامش الأفقي', sub.horizontalMargin, 0, 120, '${sub.horizontalMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v))),
+      const SizedBox(height: 8),
+      _sliderRow(context, 'الهامش العمودي', sub.verticalMargin, 0, 120, '${sub.verticalMargin.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(verticalMargin: v))),
       const SizedBox(height: 8),
       _sliderRow(context, 'هامش الأمان', sub.safeAreaPadding, 0, 60, '${sub.safeAreaPadding.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(safeAreaPadding: v))),
@@ -454,6 +483,152 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _switchTile(context, Symbols.videocam_rounded, 'البقاء داخل الفيديو', 'عدم خروج الترجمة خارج حدود الفيديو',
           sub.keepInsideVideo,
           (v) => s.updateSubtitleSettings(sub.copyWith(keepInsideVideo: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.smartphone_rounded, 'احترام النوتش', 'تجنب منطقة الثقب أو النوتش',
+          sub.respectNotch,
+          (v) => s.updateSubtitleSettings(sub.copyWith(respectNotch: v))),
+    ]);
+  }
+
+  String _positionName(SubtitlePosition pos) {
+    switch (pos) {
+      case SubtitlePosition.top: return 'أعلى';
+      case SubtitlePosition.center: return 'وسط';
+      case SubtitlePosition.bottom: return 'أسفل';
+    }
+  }
+
+  void _showPositionPicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('موضع الترجمة', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('أعلى'),
+            leading: const Icon(Symbols.vertical_align_top_rounded),
+            trailing: sub.position == SubtitlePosition.top ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(position: SubtitlePosition.top));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('وسط'),
+            leading: const Icon(Symbols.vertical_align_center_rounded),
+            trailing: sub.position == SubtitlePosition.center ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(position: SubtitlePosition.center));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('أسفل'),
+            leading: const Icon(Symbols.vertical_align_bottom_rounded),
+            trailing: sub.position == SubtitlePosition.bottom ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(position: SubtitlePosition.bottom));
+              Navigator.pop(ctx);
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _behaviorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('السلوك', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.aspect_ratio_rounded, 'تناسب حجم الترجمة مع الفيديو', 'ضبط الحجم تلقائياً مع أبعاد الفيديو',
+          sub.scaleWithVideo,
+          (v) => s.updateSubtitleSettings(sub.copyWith(scaleWithVideo: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.visibility_rounded, 'إظهار الترجمة تلقائياً', 'عرض الترجمة عند بدء التشغيل',
+          sub.autoShow,
+          (v) => s.updateSubtitleSettings(sub.copyWith(autoShow: v))),
+      const SizedBox(height: 8),
+      _choiceTile(context, Symbols.language_rounded, 'لغة الترجمة المفضلة', sub.autoLanguage,
+          () => _showAutoLanguagePicker(context, s, sub)),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.history_rounded, 'تحميل آخر ترجمة مستخدمة', 'استخدام آخر ترجمة تم تحميلها',
+          sub.loadLastUsed,
+          (v) => s.updateSubtitleSettings(sub.copyWith(loadLastUsed: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.voice_over_off_rounded, 'إخفاء الترجمة عند عدم وجود حوار', 'لترجمات SSA/ASS فقط',
+          sub.hideWhenNoDialog,
+          (v) => s.updateSubtitleSettings(sub.copyWith(hideWhenNoDialog: v))),
+    ]);
+  }
+
+  void _showAutoLanguagePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final langs = {
+      'ara': 'العربية',
+      'eng': 'الإنجليزية',
+      'fra': 'الفرنسية',
+      'spa': 'الإسبانية',
+      'deu': 'الألمانية',
+      'ita': 'الإيطالية',
+    };
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('اختر لغة الترجمة المفضلة', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ...langs.entries.map((e) => ListTile(
+            title: Text(e.value),
+            trailing: sub.autoLanguage == e.key ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(autoLanguage: e.key));
+              Navigator.pop(ctx);
+            },
+          )),
+        ]),
+      ),
+    );
+  }
+
+  Widget _renderingSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('التوافق والعرض', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.animation_rounded, 'تحسين حركة الخط', 'حركة أكثر سلاسة',
+          sub.improveAnimation,
+          (v) => s.updateSubtitleSettings(sub.copyWith(improveAnimation: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.text_fields_rounded, 'تحسين معالجة النصوص المعقدة', 'للنصوص العربية والهندية',
+          sub.complexTextRendering,
+          (v) => s.updateSubtitleSettings(sub.copyWith(complexTextRendering: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.closed_caption_rounded, 'تحسين عرض SSA/ASS', 'معالجة أفضل لترجمات الأنمي',
+          sub.improveSsaAss,
+          (v) => s.updateSubtitleSettings(sub.copyWith(improveSsaAss: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.font_download_off_rounded, 'تجاهل الخط المحدد داخل ASS', 'استخدام خط التطبيق بدلاً من خط الملف',
+          sub.ignoreAssFonts,
+          (v) => s.updateSubtitleSettings(sub.copyWith(ignoreAssFonts: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.movie_edit_rounded, 'تجاهل بعض تأثيرات ASS', 'إزالة الحركات والتدرجات',
+          sub.ignoreAssEffects,
+          (v) => s.updateSubtitleSettings(sub.copyWith(ignoreAssEffects: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.language_rounded, 'دعم Unicode الكامل', 'دعم كل اللغات ورموزها',
+          sub.fullUnicodeRtlSupport,
+          (v) => s.updateSubtitleSettings(sub.copyWith(fullUnicodeRtlSupport: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.blur_on_rounded, 'تحسين Anti-Aliasing', 'تنعيم حواف النص والحدود',
+          sub.improveAntiAliasing,
+          (v) => s.updateSubtitleSettings(sub.copyWith(improveAntiAliasing: v))),
+      const SizedBox(height: 8),
+      _switchTile(context, Symbols.hdr_on_rounded, 'دعم HDR', 'لشاشات HDR إن أمكن',
+          sub.hdrSupport,
+          (v) => s.updateSubtitleSettings(sub.copyWith(hdrSupport: v))),
     ]);
   }
 
