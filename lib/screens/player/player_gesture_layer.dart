@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import 'player_indicators.dart';
 
@@ -15,9 +16,12 @@ class PlayerGestureLayer extends StatefulWidget {
   final Duration position;
   final Duration duration;
   final bool isPlaying;
+  final bool isSpeedBoosted;
   final VoidCallback onToggleControls;
   final void Function(double newVolume) onVolumeChanged;
   final VoidCallback onPlayPause;
+  final VoidCallback? onLongPressSpeedStart;
+  final VoidCallback? onLongPressSpeedEnd;
   final Widget child;
 
   const PlayerGestureLayer({
@@ -30,9 +34,12 @@ class PlayerGestureLayer extends StatefulWidget {
     required this.position,
     required this.duration,
     required this.isPlaying,
+    this.isSpeedBoosted = false,
     required this.onToggleControls,
     required this.onVolumeChanged,
     required this.onPlayPause,
+    this.onLongPressSpeedStart,
+    this.onLongPressSpeedEnd,
     required this.child,
   });
 
@@ -101,19 +108,29 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           onDoubleTapDown: widget.isLocked
               ? null
               : (details) {
+                  final seekSeconds = s.doubleTapSeekSeconds;
                   final x = details.localPosition.dx;
                   if (x < screenWidth / 3) {
-                    final target = widget.position - const Duration(seconds: 10);
+                    final target = widget.position - Duration(seconds: seekSeconds);
                     widget.player.seek(target.isNegative ? Duration.zero : target);
-                    _showSeekHint(-10);
+                    _showSeekHint(-seekSeconds);
                   } else if (x > screenWidth * 2 / 3) {
-                    final target = widget.position + const Duration(seconds: 10);
+                    final target = widget.position + Duration(seconds: seekSeconds);
                     widget.player.seek(target > widget.duration ? widget.duration : target);
-                    _showSeekHint(10);
+                    _showSeekHint(seekSeconds);
                   } else {
                     widget.onPlayPause();
                   }
                 },
+          onLongPressStart: widget.isLocked || !s.longPressSpeedEnabled
+              ? null
+              : (_) => widget.onLongPressSpeedStart?.call(),
+          onLongPressEnd: widget.isLocked || !s.longPressSpeedEnabled
+              ? null
+              : (_) => widget.onLongPressSpeedEnd?.call(),
+          onLongPressCancel: widget.isLocked || !s.longPressSpeedEnabled
+              ? null
+              : () => widget.onLongPressSpeedEnd?.call(),
           onScaleStart: (details) {
             if (widget.isLocked) return;
             if (details.pointerCount == 2 && !widget.isPlaying) { // ✅ فقط عند الإيقاف
@@ -152,7 +169,7 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               _showVolNotifier.value = false;
               _showBrightNotifier.value = false;
             } else {
-              final delta = -details.focalPointDelta.dy / 180.0;
+              final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
               if (isRight) {
                 widget.onVolumeChanged(widget.volumeLevel + delta);
                 _showVolNotifier.value = true;
@@ -295,6 +312,35 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+        // مؤشر التسريع أثناء الضغط المطول
+        if (widget.isSpeedBoosted)
+          Positioned(
+            top: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cs.primary.withOpacity(0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Symbols.fast_forward_rounded, color: cs.primary, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${s.longPressSpeedValue.toStringAsFixed(1)}x',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

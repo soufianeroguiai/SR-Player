@@ -1,11 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/thumbnail_service.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
+import 'hidden_files_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +20,25 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _openSection = 0;
   bool _showAdvanced = false;
+  int? _cacheSizeBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCacheSize();
+  }
+
+  Future<void> _loadCacheSize() async {
+    final size = await ThumbnailService().getCacheSizeBytes();
+    if (mounted) setState(() => _cacheSizeBytes = size);
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes <= 0) return '0 ميغابايت';
+    final mb = bytes / (1024 * 1024);
+    if (mb < 1) return '${(bytes / 1024).toStringAsFixed(0)} كيلوبايت';
+    return '${mb.toStringAsFixed(1)} ميغابايت';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +53,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _sectionHeader(context, 'عام', Symbols.settings_rounded),
         _card(context, [
           _choiceTile(context, Symbols.dark_mode_rounded, 'المظهر', themeName(s.themeMode), () => showThemePicker(context, s)),
+          _divider(),
+          ListTile(
+            leading: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+              child: Icon(Symbols.palette_rounded, color: cs.onSurfaceVariant, size: 22),
+            ),
+            title: const Text('لون التطبيق'),
+            subtitle: const Text('لون الواجهة الأساسي (Material You)'),
+            trailing: GestureDetector(
+              onTap: () => showThemeColorPicker(context, s),
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: s.themeSeedColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+              ),
+            ),
+            onTap: () => showThemeColorPicker(context, s),
+          ),
         ]),
         const SizedBox(height: 16),
         _sectionHeader(context, 'المشغل', Symbols.play_circle_rounded),
         _card(context, [
           _switchTile(context, Symbols.resume_rounded, 'تذكر موضع التشغيل', 'متابعة من آخر موضع', s.rememberPosition, s.setRememberPosition),
           _divider(),
+          _switchTile(context, Symbols.notifications_off_rounded, 'استئناف صامت', 'متابعة من الموضع بدون إظهار تنبيه', s.silentResume, s.setSilentResume),
+          _divider(),
           _switchTile(context, Symbols.play_arrow_rounded, 'تشغيل تلقائي', 'تشغيل الفيديو فور الفتح', s.autoPlay, s.setAutoPlay),
           _divider(),
           _choiceTile(context, Symbols.speed_rounded, 'سرعة التشغيل الافتراضية', '${s.defaultSpeed}x', () => showSpeedPicker(context, s)),
+          _divider(),
+          _choiceTile(context, Symbols.fast_forward_rounded, 'مدة القفز عند النقر المزدوج', '${s.doubleTapSeekSeconds} ثوانٍ', () => showSeekSecondsPicker(context, s)),
+          _divider(),
+          _choiceTile(context, Symbols.timer_rounded, 'مدة اختفاء أزرار التحكم', '${s.controlsHideSeconds} ثوانٍ', () => showHideDelayPicker(context, s)),
+          _divider(),
+          _switchTile(context, Symbols.fast_forward_rounded, 'تسريع بالضغط المطول', 'تسريع مؤقت عند الضغط باستمرار', s.longPressSpeedEnabled, s.setLongPressSpeedEnabled),
+          if (s.longPressSpeedEnabled) ...[
+            _divider(),
+            _choiceTile(context, Symbols.speed_rounded, 'سرعة الضغط المطول', '${s.longPressSpeedValue.toStringAsFixed(1)}x', () => showLongPressSpeedDialog(context, s)),
+          ],
+          _divider(),
+          _choiceTile(context, Symbols.touch_app_rounded, 'حساسية الإيماءات', '${(s.gestureSensitivity * 100).round()}%', () => showGestureSensitivityDialog(context, s)),
+          _divider(),
+          _switchTile(context, Symbols.screen_rotation_rounded, 'تدوير الشاشة الذكي', 'حسب وضعية الهاتف تلقائياً', s.smartRotationEnabled, s.setSmartRotationEnabled),
+          _divider(),
+          _switchTile(context, Symbols.picture_in_picture_rounded, 'صورة داخل صورة تلقائياً', 'عند الخروج من التطبيق أثناء التشغيل', s.autoPipOnBackground, s.setAutoPipOnBackground),
           _divider(),
           // ─── فك التشفير ─────────────────────────────────────
           _choiceTile(
@@ -109,6 +172,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _switchTile(context, Symbols.grid_view_rounded, 'عرض شبكي للمجلدات', 'عرض المجلدات كبطاقات', s.foldersGridView, s.setFoldersGridView),
           _divider(),
           _switchTile(context, Symbols.grid_view_rounded, 'عرض شبكي للأخيرة', 'عرض قائمة الأخيرة كبطاقات', s.recentGridView, s.setRecentGridView),
+          _divider(),
+          _choiceTile(context, Symbols.visibility_off_rounded, 'الملفات المخفية', 'عرض وإظهار الملفات المخفية',
+              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HiddenFilesScreen()))),
+        ]),
+        const SizedBox(height: 16),
+        _sectionHeader(context, 'التخزين', Symbols.storage_rounded),
+        _card(context, [
+          ListTile(
+            leading: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+              child: Icon(Symbols.image_rounded, color: cs.onSurfaceVariant, size: 22),
+            ),
+            title: const Text('ذاكرة الصور المصغرة'),
+            subtitle: Text(_cacheSizeBytes == null ? 'جارٍ الحساب...' : _formatBytes(_cacheSizeBytes!)),
+            trailing: TextButton(
+              onPressed: _confirmClearCache,
+              child: const Text('مسح'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        _sectionHeader(context, 'النسخ الاحتياطي', Symbols.backup_rounded),
+        _card(context, [
+          _choiceTile(context, Symbols.upload_rounded, 'تصدير الإعدادات', 'حفظ نسخة من كل الإعدادات كملف', _exportSettings),
+          _divider(),
+          _choiceTile(context, Symbols.download_rounded, 'استيراد الإعدادات', 'استعادة الإعدادات من ملف محفوظ', _importSettings),
         ]),
         const SizedBox(height: 24),
         Center(
@@ -142,6 +232,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _confirmClearCache() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('مسح ذاكرة الصور المصغرة'),
+        content: const Text('سيتم حذف كل الصور المصغرة المخزَّنة، وستُعاد توليدها تلقائياً عند فتح المكتبة من جديد.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ThumbnailService().clearCache();
+              await _loadCacheSize();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم مسح ذاكرة الصور المصغرة')));
+              }
+            },
+            child: Text('مسح', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportSettings() async {
+    final s = context.read<SettingsProvider>();
+    try {
+      final dirPath = await FilePicker.getDirectoryPath();
+      if (dirPath == null) return;
+      final jsonStr = const JsonEncoder.withIndent('  ').convert(s.exportToJson());
+      final file = File('$dirPath/sr_player_settings.json');
+      await file.writeAsString(jsonStr);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم حفظ الإعدادات في: ${file.path}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل التصدير: $e')));
+      }
+    }
+  }
+
+  Future<void> _importSettings() async {
+    final s = context.read<SettingsProvider>();
+    try {
+      final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+      final path = result?.files.single.path;
+      if (path == null) return;
+      final content = await File(path).readAsString();
+      final Map<String, dynamic> jsonMap = json.decode(content) as Map<String, dynamic>;
+      await s.importFromJson(jsonMap);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استيراد الإعدادات بنجاح')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الاستيراد: $e')));
+      }
+    }
   }
 
   // قوائم الاختيار الجديدة

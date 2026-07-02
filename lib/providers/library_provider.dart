@@ -289,8 +289,16 @@ class LibraryProvider extends ChangeNotifier {
         }
       }
 
-      result.sort((a, b) => b.modified.compareTo(a.modified));
-      _videos = result;
+      // إزالة التكرار: نفس الفيديو قد يظهر في أكثر من ألبوم واحد
+      // (مثلاً "All videos" مع مجلده الأصلي)، فنعتمد المسار كمفتاح فريد.
+      final Map<String, VideoItem> deduped = {};
+      for (final v in result) {
+        deduped[v.path] = v;
+      }
+      final uniqueResult = deduped.values.toList();
+
+      uniqueResult.sort((a, b) => b.modified.compareTo(a.modified));
+      _videos = uniqueResult;
       await _saveVideosToCache();
       await _loadAllSavedPositions();
     } catch (e) {

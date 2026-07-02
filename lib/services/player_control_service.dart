@@ -28,6 +28,8 @@ class PlayerControlService {
   final BuildContext context;
   SharedPreferences? _prefs;
   Timer? _saveTimer;
+  Timer? _hideTimer;
+  double? _preLongPressSpeed;
 
   PlayerControlService({
     required this.player,
@@ -40,6 +42,27 @@ class PlayerControlService {
 
   void disposeTimers() {
     _saveTimer?.cancel();
+    _hideTimer?.cancel();
+  }
+
+  /// يبدأ تسريعاً مؤقتاً للتشغيل أثناء الضغط المطول (مثل يوتيوب)،
+  /// ويحفظ السرعة الحالية لاستعادتها عند رفع الإصبع.
+  void startLongPressSpeedBoost() {
+    if (!settingsProvider.longPressSpeedEnabled) return;
+    if (_preLongPressSpeed != null) return; // ضغط مطول قيد التنفيذ بالفعل
+    _preLongPressSpeed = state.speed;
+    player.setRate(settingsProvider.longPressSpeedValue);
+    state.isSpeedBoosted = true;
+    state.notifyListeners();
+  }
+
+  /// ينهي التسريع المؤقت ويعيد السرعة الأصلية.
+  void endLongPressSpeedBoost() {
+    if (_preLongPressSpeed == null) return;
+    player.setRate(_preLongPressSpeed!);
+    _preLongPressSpeed = null;
+    state.isSpeedBoosted = false;
+    state.notifyListeners();
   }
 
   void savePositionOnExit() {
@@ -96,19 +119,29 @@ class PlayerControlService {
           applyInitialDecoderAndColor();
         }
 
+        // يُستخرج الفصول مع كل فيديو جديد في قائمة التشغيل (وليس مرة واحدة فقط)
+        if (dur.inMilliseconds > 0) {
+          extractChapters();
+        }
+
         if (positionToResume != null && dur.inMilliseconds > 0) {
           player.seek(positionToResume!);
           player.play();
           positionToResume = null;
-          state.showResumeDialog = true;
-          state.showControls = true;
           state.isPlaying = true;
-          state.notifyListeners();
 
-          Future.delayed(const Duration(seconds: 4), () {
+          if (settingsProvider.silentResume) {
+            // استئناف صامت: نتابع من الموضع المحفوظ دون إظهار أي تنبيه.
             state.showResumeDialog = false;
-            state.notifyListeners();
-          });
+          } else {
+            state.showResumeDialog = true;
+            state.showControls = true;
+            Future.delayed(const Duration(seconds: 4), () {
+              state.showResumeDialog = false;
+              state.notifyListeners();
+            });
+          }
+          state.notifyListeners();
           scheduleHide();
         }
       });
@@ -143,11 +176,6 @@ class PlayerControlService {
         state.notifyListeners();
         applyPreferredSubtitleLanguage();
         applyPreferredAudioLanguage();
-      });
-
-      player.stream.duration.listen((dur) {
-        if (dur.inMilliseconds == 0) return;
-        extractChapters();
       });
 
       state.initialized = true;
@@ -259,7 +287,8 @@ class PlayerControlService {
   }
 
   void scheduleHide() {
-    Timer(const Duration(seconds: 4), () {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(Duration(seconds: settingsProvider.controlsHideSeconds), () {
       if (state.isPlaying && !state.isLocked &&
           state.currentMenu == ActiveMenu.none && !state.showQuickActions) {
         state.showControls = false;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../providers/settings_provider.dart';
 
 void showFontPicker(BuildContext ctx, SettingsProvider s) {
@@ -178,6 +179,101 @@ void showSortPicker(BuildContext ctx, SettingsProvider s) {
     ],
     onSelected: s.setSortBy,
   );
+}
+
+void showSeekSecondsPicker(BuildContext ctx, SettingsProvider s) {
+  showBottomPicker<int>(
+    ctx,
+    title: 'مدة القفز عند النقر المزدوج',
+    currentValue: s.doubleTapSeekSeconds,
+    items: const [
+      (5, '5 ثوانٍ', Symbols.fast_rewind_rounded),
+      (10, '10 ثوانٍ', Symbols.fast_rewind_rounded),
+      (15, '15 ثانية', Symbols.fast_rewind_rounded),
+      (30, '30 ثانية', Symbols.fast_rewind_rounded),
+    ],
+    onSelected: s.setDoubleTapSeekSeconds,
+  );
+}
+
+void showHideDelayPicker(BuildContext ctx, SettingsProvider s) {
+  showBottomPicker<int>(
+    ctx,
+    title: 'مدة اختفاء أزرار التحكم',
+    currentValue: s.controlsHideSeconds,
+    items: const [
+      (2, '2 ثانية', Symbols.timer_rounded),
+      (4, '4 ثوانٍ', Symbols.timer_rounded),
+      (6, '6 ثوانٍ', Symbols.timer_rounded),
+      (10, '10 ثوانٍ', Symbols.timer_rounded),
+    ],
+    onSelected: s.setControlsHideSeconds,
+  );
+}
+
+void showLongPressSpeedDialog(BuildContext ctx, SettingsProvider s) {
+  showDialog(
+    context: ctx,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('سرعة الضغط المطول'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${s.longPressSpeedValue.toStringAsFixed(2)}x'),
+            Slider(
+              value: s.longPressSpeedValue,
+              min: 1.5,
+              max: 4.0,
+              divisions: 10,
+              label: '${s.longPressSpeedValue.toStringAsFixed(2)}x',
+              onChanged: (v) {
+                s.setLongPressSpeedValue(v);
+                setDialogState(() {});
+              },
+            ),
+          ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('موافق'))],
+      ),
+    ),
+  );
+}
+
+void showGestureSensitivityDialog(BuildContext ctx, SettingsProvider s) {
+  showDialog(
+    context: ctx,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('حساسية الإيماءات'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${(s.gestureSensitivity * 100).round()}%'),
+            Slider(
+              value: s.gestureSensitivity,
+              min: 0.5,
+              max: 2.0,
+              divisions: 15,
+              label: '${(s.gestureSensitivity * 100).round()}%',
+              onChanged: (v) {
+                s.setGestureSensitivity(v);
+                setDialogState(() {});
+              },
+            ),
+          ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('موافق'))],
+      ),
+    ),
+  );
+}
+
+void showThemeColorPicker(BuildContext ctx, SettingsProvider s) async {
+  final picked = await showColorPickerDialog(ctx, s.themeSeedColor);
+  s.setThemeSeedColor(picked);
 }
 
 void showBottomPicker<T>(

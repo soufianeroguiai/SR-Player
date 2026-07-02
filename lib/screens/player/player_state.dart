@@ -42,6 +42,9 @@ class PlayerUIState extends ChangeNotifier {
   bool showResumeDialog = false;
   Duration? savedPosition;
 
+  // مؤشر التسريع المؤقت أثناء الضغط المطول
+  bool isSpeedBoosted = false;
+
   double brightness = 0;
   double contrast = 0;
   double saturation = 0;

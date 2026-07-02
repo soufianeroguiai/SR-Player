@@ -16,8 +16,11 @@ class ThumbnailService {
   static const int _maxMemoryCacheSize = 100;
 
   // ========== الأدوات الحالية ==========
+  // ملاحظة: هاتان الخريطتان محدودتان بسقف أقصى (مثل _memoryCache)
+  // لتفادي تراكم ValueNotifier بلا حدود مع مكتبة كبيرة من الفيديوهات.
   final Map<String, ValueNotifier<Uint8List?>> _notifiers = {};
   final Map<String, ValueNotifier<String?>> _errors = {};
+  static const int _maxNotifierCacheSize = 300;
   final Set<String> _pending = {};
   int _active = 0;
   static const _maxConcurrent = 3; // ✅ 3 معالجات متوازية
@@ -29,6 +32,7 @@ class ThumbnailService {
   ValueNotifier<Uint8List?> getNotifier(VideoItem video) {
     final path = video.path;
     if (!_notifiers.containsKey(path)) {
+      _evictOldNotifiersIfNeeded();
       _notifiers[path] = ValueNotifier(null);
       _errors[path] = ValueNotifier(null);
 
@@ -43,6 +47,21 @@ class ThumbnailService {
 
   ValueNotifier<String?> getErrorNotifier(VideoItem video) {
     return _errors.putIfAbsent(video.path, () => ValueNotifier(null));
+  }
+
+  /// يزيل أقدم العناصر من خرائط الإشعارات عند تجاوز السقف الأقصى،
+  /// ويستدعي dispose() عليها لتفادي تسرّب الذاكرة. لا نحذف عناصر
+  /// لها مستمعون حاليون (widgets ظاهرة على الشاشة) حفاظاً على سلامتها.
+  void _evictOldNotifiersIfNeeded() {
+    if (_notifiers.length < _maxNotifierCacheSize) return;
+    final removable = _notifiers.keys
+        .where((p) => !_notifiers[p]!.hasListeners && !_pending.contains(p))
+        .take(_notifiers.length - _maxNotifierCacheSize + 1)
+        .toList();
+    for (final path in removable) {
+      _notifiers.remove(path)?.dispose();
+      _errors.remove(path)?.dispose();
+    }
   }
 
   void prioritize(VideoItem video) {
@@ -226,9 +245,32 @@ class ThumbnailService {
     _memoryCache[path] = bytes;
   }
 
+  /// يحسب الحجم الإجمالي (بالبايت) لملفات الصور المصغرة المخزَّنة على القرص.
+  Future<int> getCacheSizeBytes() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final thumbDir = Directory('${dir.path}/thumbnails');
+      if (!await thumbDir.exists()) return 0;
+      int total = 0;
+      await for (final entity in thumbDir.list()) {
+        if (entity is File) {
+          total += await entity.length();
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<void> clearCache() async {
     _memoryCache.clear();
-    _notifiers.forEach((_, n) => n.value = null);
+    for (final n in _notifiers.values) {
+      n.dispose();
+    }
+    for (final e in _errors.values) {
+      e.dispose();
+    }
     _notifiers.clear();
     _errors.clear();
     _pending.clear();

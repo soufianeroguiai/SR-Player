@@ -105,7 +105,20 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _onPipModeChanged() => setState(() {});
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState appState) {
+    super.didChangeAppLifecycleState(appState);
+    if (appState == AppLifecycleState.inactive &&
+        _settingsProvider.autoPipOnBackground &&
+        _state.isPlaying &&
+        !_state.isLocked &&
+        !PipService.isInPipMode.value) {
+      PipService.enter();
+    }
+  }
+
   void _enableSmartRotation() {
+    if (!_settingsProvider.smartRotationEnabled) return;
     _sensorSubscription = accelerometerEventStream().listen((event) {
       if (!mounted || _state.isLocked) return;
       if (event.x > 6.0) {
@@ -915,9 +928,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   position: _state.position,
                   duration: _state.duration,
                   isPlaying: _state.isPlaying,
+                  isSpeedBoosted: _state.isSpeedBoosted,
                   onToggleControls: _toggleControls,
                   onVolumeChanged: _service.onVolumeChanged,
                   onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
+                  onLongPressSpeedStart: _service.startLongPressSpeedBoost,
+                  onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
                   child: Video(
                     key: ValueKey('video_${s.bottomPadding}_${s.horizontalMargin}'),
                     controller: _controller,
@@ -1191,11 +1207,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       isPlaying: _state.isPlaying,
                       onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
                       onSkipBack: () {
-                        final t = _state.position - const Duration(seconds: 10);
+                        final t = _state.position - Duration(seconds: s.doubleTapSeekSeconds);
                         _player.seek(t.isNegative ? Duration.zero : t);
                       },
                       onSkipForward: () {
-                        final t = _state.position + const Duration(seconds: 10);
+                        final t = _state.position + Duration(seconds: s.doubleTapSeekSeconds);
                         _player.seek(t > _state.duration ? _state.duration : t);
                       },
                       onToggleFit: _toggleFit,

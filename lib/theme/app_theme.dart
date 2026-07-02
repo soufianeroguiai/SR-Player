@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color _seed = Color(0xFF1B6CA8);
+  static const Color defaultSeed = Color(0xFF1B6CA8);
 
-  static ThemeData dark() => _build(Brightness.dark);
-  static ThemeData light() => _build(Brightness.light);
+  static ThemeData dark({Color seed = defaultSeed}) => _build(Brightness.dark, seed);
+  static ThemeData light({Color seed = defaultSeed}) => _build(Brightness.light, seed);
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData _build(Brightness brightness, Color seed) {
     final cs = ColorScheme.fromSeed(
-      seedColor: _seed,
+      seedColor: seed,
       brightness: brightness,
     );
 

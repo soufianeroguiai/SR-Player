@@ -63,8 +63,8 @@ class SPlayerApp extends StatelessWidget {
     return MaterialApp(
       title: 'SR Player',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(seed: settings.themeSeedColor),
+      darkTheme: AppTheme.dark(seed: settings.themeSeedColor),
       themeMode: settings.themeMode,
       home: const PermissionGate(child: HomeScreen()),
     );

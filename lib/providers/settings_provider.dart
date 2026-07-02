@@ -97,6 +97,42 @@ class SettingsProvider extends ChangeNotifier {
   bool _recentGridView = false;
   bool get recentGridView => _recentGridView;
 
+  // ─────────── إعدادات جديدة ───────────
+
+  // مدة القفز عند النقر المزدوج (بالثواني)
+  int _doubleTapSeekSeconds = 10;
+  int get doubleTapSeekSeconds => _doubleTapSeekSeconds;
+
+  // لون التطبيق الأساسي (Material You seed color)
+  int _themeSeedColorValue = 0xFF1B6CA8;
+  Color get themeSeedColor => Color(_themeSeedColorValue);
+
+  // مدة اختفاء أزرار التحكم تلقائياً (بالثواني)
+  int _controlsHideSeconds = 4;
+  int get controlsHideSeconds => _controlsHideSeconds;
+
+  // الضغط المطول لتسريع التشغيل مؤقتاً
+  bool _longPressSpeedEnabled = true;
+  bool get longPressSpeedEnabled => _longPressSpeedEnabled;
+  double _longPressSpeedValue = 2.0;
+  double get longPressSpeedValue => _longPressSpeedValue;
+
+  // حساسية الإيماءات (مضاعِف لسرعة سحب الصوت/السطوع وتكبير الترجمة)
+  double _gestureSensitivity = 1.0;
+  double get gestureSensitivity => _gestureSensitivity;
+
+  // تخطي حوار/تنبيه استئناف التشغيل (استئناف صامت)
+  bool _silentResume = false;
+  bool get silentResume => _silentResume;
+
+  // تفعيل تلقائي لوضع الصورة داخل صورة عند الخروج من التطبيق أثناء التشغيل
+  bool _autoPipOnBackground = false;
+  bool get autoPipOnBackground => _autoPipOnBackground;
+
+  // تدوير الشاشة تلقائياً حسب وضعية الهاتف (حساس الحركة)
+  bool _smartRotationEnabled = true;
+  bool get smartRotationEnabled => _smartRotationEnabled;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     _themeMode = ThemeMode.values[p.getInt('themeMode') ?? 0];
@@ -141,6 +177,16 @@ class SettingsProvider extends ChangeNotifier {
 
     _hwDecoderMode = p.getString('hwDecoderMode') ?? 'auto';
     _colorFormat = p.getString('colorFormat') ?? 'rgb_full';
+
+    _doubleTapSeekSeconds = p.getInt('doubleTapSeekSeconds') ?? 10;
+    _themeSeedColorValue = p.getInt('themeSeedColorValue') ?? 0xFF1B6CA8;
+    _controlsHideSeconds = p.getInt('controlsHideSeconds') ?? 4;
+    _longPressSpeedEnabled = p.getBool('longPressSpeedEnabled') ?? true;
+    _longPressSpeedValue = p.getDouble('longPressSpeedValue') ?? 2.0;
+    _gestureSensitivity = p.getDouble('gestureSensitivity') ?? 1.0;
+    _silentResume = p.getBool('silentResume') ?? false;
+    _autoPipOnBackground = p.getBool('autoPipOnBackground') ?? false;
+    _smartRotationEnabled = p.getBool('smartRotationEnabled') ?? true;
 
     notifyListeners();
   }
@@ -189,6 +235,16 @@ class SettingsProvider extends ChangeNotifier {
 
     await p.setString('hwDecoderMode', _hwDecoderMode);
     await p.setString('colorFormat', _colorFormat);
+
+    await p.setInt('doubleTapSeekSeconds', _doubleTapSeekSeconds);
+    await p.setInt('themeSeedColorValue', _themeSeedColorValue);
+    await p.setInt('controlsHideSeconds', _controlsHideSeconds);
+    await p.setBool('longPressSpeedEnabled', _longPressSpeedEnabled);
+    await p.setDouble('longPressSpeedValue', _longPressSpeedValue);
+    await p.setDouble('gestureSensitivity', _gestureSensitivity);
+    await p.setBool('silentResume', _silentResume);
+    await p.setBool('autoPipOnBackground', _autoPipOnBackground);
+    await p.setBool('smartRotationEnabled', _smartRotationEnabled);
   }
 
   void resetAll() {
@@ -234,6 +290,16 @@ class SettingsProvider extends ChangeNotifier {
 
     _hwDecoderMode = 'auto';
     _colorFormat = 'rgb_full';
+
+    _doubleTapSeekSeconds = 10;
+    _themeSeedColorValue = 0xFF1B6CA8;
+    _controlsHideSeconds = 4;
+    _longPressSpeedEnabled = true;
+    _longPressSpeedValue = 2.0;
+    _gestureSensitivity = 1.0;
+    _silentResume = false;
+    _autoPipOnBackground = false;
+    _smartRotationEnabled = true;
 
     _save();
     notifyListeners();
@@ -281,4 +347,138 @@ class SettingsProvider extends ChangeNotifier {
 
   void setHwDecoderMode(String v) { _hwDecoderMode = v; notifyListeners(); _save(); }
   void setColorFormat(String v) { _colorFormat = v; notifyListeners(); _save(); }
+
+  void setDoubleTapSeekSeconds(int v) { _doubleTapSeekSeconds = v; notifyListeners(); _save(); }
+  void setThemeSeedColor(Color c) { _themeSeedColorValue = c.toARGB32(); notifyListeners(); _save(); }
+  void setControlsHideSeconds(int v) { _controlsHideSeconds = v; notifyListeners(); _save(); }
+  void setLongPressSpeedEnabled(bool v) { _longPressSpeedEnabled = v; notifyListeners(); _save(); }
+  void setLongPressSpeedValue(double v) { _longPressSpeedValue = v; notifyListeners(); _save(); }
+  void setGestureSensitivity(double v) { _gestureSensitivity = v; notifyListeners(); _save(); }
+  void setSilentResume(bool v) { _silentResume = v; notifyListeners(); _save(); }
+  void setAutoPipOnBackground(bool v) { _autoPipOnBackground = v; notifyListeners(); _save(); }
+  void setSmartRotationEnabled(bool v) { _smartRotationEnabled = v; notifyListeners(); _save(); }
+
+  // ─────────── نسخ احتياطي / استعادة للإعدادات ───────────
+
+  /// يحوّل كل الإعدادات الحالية إلى Map قابلة للتحويل إلى JSON.
+  Map<String, dynamic> exportToJson() {
+    return {
+      'themeMode': _themeMode.index,
+      'rememberPosition': _rememberPosition,
+      'autoPlay': _autoPlay,
+      'defaultSpeed': _defaultSpeed,
+      'hwDecoderMode': _hwDecoderMode,
+      'colorFormat': _colorFormat,
+      'defaultAudioBoost': _defaultAudioBoost,
+      'preferredAudioLanguage': _preferredAudioLanguage,
+      'showSubtitlesByDefault': _showSubtitlesByDefault,
+      'subtitleFolder': _subtitleFolder,
+      'subtitleEncoding': _subtitleEncoding,
+      'preferredSubtitleLanguage': _preferredSubtitleLanguage,
+      'defaultSubtitleSync': _defaultSubtitleSync,
+      'subtitleItalic': _subtitleItalic,
+      'subtitleRTL': _subtitleRTL,
+      'subtitleFontSize': _subtitleFontSize,
+      'fontFamily': _fontFamily,
+      'fontWeightIndex': _fontWeightIndex,
+      'subtitleColorValue': _subtitleColorValue,
+      'subtitleBgOpacity': _subtitleBgOpacity,
+      'subtitleBgColor': _subtitleBgColor.toARGB32(),
+      'outlineColor': _outlineColor.toARGB32(),
+      'outlineWidth': _outlineWidth,
+      'outlineEnabled': _outlineEnabled,
+      'textShadowEnabled': _textShadowEnabled,
+      'textShadowColor': _textShadowColor.toARGB32(),
+      'textShadowBlurRadius': _textShadowBlurRadius,
+      'textShadowOffsetX': _textShadowOffsetX,
+      'textShadowOffsetY': _textShadowOffsetY,
+      'boxShadowEnabled': _boxShadowEnabled,
+      'boxShadowColor': _boxShadowColor.toARGB32(),
+      'boxShadowBlurRadius': _boxShadowBlurRadius,
+      'boxShadowOffsetX': _boxShadowOffsetX,
+      'boxShadowOffsetY': _boxShadowOffsetY,
+      'bottomPadding': _bottomPadding,
+      'horizontalMargin': _horizontalMargin,
+      'sortBy': _sortBy,
+      'sortDesc': _sortDesc,
+      'libraryGridView': _libraryGridView,
+      'foldersGridView': _foldersGridView,
+      'recentGridView': _recentGridView,
+      'doubleTapSeekSeconds': _doubleTapSeekSeconds,
+      'themeSeedColorValue': _themeSeedColorValue,
+      'controlsHideSeconds': _controlsHideSeconds,
+      'longPressSpeedEnabled': _longPressSpeedEnabled,
+      'longPressSpeedValue': _longPressSpeedValue,
+      'gestureSensitivity': _gestureSensitivity,
+      'silentResume': _silentResume,
+      'autoPipOnBackground': _autoPipOnBackground,
+      'smartRotationEnabled': _smartRotationEnabled,
+    };
+  }
+
+  /// يستورد إعدادات من Map (مثلاً بعد قراءتها من ملف JSON) ويحفظها.
+  /// أي مفتاح مفقود أو بنوع خاطئ يُتجاهل ويُبقي على القيمة الحالية،
+  /// حتى لا يفشل الاستيراد بالكامل بسبب ملف قديم أو غير مكتمل.
+  Future<void> importFromJson(Map<String, dynamic> json) async {
+    T read<T>(String key, T fallback) {
+      final v = json[key];
+      if (v is T) return v;
+      if (v != null && fallback is double && v is num) return v.toDouble() as T;
+      return fallback;
+    }
+
+    _themeMode = ThemeMode.values[read('themeMode', _themeMode.index)];
+    _rememberPosition = read('rememberPosition', _rememberPosition);
+    _autoPlay = read('autoPlay', _autoPlay);
+    _defaultSpeed = read('defaultSpeed', _defaultSpeed);
+    _hwDecoderMode = read('hwDecoderMode', _hwDecoderMode);
+    _colorFormat = read('colorFormat', _colorFormat);
+    _defaultAudioBoost = read('defaultAudioBoost', _defaultAudioBoost);
+    _preferredAudioLanguage = read('preferredAudioLanguage', _preferredAudioLanguage);
+    _showSubtitlesByDefault = read('showSubtitlesByDefault', _showSubtitlesByDefault);
+    _subtitleFolder = read('subtitleFolder', _subtitleFolder);
+    _subtitleEncoding = read('subtitleEncoding', _subtitleEncoding);
+    _preferredSubtitleLanguage = read('preferredSubtitleLanguage', _preferredSubtitleLanguage);
+    _defaultSubtitleSync = read('defaultSubtitleSync', _defaultSubtitleSync);
+    _subtitleItalic = read('subtitleItalic', _subtitleItalic);
+    _subtitleRTL = read('subtitleRTL', _subtitleRTL);
+    _subtitleFontSize = read('subtitleFontSize', _subtitleFontSize);
+    _fontFamily = read('fontFamily', _fontFamily);
+    _fontWeightIndex = read('fontWeightIndex', _fontWeightIndex);
+    _subtitleColorValue = read('subtitleColorValue', _subtitleColorValue);
+    _subtitleBgOpacity = read('subtitleBgOpacity', _subtitleBgOpacity);
+    _subtitleBgColor = Color(read('subtitleBgColor', _subtitleBgColor.toARGB32()));
+    _outlineColor = Color(read('outlineColor', _outlineColor.toARGB32()));
+    _outlineWidth = read('outlineWidth', _outlineWidth);
+    _outlineEnabled = read('outlineEnabled', _outlineEnabled);
+    _textShadowEnabled = read('textShadowEnabled', _textShadowEnabled);
+    _textShadowColor = Color(read('textShadowColor', _textShadowColor.toARGB32()));
+    _textShadowBlurRadius = read('textShadowBlurRadius', _textShadowBlurRadius);
+    _textShadowOffsetX = read('textShadowOffsetX', _textShadowOffsetX);
+    _textShadowOffsetY = read('textShadowOffsetY', _textShadowOffsetY);
+    _boxShadowEnabled = read('boxShadowEnabled', _boxShadowEnabled);
+    _boxShadowColor = Color(read('boxShadowColor', _boxShadowColor.toARGB32()));
+    _boxShadowBlurRadius = read('boxShadowBlurRadius', _boxShadowBlurRadius);
+    _boxShadowOffsetX = read('boxShadowOffsetX', _boxShadowOffsetX);
+    _boxShadowOffsetY = read('boxShadowOffsetY', _boxShadowOffsetY);
+    _bottomPadding = read('bottomPadding', _bottomPadding);
+    _horizontalMargin = read('horizontalMargin', _horizontalMargin);
+    _sortBy = read('sortBy', _sortBy);
+    _sortDesc = read('sortDesc', _sortDesc);
+    _libraryGridView = read('libraryGridView', _libraryGridView);
+    _foldersGridView = read('foldersGridView', _foldersGridView);
+    _recentGridView = read('recentGridView', _recentGridView);
+    _doubleTapSeekSeconds = read('doubleTapSeekSeconds', _doubleTapSeekSeconds);
+    _themeSeedColorValue = read('themeSeedColorValue', _themeSeedColorValue);
+    _controlsHideSeconds = read('controlsHideSeconds', _controlsHideSeconds);
+    _longPressSpeedEnabled = read('longPressSpeedEnabled', _longPressSpeedEnabled);
+    _longPressSpeedValue = read('longPressSpeedValue', _longPressSpeedValue);
+    _gestureSensitivity = read('gestureSensitivity', _gestureSensitivity);
+    _silentResume = read('silentResume', _silentResume);
+    _autoPipOnBackground = read('autoPipOnBackground', _autoPipOnBackground);
+    _smartRotationEnabled = read('smartRotationEnabled', _smartRotationEnabled);
+
+    notifyListeners();
+    await _save();
+  }
 }
