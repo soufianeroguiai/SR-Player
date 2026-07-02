@@ -102,8 +102,11 @@ void showSubtitleLanguagePicker(BuildContext ctx, SettingsProvider s) {
       children: langs.entries.map((e) => RadioListTile<String>(
         title: Text(e.value),
         value: e.key,
-        groupValue: s.preferredSubtitleLanguage,
-        onChanged: (v) { s.setPreferredSubtitleLanguage(v!); Navigator.pop(context); },
+        groupValue: s.subtitleSettings.autoLanguage,
+        onChanged: (v) {
+          s.updateSubtitleSettings(s.subtitleSettings.copyWith(autoLanguage: v!));
+          Navigator.pop(context);
+        },
       )).toList(),
     ),
   );

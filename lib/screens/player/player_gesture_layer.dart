@@ -133,10 +133,10 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               : () => widget.onLongPressSpeedEnd?.call(),
           onScaleStart: (details) {
             if (widget.isLocked) return;
-            if (details.pointerCount == 2 && !widget.isPlaying) { // ✅ فقط عند الإيقاف
-              final settings = context.read<SettingsProvider>();
-              _startSubtitleSize = settings.subtitleFontSize;
-              _startBottomPadding = settings.bottomPadding;
+            if (details.pointerCount == 2 && !widget.isPlaying) {
+              final sub = s.subtitleSettings;
+              _startSubtitleSize = sub.fontSize;
+              _startBottomPadding = sub.bottomMargin;
               _startFocalPoint = details.focalPoint;
               _subtitleGestureActive = true;
             } else {
@@ -146,12 +146,13 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           },
           onScaleUpdate: (details) {
             if (widget.isLocked) return;
-            if (details.pointerCount == 2 && _subtitleGestureActive && !widget.isPlaying) { // ✅ فقط عند الإيقاف
+            if (details.pointerCount == 2 && _subtitleGestureActive && !widget.isPlaying) {
+              final sub = s.subtitleSettings;
               final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
-              s.setSubtitleFontSize(newSize);
+              s.updateSubtitleSettings(sub.copyWith(fontSize: newSize));
               final dy = details.focalPoint.dy - _startFocalPoint.dy;
               final newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.85);
-              s.setBottomPadding(newPadding);
+              s.updateSubtitleSettings(sub.copyWith(bottomMargin: newPadding));
               return;
             }
             if (details.pointerCount != 1) return;
@@ -202,7 +203,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
           valueListenable: _showSeekNotifier,
           builder: (context, show, _) {
             if (!show) return const SizedBox.shrink();
-            final cs = Theme.of(context).colorScheme;
             return ValueListenableBuilder<double>(
               valueListenable: widget.seekMsNotifier,
               builder: (context, seekMs, _) {
