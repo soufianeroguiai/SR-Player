@@ -1,3 +1,4 @@
+// player_screen.dart (كامل)
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ import 'player_fit_mode.dart';
 import 'player_gesture_layer.dart';
 import 'subtitle_style_builder.dart';
 import 'player_state.dart';
+import 'package:media_kit/src/player/native/player/real.dart';
 
 class PlayerScreen extends StatefulWidget {
   final VideoItem video;
@@ -220,10 +222,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _applyNativeAssSettings() {
     final sub = _settingsProvider.subtitleSettings;
-    _player.setOption('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
-    _player.setOption('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
+    final native = _player.platform as NativePlayer;
+    native.setProperty('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
+    native.setProperty('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
     if (sub.hideWhenNoDialog) {
-      _player.setOption('sub-clear-on-seek', 'yes');
+      native.setProperty('sub-clear-on-seek', 'yes');
     }
   }
 

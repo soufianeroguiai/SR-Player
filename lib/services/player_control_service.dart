@@ -1,3 +1,4 @@
+// player_control_service.dart (كامل)
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -173,7 +174,6 @@ class PlayerControlService {
         applyPreferredAudioLanguage();
       });
 
-      // استقبال الترجمة المدمجة وإرسالها إلى الواجهة
       player.stream.subtitle.listen((lines) {
         if (lines.isNotEmpty) {
           state.updateSubtitleText(lines.join('\n'));
@@ -582,5 +582,10 @@ class PlayerControlService {
     player.setRate(sp);
     settingsProvider.setDefaultSpeed(sp);
     state.notifyListeners();
+  }
+
+  void dispose() {
+    _saveTimer?.cancel();
+    _hideTimer?.cancel();
   }
 }
