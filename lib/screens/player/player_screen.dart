@@ -234,9 +234,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
   }
 
-  bool _shouldUseFlutterRenderer() {
-    return _state.hasExternalSubtitle && _state.lastSubtitleEntries != null;
-  }
+  bool _shouldUseFlutterRenderer() => true;
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
