@@ -42,7 +42,6 @@ class PlayerUIState extends ChangeNotifier {
   bool showResumeDialog = false;
   Duration? savedPosition;
 
-  // مؤشر التسريع المؤقت أثناء الضغط المطول
   bool isSpeedBoosted = false;
 
   double brightness = 0;
@@ -62,6 +61,8 @@ class PlayerUIState extends ChangeNotifier {
   List<VideoItem> playlistVideos = [];
   int currentPlaylistIndex = -1;
 
+  String? currentSubtitleText;
+
   void resetMenu() {
     currentMenu = ActiveMenu.none;
     showQuickActions = false;
@@ -70,6 +71,11 @@ class PlayerUIState extends ChangeNotifier {
 
   void updatePlaylistIndex(int index) {
     currentPlaylistIndex = index;
+    notifyListeners();
+  }
+
+  void updateSubtitleText(String? text) {
+    currentSubtitleText = text;
     notifyListeners();
   }
 }

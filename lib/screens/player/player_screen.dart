@@ -18,6 +18,7 @@ import '../../services/subtitle_service.dart';
 import '../../services/player_control_service.dart';
 import '../../widgets/color_adjustment_panel.dart';
 import '../../widgets/video_thumbnail_loader.dart';
+import '../../widgets/subtitle_renderer.dart';
 import '../../services/smart_enhance_service.dart';
 import '../info_screen.dart';
 import 'player_controls.dart';
@@ -945,13 +946,24 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     controller: _controller,
                     fit: getBoxFit(_state.fitMode),
                     controls: NoVideoControls,
-                    subtitleViewConfiguration: SubtitleViewConfiguration(
-                      style: buildSubtitleTextStyle(subtitleSettings),
-                      textAlign: buildSubtitleTextAlign(subtitleSettings),
-                      padding: buildSubtitlePadding(subtitleSettings),
-                    ),
                   ),
                 ),
+
+                if (_state.currentSubtitleText != null && _state.currentSubtitleText!.isNotEmpty)
+                  SubtitleRenderer(
+                    currentEntry: SubtitleEntry(
+                      start: Duration.zero,
+                      end: const Duration(hours: 1),
+                      text: _state.currentSubtitleText!,
+                    ),
+                    settings: subtitleSettings,
+                    videoSize: Size(
+                      MediaQuery.of(context).size.width,
+                      MediaQuery.of(context).size.height,
+                    ),
+                    screenSize: MediaQuery.of(context).size,
+                    safeArea: MediaQuery.of(context).padding,
+                  ),
 
                 IgnorePointer(
                   child: AnimatedOpacity(
