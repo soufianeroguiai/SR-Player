@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../models/subtitle_settings.dart';
 import 'subtitle_encodings.dart';
+import 'subtitle_render_service.dart';
 
 class SubtitleEntry {
   final Duration start;
@@ -20,23 +22,24 @@ class SubtitleService {
     return null;
   }
 
-  /// يحمّل ويحلّل ملف ترجمة، باستخدام [encodingName] المحدَّد من
-  /// إعدادات المستخدم (UTF-8 بشكل افتراضي). يُنفَّذ التحليل في
-  /// isolate منفصل عبر compute لتفادي تجميد واجهة المستخدم مع
-  /// الملفات الكبيرة. الدالة الممرَّرة لـ compute يجب أن تكون
-  /// top-level (وليست method داخل كلاس)، لذا التحليل الفعلي معرَّف
-  /// خارج هذا الكلاس في نفس الملف (انظر parseSubtitleContent أسفله).
+  /// يحمّل ويحلّل ملف ترجمة مع تطبيق إعدادات التوافق والسلوك المعقدة
   static Future<List<SubtitleEntry>> load(
     String path, {
-    String encodingName = 'UTF-8',
+    required SubtitleSettings settings,
   }) async {
     try {
       final bytes = await File(path).readAsBytes();
       final ext = path.split('.').last.toLowerCase();
+      
+      // نمرر البيانات عبر compute لتجنب تجميد الواجهة
       final entries = await compute(parseSubtitleContent, {
         'bytes': bytes,
         'ext': ext,
-        'encoding': encodingName,
+        'encoding': settings.subtitleEncoding ?? 'UTF-8',
+        'ignoreAssFonts': settings.ignoreAssFonts,
+        'ignoreAssEffects': settings.ignoreAssEffects,
+        'hideWhenNoDialog': settings.hideWhenNoDialog,
+        'fullUnicodeRtlSupport': settings.fullUnicodeRtlSupport,
       });
       return entries;
     } catch (_) {
@@ -46,25 +49,30 @@ class SubtitleService {
 }
 
 // ──────────────────────────────────────────────
-// دوال التحليل (top-level) — منفصلة عن الكلاس عمداً لضمان توافقها
-// الكامل مع compute()، الذي يتطلب دالة top-level أو static.
+// دوال التحليل (top-level) — منفصلة عن الكلاس لضمان توافقها مع compute()
 // ──────────────────────────────────────────────
 
 List<SubtitleEntry> parseSubtitleContent(Map<String, dynamic> params) {
   final bytes = params['bytes'] as List<int>;
   final ext = params['ext'] as String;
   final encodingName = params['encoding'] as String;
+  
+  final bool ignoreAssFonts = params['ignoreAssFonts'] ?? false;
+  final bool ignoreAssEffects = params['ignoreAssEffects'] ?? false;
+  final bool hideWhenNoDialog = params['hideWhenNoDialog'] ?? false;
+  final bool fullUnicodeRtlSupport = params['fullUnicodeRtlSupport'] ?? true;
+
   final content = SubtitleEncodings.decode(bytes, encodingName);
 
   if (ext == 'ssa' || ext == 'ass') {
-    return _parseSsa(content);
+    return _parseSsa(content, ignoreAssFonts, ignoreAssEffects, hideWhenNoDialog, fullUnicodeRtlSupport);
   } else {
-    return _parseSrt(content);
+    return _parseSrt(content, fullUnicodeRtlSupport);
   }
 }
 
 // --- SRT Parser ---
-List<SubtitleEntry> _parseSrt(String content) {
+List<SubtitleEntry> _parseSrt(String content, bool fullUnicodeRtlSupport) {
   final entries = <SubtitleEntry>[];
   final blocks = content.trim().split(RegExp(r'\r?\n\r?\n'));
 
@@ -78,11 +86,12 @@ List<SubtitleEntry> _parseSrt(String content) {
 
       final start = _parseTime(parts[0].trim());
       final end = _parseTime(parts[1].trim().split(' ').first);
-      final text = lines
-          .sublist(2)
-          .join('\n')
-          .replaceAll(RegExp(r'<[^>]*>'), '')
-          .trim();
+      
+      String text = lines.sublist(2).join('\n').replaceAll(RegExp(r'<[^>]*>'), '').trim();
+      
+      if (fullUnicodeRtlSupport) {
+         text = SubtitleRenderService.processText(text, ignoreAssFonts: false, ignoreAssEffects: false, fullUnicodeRtlSupport: true);
+      }
 
       if (text.isNotEmpty) {
         entries.add(SubtitleEntry(start: start, end: end, text: text));
@@ -93,7 +102,13 @@ List<SubtitleEntry> _parseSrt(String content) {
 }
 
 // --- SSA/ASS Parser ---
-List<SubtitleEntry> _parseSsa(String content) {
+List<SubtitleEntry> _parseSsa(
+  String content, 
+  bool ignoreAssFonts, 
+  bool ignoreAssEffects, 
+  bool hideWhenNoDialog,
+  bool fullUnicodeRtlSupport
+) {
   final entries = <SubtitleEntry>[];
   bool inEvents = false;
 
@@ -132,7 +147,18 @@ List<SubtitleEntry> _parseSsa(String content) {
         final end = _parseSsaTime(parts[2]);
 
         final rawText = parts.sublist(formatIndex).join(',');
-        final cleanText = _cleanSsaText(rawText);
+        
+        // استخدام خدمة المعالجة لتطبيق إعدادات التوافق على النص
+        final cleanText = SubtitleRenderService.processText(
+          rawText,
+          ignoreAssFonts: ignoreAssFonts,
+          ignoreAssEffects: ignoreAssEffects,
+          fullUnicodeRtlSupport: fullUnicodeRtlSupport,
+        );
+
+        if (cleanText.isEmpty && hideWhenNoDialog) {
+          continue; // تخطي إذا كان النص فارغاً (لإخفاء الترجمة عند عدم وجود حوار)
+        }
 
         if (cleanText.isNotEmpty) {
           entries.add(SubtitleEntry(start: start, end: end, text: cleanText));
@@ -165,13 +191,6 @@ List<String> _splitDialogue(String line) {
   return parts;
 }
 
-String _cleanSsaText(String text) {
-  var cleaned = text.replaceAll(RegExp(r'\{[^}]*\}'), '');
-  cleaned = cleaned.replaceAll(RegExp(r'\\[Nn]'), '\n');
-  cleaned = cleaned.trim();
-  return cleaned;
-}
-
 Duration _parseSsaTime(String s) {
   s = s.trim();
   final parts = s.split(':');
@@ -195,9 +214,7 @@ Duration _parseTime(String s) {
   String hms = normalized;
 
   if (dotIndex != -1) {
-    ms = int.tryParse(
-            normalized.substring(dotIndex + 1).padRight(3, '0').substring(0, 3)) ??
-        0;
+    ms = int.tryParse(normalized.substring(dotIndex + 1).padRight(3, '0').substring(0, 3)) ?? 0;
     hms = normalized.substring(0, dotIndex);
   }
 

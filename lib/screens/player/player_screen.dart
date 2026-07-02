@@ -229,7 +229,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Future<void> _loadSrtFile(String path, String encoding, {bool silent = false}) async {
     try {
       await _player.setSubtitleTrack(SubtitleTrack.no());
-      final entries = await SubtitleService.load(path, encodingName: encoding);
+      final settings = _settingsProvider.subtitleSettings;
+      final entries = await SubtitleService.load(
+        path,
+        settings: settings,
+        encoding: encoding,
+      );
       if (entries.isEmpty) return;
       _state.lastSubtitleEntries = entries;
       await _applySubtitleSyncOffset();
@@ -891,6 +896,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
+    final subtitleSettings = s.subtitleSettings;
     final lib = context.watch<LibraryProvider>();
 
     if (PipService.isInPipMode.value) {
@@ -935,14 +941,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   onLongPressSpeedStart: _service.startLongPressSpeedBoost,
                   onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
                   child: Video(
-                    key: ValueKey('video_${s.bottomPadding}_${s.horizontalMargin}'),
+                    key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
                     controller: _controller,
                     fit: getBoxFit(_state.fitMode),
                     controls: NoVideoControls,
                     subtitleViewConfiguration: SubtitleViewConfiguration(
-                      style: buildSubtitleTextStyle(s),
-                      textAlign: s.subtitleRTL ? TextAlign.right : TextAlign.center,
-                      padding: EdgeInsets.fromLTRB(s.horizontalMargin, 0, s.horizontalMargin, s.bottomPadding),
+                      style: buildSubtitleTextStyle(subtitleSettings),
+                      textAlign: buildSubtitleTextAlign(subtitleSettings),
+                      padding: buildSubtitlePadding(subtitleSettings),
                     ),
                   ),
                 ),

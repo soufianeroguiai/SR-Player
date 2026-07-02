@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../providers/settings_provider.dart';
+import '../../models/subtitle_settings.dart';
 
 void showFontPicker(BuildContext ctx, SettingsProvider s) {
   final fonts = [
@@ -12,6 +13,7 @@ void showFontPicker(BuildContext ctx, SettingsProvider s) {
     ('Tajawal', 'Tajawal'),
     ('monospace', 'Monospace'),
   ];
+  final currentFont = s.subtitleSettings.fontFamily;
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
@@ -19,8 +21,11 @@ void showFontPicker(BuildContext ctx, SettingsProvider s) {
       children: fonts.map((f) => RadioListTile<String>(
         title: Text(f.$2),
         value: f.$1,
-        groupValue: s.fontFamily,
-        onChanged: (v) { s.setFontFamily(v!); Navigator.pop(context); },
+        groupValue: currentFont,
+        onChanged: (v) {
+          s.updateSubtitleSettings(s.subtitleSettings.copyWith(fontFamily: v!));
+          Navigator.pop(context);
+        },
       )).toList(),
     ),
   );

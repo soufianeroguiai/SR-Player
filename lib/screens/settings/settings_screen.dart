@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
+import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
@@ -43,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<SettingsProvider>();
+    final sub = s.subtitleSettings;
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -103,7 +105,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _divider(),
           _switchTile(context, Symbols.picture_in_picture_rounded, 'صورة داخل صورة تلقائياً', 'عند الخروج من التطبيق أثناء التشغيل', s.autoPipOnBackground, s.setAutoPipOnBackground),
           _divider(),
-          // ─── فك التشفير ─────────────────────────────────────
           _choiceTile(
             context,
             Symbols.memory_rounded,
@@ -112,7 +113,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             () => _showDecoderPicker(context, s),
           ),
           _divider(),
-          // ─── تنسيق الألوان ──────────────────────────────────
           _choiceTile(
             context,
             Symbols.palette_rounded,
@@ -146,18 +146,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _divider(),
           _switchTile(context, Symbols.format_italic_rounded, 'تأثير مائل', 'تفعيل الخط المائل للترجمة', s.subtitleItalic, s.setSubtitleItalic),
           _divider(),
-          _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, 'اتجاه النص', s.subtitleRTL ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين', s.subtitleRTL, s.setSubtitleRTL),
+          _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, 'اتجاه النص', sub.alignment == SubtitleAlignment.right ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين',
+              sub.alignment == SubtitleAlignment.right,
+              (v) => s.updateSubtitleSettings(sub.copyWith(alignment: v ? SubtitleAlignment.right : SubtitleAlignment.left))),
           _divider(),
           _moreTile(context, 'مظهر الترجمة المتقدم', _showAdvanced, () => setState(() => _showAdvanced = !_showAdvanced)),
           if (_showAdvanced) ...[
             const SizedBox(height: 8),
-            _fontSection(context, s),
+            _fontSection(context, s, sub),
             const SizedBox(height: 12),
-            _colorSection(context, s),
+            _colorSection(context, s, sub),
             const SizedBox(height: 12),
-            _effectsSection(context, s),
+            _effectsSection(context, s, sub),
             const SizedBox(height: 12),
-            _positionSection(context, s),
+            _positionSection(context, s, sub),
           ],
         ]),
         const SizedBox(height: 16),
@@ -297,7 +299,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // قوائم الاختيار الجديدة
   void _showDecoderPicker(BuildContext context, SettingsProvider s) {
     final items = [
       {'value': 'auto', 'label': 'تلقائي (موصى)'},
@@ -352,66 +353,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // أقسام مظهر الترجمة المتقدم
-  Widget _fontSection(BuildContext context, SettingsProvider s) {
+  Widget _fontSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('الخط والحجم', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      _sliderRow(context, 'حجم الخط', s.subtitleFontSize, 10, 100, '${s.subtitleFontSize.toInt()} px', s.setSubtitleFontSize),
+      _sliderRow(context, 'حجم الخط', sub.fontSize, 10, 100, '${sub.fontSize.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v))),
       const SizedBox(height: 8),
-      _choiceTile(context, Symbols.font_download_rounded, 'نوع الخط', s.fontFamily, () => showFontPicker(context, s)),
+      _choiceTile(context, Symbols.font_download_rounded, 'نوع الخط', sub.fontFamily,
+          () => showFontPicker(context, s)),
     ]);
   }
 
-  Widget _colorSection(BuildContext context, SettingsProvider s) {
+  Widget _colorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('الألوان', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      _colorRow(context, 'لون النص', s.subtitleColor, s.setSubtitleColor),
+      _colorRow(context, 'لون النص', sub.textColor,
+          (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.format_paint_rounded, 'خلفية النص', '', s.subtitleBgOpacity > 0, (v) => s.setSubtitleBgOpacity(v ? 0.65 : 0.0)),
-      if (s.subtitleBgOpacity > 0) ...[
+      _switchTile(context, Symbols.format_paint_rounded, 'خلفية النص', '',
+          sub.bgOpacity > 0,
+          (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v ? 0.65 : 0.0))),
+      if (sub.bgOpacity > 0) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الخلفية', s.subtitleBgColor, s.setSubtitleBgColor),
+        _colorRow(context, 'لون الخلفية', sub.bgColor,
+            (c) => s.updateSubtitleSettings(sub.copyWith(bgColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'شفافية الخلفية', s.subtitleBgOpacity, 0.1, 1.0, '${(s.subtitleBgOpacity * 100).toInt()}%', s.setSubtitleBgOpacity),
+        _sliderRow(context, 'شفافية الخلفية', sub.bgOpacity, 0.1, 1.0, '${(sub.bgOpacity * 100).toInt()}%',
+            (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v))),
       ],
     ]);
   }
 
-  Widget _effectsSection(BuildContext context, SettingsProvider s) {
+  Widget _effectsSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('الحدود والظلال', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.border_color_rounded, 'حدّ خارجي للنص', 'إطار حول كل حرف', s.outlineEnabled, s.setOutlineEnabled),
-      if (s.outlineEnabled) ...[
+      _switchTile(context, Symbols.border_color_rounded, 'حدّ خارجي للنص', 'إطار حول كل حرف',
+          sub.outlineWidth > 0,
+          (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v ? 2.0 : 0.0))),
+      if (sub.outlineWidth > 0) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الحدّ', s.outlineColor, s.setOutlineColor),
+        _colorRow(context, 'لون الحدّ', sub.outlineColor,
+            (c) => s.updateSubtitleSettings(sub.copyWith(outlineColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'سماكة الحدّ', s.outlineWidth, 0.5, 6.0, s.outlineWidth.toStringAsFixed(1), s.setOutlineWidth),
+        _sliderRow(context, 'سماكة الحدّ', sub.outlineWidth, 0.5, 6.0, sub.outlineWidth.toStringAsFixed(1),
+            (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v))),
       ],
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.blur_on_rounded, 'ظل الصندوق', 'ظل خلف نص الترجمة', s.boxShadowEnabled, s.setBoxShadowEnabled),
-      if (s.boxShadowEnabled) ...[
+      _switchTile(context, Symbols.blur_on_rounded, 'ظل النص', 'ظل خلف نص الترجمة',
+          sub.shadowEnabled,
+          (v) => s.updateSubtitleSettings(sub.copyWith(shadowEnabled: v))),
+      if (sub.shadowEnabled) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الظل', s.boxShadowColor, s.setBoxShadowColor),
+        _colorRow(context, 'لون الظل', sub.shadowColor,
+            (c) => s.updateSubtitleSettings(sub.copyWith(shadowColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'حجم الظل', s.boxShadowBlurRadius, 0, 20, '${s.boxShadowBlurRadius.toInt()}', s.setBoxShadowBlurRadius),
+        _sliderRow(context, 'شفافية الظل', sub.shadowOpacity, 0.1, 1.0, '${(sub.shadowOpacity * 100).toInt()}%',
+            (v) => s.updateSubtitleSettings(sub.copyWith(shadowOpacity: v))),
       ],
     ]);
   }
 
-  Widget _positionSection(BuildContext context, SettingsProvider s) {
+  Widget _positionSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('الموضع', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      _sliderRow(context, 'الارتفاع عن الأسفل', s.bottomPadding, 0, 300, '${s.bottomPadding.toInt()} px', s.setBottomPadding),
+      _sliderRow(context, 'الارتفاع عن الأسفل', sub.bottomMargin, 0, 300, '${sub.bottomMargin.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'الهامش الأفقي', s.horizontalMargin, 0, 120, '${s.horizontalMargin.toInt()} px', s.setHorizontalMargin),
+      _sliderRow(context, 'الهامش الأفقي', sub.horizontalMargin, 0, 120, '${sub.horizontalMargin.toInt()} px',
+          (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v))),
     ]);
   }
 
-  // عناصر مساعدة
   Widget _sectionHeader(BuildContext context, String title, IconData icon) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
