@@ -1,3 +1,5 @@
+// lib/services/player_control_service.dart
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -173,6 +175,7 @@ class PlayerControlService {
       });
 
       player.stream.subtitle.listen((lines) {
+        debugPrint('🔴 Subtitle stream: $lines');
         if (lines.isNotEmpty) {
           state.updateSubtitleText(lines.join('\n'));
         }
@@ -193,6 +196,7 @@ class PlayerControlService {
   }
 
   void applyPreferredSubtitleLanguage() {
+    debugPrint('applyPreferredSubtitleLanguage called, tracks: ${state.subtitleTracks.length}');
     if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
     for (final track in state.subtitleTracks) {
       if (track.language == settingsProvider.subtitleSettings.autoLanguage) {

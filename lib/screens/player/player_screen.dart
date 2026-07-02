@@ -1,3 +1,5 @@
+// lib/screens/player/player_screen.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,6 +62,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   static const double _lockBtnSize = 44.0;
   static const double _lockTrackWidth = 220.0;
+
+  bool _showDebug = false;
 
   @override
   void initState() {
@@ -231,14 +235,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   bool _shouldUseFlutterRenderer() {
-    final sub = _settingsProvider.subtitleSettings;
-    if (_state.hasExternalSubtitle && _state.lastSubtitleEntries != null) {
-      final String ext = widget.video.path.split('.').last.toLowerCase();
-      if (ext == 'ass' || ext == 'ssa') {
-        if (!sub.ignoreAssEffects) return false;
-      }
-    }
-    return true;
+    return _state.hasExternalSubtitle && _state.lastSubtitleEntries != null;
   }
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
@@ -913,6 +910,51 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  Future<void> _showDebugDialog() async {
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('تشخيص الترجمة'),
+              content: SingleChildScrollView(
+                child: StreamBuilder(
+                  stream: Stream.periodic(const Duration(milliseconds: 500)),
+                  builder: (context, _) {
+                    final track = _player.state.track.subtitle;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('showSubtitles: ${_state.showSubtitles}'),
+                        Text('hasExternalSubtitle: ${_state.hasExternalSubtitle}'),
+                        Text('lastSubtitleEntries: ${_state.lastSubtitleEntries?.length ?? 0} entries'),
+                        Text('subtitleTracks: ${_state.subtitleTracks.length}'),
+                        Text('currentSubtitleText: ${_state.currentSubtitleText?.substring(0, _state.currentSubtitleText!.length > 30 ? 30 : _state.currentSubtitleText?.length ?? 0) ?? "null"}'),
+                        Text('useFlutterRenderer: ${_shouldUseFlutterRenderer()}'),
+                        Text('active track: ${track?.id ?? "none"}'),
+                        Text('active track language: ${track?.language ?? "none"}'),
+                        const SizedBox(height: 10),
+                        Text('subtitle stream latest: ${_state.currentSubtitleText ?? "none"}'),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('إغلاق'),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1275,6 +1317,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: _buildPlaylistEditor(),
                   ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: FloatingActionButton.small(
+                    heroTag: 'debug',
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                    child: const Icon(Icons.bug_report, color: Colors.white),
+                    onPressed: _showDebugDialog,
+                  ),
+                ),
               ]),
       ),
     );
