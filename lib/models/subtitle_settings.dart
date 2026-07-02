@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 enum SubtitlePosition { top, center, bottom }
 enum SubtitleAlignment { right, center, left }
+enum SubtitleScaleMode { fixed, byResolution, byWindow, smart }
 
 class SubtitleSettings {
   final double fontSize;
@@ -33,7 +34,7 @@ class SubtitleSettings {
   final double safeAreaPadding;
   final bool respectNotch;
   final bool keepInsideVideo;
-  final bool scaleWithVideo;
+  final SubtitleScaleMode scaleMode;
   final bool autoShow;
   final String autoLanguage;
   final bool loadLastUsed;
@@ -77,7 +78,7 @@ class SubtitleSettings {
     this.safeAreaPadding = 20.0,
     this.respectNotch = true,
     this.keepInsideVideo = true,
-    this.scaleWithVideo = true,
+    this.scaleMode = SubtitleScaleMode.smart,
     this.autoShow = true,
     this.autoLanguage = 'ara',
     this.loadLastUsed = true,
@@ -122,7 +123,7 @@ class SubtitleSettings {
     double? safeAreaPadding,
     bool? respectNotch,
     bool? keepInsideVideo,
-    bool? scaleWithVideo,
+    SubtitleScaleMode? scaleMode,
     bool? autoShow,
     String? autoLanguage,
     bool? loadLastUsed,
@@ -166,7 +167,7 @@ class SubtitleSettings {
       safeAreaPadding: safeAreaPadding ?? this.safeAreaPadding,
       respectNotch: respectNotch ?? this.respectNotch,
       keepInsideVideo: keepInsideVideo ?? this.keepInsideVideo,
-      scaleWithVideo: scaleWithVideo ?? this.scaleWithVideo,
+      scaleMode: scaleMode ?? this.scaleMode,
       autoShow: autoShow ?? this.autoShow,
       autoLanguage: autoLanguage ?? this.autoLanguage,
       loadLastUsed: loadLastUsed ?? this.loadLastUsed,
@@ -213,7 +214,7 @@ class SubtitleSettings {
       'safeAreaPadding': safeAreaPadding,
       'respectNotch': respectNotch,
       'keepInsideVideo': keepInsideVideo,
-      'scaleWithVideo': scaleWithVideo,
+      'scaleMode': scaleMode.index,
       'autoShow': autoShow,
       'autoLanguage': autoLanguage,
       'loadLastUsed': loadLastUsed,
@@ -260,7 +261,7 @@ class SubtitleSettings {
       safeAreaPadding: map['safeAreaPadding'] ?? 20.0,
       respectNotch: map['respectNotch'] ?? true,
       keepInsideVideo: map['keepInsideVideo'] ?? true,
-      scaleWithVideo: map['scaleWithVideo'] ?? true,
+      scaleMode: SubtitleScaleMode.values[map['scaleMode'] ?? 3],
       autoShow: map['autoShow'] ?? true,
       autoLanguage: map['autoLanguage'] ?? 'ara',
       loadLastUsed: map['loadLastUsed'] ?? true,

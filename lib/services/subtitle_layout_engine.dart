@@ -36,13 +36,31 @@ class SubtitleLayoutEngine {
     final screenAspect = screenSize.width / screenSize.height;
 
     double scaleFactor = 1.0;
-    if (settings.scaleWithVideo) {
-      if (videoAspect > screenAspect) {
-        scaleFactor = screenSize.width / videoSize.width;
-      } else {
-        scaleFactor = screenSize.height / videoSize.height;
-      }
+
+    switch (settings.scaleMode) {
+      case SubtitleScaleMode.fixed:
+        scaleFactor = 1.0;
+        break;
+      case SubtitleScaleMode.byResolution:
+        // يعتمد على دقة الفيديو فقط
+        final baseResolution = 720.0; // 720p هو الأساس
+        scaleFactor = videoSize.height / baseResolution;
+        break;
+      case SubtitleScaleMode.byWindow:
+        // يعتمد على حجم نافذة العرض (الشاشة)
+        final baseScreenHeight = 1280.0; // شاشة 720p كأساس
+        scaleFactor = screenSize.height / baseScreenHeight;
+        break;
+      case SubtitleScaleMode.smart:
+        // ذكي: يجمع بين دقة الفيديو وحجم الشاشة
+        final videoRatio = videoSize.height / 720.0;
+        final screenRatio = screenSize.height / 1280.0;
+        scaleFactor = (videoRatio + screenRatio) / 2.0;
+        break;
     }
+
+    // لا نسمح للعامل أن يصبح صغيراً جداً أو كبيراً جداً
+    scaleFactor = scaleFactor.clamp(0.5, 3.0);
 
     double maxWidth = screenSize.width - settings.horizontalMargin * 2;
     if (settings.keepInsideVideo) {

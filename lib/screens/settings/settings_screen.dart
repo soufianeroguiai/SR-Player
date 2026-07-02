@@ -153,17 +153,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _moreTile(context, 'مظهر الترجمة المتقدم', _showAdvanced, () => setState(() => _showAdvanced = !_showAdvanced)),
           if (_showAdvanced) ...[
             const SizedBox(height: 8),
-            _fontSection(context, s, sub),
+            _SubtitleSection(
+              title: 'المظهر',
+              icon: Symbols.palette_rounded,
+              children: [
+                _fontSection(context, s, sub),
+                const SizedBox(height: 12),
+                _colorSection(context, s, sub),
+                const SizedBox(height: 12),
+                _effectsSection(context, s, sub),
+              ],
+              onReset: () {
+                s.updateSubtitleSettings(sub.copyWith(
+                  fontSize: 30.0,
+                  subtitleScale: 1.0,
+                  fontFamily: 'Roboto',
+                  textColor: const Color(0xFFFFFFFF),
+                  fontWeightIndex: 2,
+                  outlineColor: const Color(0xFF000000),
+                  outlineWidth: 2.0,
+                  shadowEnabled: false,
+                  shadowColor: const Color(0xFF000000),
+                  shadowOpacity: 0.5,
+                  shadowOffsetX: 2.0,
+                  shadowOffsetY: 2.0,
+                  shadowBlurRadius: 4.0,
+                  bgColor: const Color(0xFF000000),
+                  bgOpacity: 0.0,
+                  bgBorderRadius: 4.0,
+                  letterSpacing: 0.0,
+                  lineHeight: 1.2,
+                  lineSpacing: 1.0,
+                  autoWrap: true,
+                  maxLines: 2,
+                ));
+              },
+            ),
             const SizedBox(height: 12),
-            _colorSection(context, s, sub),
+            _SubtitleSection(
+              title: 'الموضع',
+              icon: Symbols.open_with_rounded,
+              children: [
+                _positionSection(context, s, sub),
+              ],
+              onReset: () {
+                s.updateSubtitleSettings(sub.copyWith(
+                  position: SubtitlePosition.bottom,
+                  bottomMargin: 48.0,
+                  alignment: SubtitleAlignment.center,
+                  horizontalMargin: 24.0,
+                  verticalMargin: 24.0,
+                  safeAreaPadding: 20.0,
+                  respectNotch: true,
+                  keepInsideVideo: true,
+                ));
+              },
+            ),
             const SizedBox(height: 12),
-            _effectsSection(context, s, sub),
+            _SubtitleSection(
+              title: 'السلوك',
+              icon: Symbols.settings_rounded,
+              children: [
+                _behaviorSection(context, s, sub),
+              ],
+              onReset: () {
+                s.updateSubtitleSettings(sub.copyWith(
+                  scaleMode: SubtitleScaleMode.smart,
+                  autoShow: true,
+                  autoLanguage: 'ara',
+                  loadLastUsed: true,
+                  hideWhenNoDialog: false,
+                ));
+              },
+            ),
             const SizedBox(height: 12),
-            _positionSection(context, s, sub),
-            const SizedBox(height: 12),
-            _behaviorSection(context, s, sub),
-            const SizedBox(height: 12),
-            _renderingSection(context, s, sub),
+            _SubtitleSection(
+              title: 'التوافق',
+              icon: Symbols.tune_rounded,
+              children: [
+                _renderingSection(context, s, sub),
+              ],
+              onReset: () {
+                s.updateSubtitleSettings(sub.copyWith(
+                  improveAnimation: true,
+                  complexTextRendering: true,
+                  improveSsaAss: true,
+                  ignoreAssFonts: false,
+                  ignoreAssEffects: false,
+                  fullUnicodeRtlSupport: true,
+                  improveAntiAliasing: true,
+                  hdrSupport: false,
+                ));
+              },
+            ),
           ],
         ]),
         const SizedBox(height: 16),
@@ -219,6 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // --- دوال الحفظ والتصدير وإعدادات أخرى ---
   void _confirmReset(BuildContext context, SettingsProvider s) {
     showDialog(
       context: context,
@@ -357,10 +440,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- أقسام الترجمة المتقدمة ---
   Widget _fontSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('الخط والحجم', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
       _sliderRow(context, 'حجم الخط', sub.fontSize, 10, 100, '${sub.fontSize.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v))),
       const SizedBox(height: 8),
@@ -400,8 +482,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _colorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('الألوان', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
       _colorRow(context, 'لون النص', sub.textColor,
           (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c))),
       const SizedBox(height: 8),
@@ -424,8 +504,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _effectsSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('الحدود والظلال', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
       _switchTile(context, Symbols.border_color_rounded, 'حدّ خارجي للنص', 'إطار حول كل حرف',
           sub.outlineWidth > 0,
           (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v ? 2.0 : 0.0))),
@@ -463,8 +541,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _positionSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('الموضع', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
       _choiceTile(context, Symbols.vertical_align_center_rounded, 'موضع الترجمة', _positionName(sub.position),
           () => _showPositionPicker(context, s, sub)),
       const SizedBox(height: 8),
@@ -541,11 +617,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _behaviorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('السلوك', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      _switchTile(context, Symbols.aspect_ratio_rounded, 'تناسب حجم الترجمة مع الفيديو', 'ضبط الحجم تلقائياً مع أبعاد الفيديو',
-          sub.scaleWithVideo,
-          (v) => s.updateSubtitleSettings(sub.copyWith(scaleWithVideo: v))),
+      _choiceTile(context, Symbols.aspect_ratio_rounded, 'طريقة قياس الترجمة', _scaleModeName(sub.scaleMode),
+          () => _showScaleModePicker(context, s, sub)),
       const SizedBox(height: 8),
       _switchTile(context, Symbols.visibility_rounded, 'إظهار الترجمة تلقائياً', 'عرض الترجمة عند بدء التشغيل',
           sub.autoShow,
@@ -562,6 +635,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
           sub.hideWhenNoDialog,
           (v) => s.updateSubtitleSettings(sub.copyWith(hideWhenNoDialog: v))),
     ]);
+  }
+
+  String _scaleModeName(SubtitleScaleMode mode) {
+    switch (mode) {
+      case SubtitleScaleMode.fixed: return 'حجم ثابت';
+      case SubtitleScaleMode.byResolution: return 'حسب دقة الفيديو';
+      case SubtitleScaleMode.byWindow: return 'حسب حجم النافذة';
+      case SubtitleScaleMode.smart: return 'ذكي (موصى به)';
+    }
+  }
+
+  void _showScaleModePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('طريقة قياس الترجمة', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('حجم ثابت'),
+            subtitle: const Text('نفس الحجم لجميع الفيديوهات'),
+            leading: const Icon(Symbols.lock_rounded),
+            trailing: sub.scaleMode == SubtitleScaleMode.fixed ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(scaleMode: SubtitleScaleMode.fixed));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('حسب دقة الفيديو'),
+            subtitle: const Text('أكبر لدقة أعلى، أصغر لدقة أقل'),
+            leading: const Icon(Symbols.hd_rounded),
+            trailing: sub.scaleMode == SubtitleScaleMode.byResolution ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(scaleMode: SubtitleScaleMode.byResolution));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('حسب حجم النافذة'),
+            subtitle: const Text('أكبر لشاشة أكبر، أصغر لشاشة أصغر'),
+            leading: const Icon(Symbols.smartphone_rounded),
+            trailing: sub.scaleMode == SubtitleScaleMode.byWindow ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(scaleMode: SubtitleScaleMode.byWindow));
+              Navigator.pop(ctx);
+            },
+          ),
+          ListTile(
+            title: const Text('ذكي (موصى به)'),
+            subtitle: const Text('يجمع بين دقة الفيديو وحجم الشاشة'),
+            leading: const Icon(Symbols.auto_awesome_rounded),
+            trailing: sub.scaleMode == SubtitleScaleMode.smart ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () {
+              s.updateSubtitleSettings(sub.copyWith(scaleMode: SubtitleScaleMode.smart));
+              Navigator.pop(ctx);
+            },
+          ),
+        ]),
+      ),
+    );
   }
 
   void _showAutoLanguagePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
@@ -596,8 +732,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _renderingSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('التوافق والعرض', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
       _switchTile(context, Symbols.animation_rounded, 'تحسين حركة الخط', 'حركة أكثر سلاسة',
           sub.improveAnimation,
           (v) => s.updateSubtitleSettings(sub.copyWith(improveAnimation: v))),
@@ -632,6 +766,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ]);
   }
 
+  // --- عناصر الواجهة المساعدة ---
   Widget _sectionHeader(BuildContext context, String title, IconData icon) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
@@ -712,6 +847,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         Slider(value: value, min: min, max: max, onChanged: onChanged, activeColor: cs.primary),
       ]),
+    );
+  }
+}
+
+class _SubtitleSection extends StatefulWidget {
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+  final VoidCallback onReset;
+
+  const _SubtitleSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+    required this.onReset,
+  });
+
+  @override
+  State<_SubtitleSection> createState() => _SubtitleSectionState();
+}
+
+class _SubtitleSectionState extends State<_SubtitleSection> {
+  bool _isOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: _isOpen ? Colors.black.withOpacity(0.8) : Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _isOpen ? cs.primary.withOpacity(0.6) : Colors.white.withOpacity(0.08),
+          width: _isOpen ? 1.5 : 1.0,
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: _isOpen
+                ? const BorderRadius.vertical(top: Radius.circular(14))
+                : BorderRadius.circular(14),
+            onTap: () => setState(() => _isOpen = !_isOpen),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _isOpen ? cs.primary.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(widget.icon, size: 18, color: _isOpen ? cs.primary : Colors.white70),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(widget.title,
+                    style: TextStyle(
+                      color: _isOpen ? Colors.white : Colors.white70,
+                      fontSize: 14,
+                      fontWeight: _isOpen ? FontWeight.bold : FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Symbols.restart_alt_rounded, color: _isOpen ? cs.primary : Colors.white54, size: 20),
+                  onPressed: widget.onReset,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'إعادة ضبط ${widget.title}',
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _isOpen ? Symbols.expand_less_rounded : Symbols.expand_more_rounded,
+                  color: _isOpen ? cs.primary : Colors.white54,
+                  size: 22,
+                ),
+              ]),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _isOpen
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Column(children: widget.children),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
     );
   }
 }
