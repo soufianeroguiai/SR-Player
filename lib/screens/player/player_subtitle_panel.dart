@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../providers/settings_provider.dart';
+import '../../models/subtitle_settings.dart';
 
 class SubtitleAppearancePanel extends StatefulWidget {
   final List<SubtitleTrack> subtitleTracks;
@@ -61,6 +62,8 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
+    final sub = s.subtitleSettings;
+
     final activeSubtitleName = widget.currentSubtitleTrack?.title ??
                                widget.currentSubtitleTrack?.language ??
                                'لا يوجد مسار نشط';
@@ -132,19 +135,19 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
           _IntegratedSectionTile(
             icon: Symbols.palette_rounded,
             title: 'المظهر',
-            subtitle: '${s.subtitleFontSize.toInt()}px',
+            subtitle: '${sub.fontSize.toInt()}px',
             isOpen: _openSection == 3,
             onTap: () => _toggleSection(3),
-            child: _buildAppearanceSection(s),
+            child: _buildAppearanceSection(s, sub, cs),
           ),
 
           _IntegratedSectionTile(
             icon: Symbols.open_with_rounded,
             title: 'الموضع',
-            subtitle: '${s.bottomPadding.toInt()}px / ${s.horizontalMargin.toInt()}px',
+            subtitle: '${sub.bottomMargin.toInt()}px / ${sub.horizontalMargin.toInt()}px',
             isOpen: _openSection == 7,
             onTap: () => _toggleSection(7),
-            child: _buildPositionSection(s),
+            child: _buildPositionSection(s, sub, cs),
           ),
 
           _IntegratedSectionTile(
@@ -153,7 +156,7 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
             subtitle: '${widget.subtitleSync > 0 ? '+' : ''}${widget.subtitleSync.toStringAsFixed(1)}s',
             isOpen: _openSection == 4,
             onTap: () => _toggleSection(4),
-            child: _buildSyncSection(),
+            child: _buildSyncSection(cs),
           ),
 
           _IntegratedSectionTile(
@@ -214,13 +217,10 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     ]);
   }
 
-  Widget _buildAppearanceSection(SettingsProvider s) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildAppearanceSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('حجم الخط', s.subtitleFontSize, 12, 80, (v) => s.setSubtitleFontSize(v), cs),
-      const SizedBox(height: 10),
-      const Text('نوع الخط', style: TextStyle(color: Colors.white70, fontSize: 12)),
-      const SizedBox(height: 6),
+      _CompactSlider('حجم الخط', sub.fontSize, 12, 80, (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v)), cs),
+      const SizedBox(height: 14),
       SizedBox(
         height: 40,
         child: ListView.builder(
@@ -228,9 +228,9 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
           itemCount: _fontList.length,
           itemBuilder: (_, i) {
             final (id, label, isGoogle) = _fontList[i];
-            final sel = s.fontFamily == id;
+            final sel = sub.fontFamily == id;
             return GestureDetector(
-              onTap: () => s.setFontFamily(id),
+              onTap: () => s.updateSubtitleSettings(sub.copyWith(fontFamily: id)),
               child: Container(
                 margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -245,22 +245,24 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
           },
         ),
       ),
-      const SizedBox(height: 10),
-      const Text('لون النص', style: TextStyle(color: Colors.white70, fontSize: 12)),
-      const SizedBox(height: 6),
-      _ColorPickerRow(currentColor: s.subtitleColor, onColorChanged: s.setSubtitleColor),
-      const SizedBox(height: 10),
+      const SizedBox(height: 14),
+      _ColorPickerRow(currentColor: sub.textColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c))),
+      const SizedBox(height: 14),
       Row(children: [
         const Expanded(child: Text('خلفية النص', style: TextStyle(color: Colors.white70, fontSize: 12))),
-        Switch(value: s.subtitleBgOpacity > 0, onChanged: (v) => s.setSubtitleBgOpacity(v ? 0.65 : 0.0), activeColor: cs.primary),
+        Switch(
+          value: sub.bgOpacity > 0,
+          onChanged: (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v ? 0.65 : 0.0)),
+          activeColor: cs.primary,
+        ),
       ]),
-      if (s.subtitleBgOpacity > 0) ...[
+      if (sub.bgOpacity > 0) ...[
         const SizedBox(height: 6),
-        _ColorPickerRow(currentColor: s.subtitleBgColor, onColorChanged: s.setSubtitleBgColor),
+        _ColorPickerRow(currentColor: sub.bgColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(bgColor: c))),
         const SizedBox(height: 6),
-        _CompactSlider('شفافية الخلفية', s.subtitleBgOpacity, 0.1, 1.0, s.setSubtitleBgOpacity, cs, display: (v) => '${(v * 100).toInt()}%'),
+        _CompactSlider('شفافية الخلفية', sub.bgOpacity, 0.1, 1.0, (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v)), cs, display: (v) => '${(v * 100).toInt()}%'),
       ],
-      const SizedBox(height: 10),
+      const SizedBox(height: 14),
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -272,17 +274,15 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     ]);
   }
 
-  Widget _buildPositionSection(SettingsProvider s) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildPositionSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('الارتفاع عن الأسفل', s.bottomPadding, 0, 300, s.setBottomPadding, cs, display: (v) => '${v.toInt()} px'),
-      const SizedBox(height: 10),
-      _CompactSlider('الهامش الأفقي', s.horizontalMargin, 0, 120, s.setHorizontalMargin, cs, display: (v) => '${v.toInt()} px'),
+      _CompactSlider('الارتفاع عن الأسفل', sub.bottomMargin, 0, 300, (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v)), cs, display: (v) => '${v.toInt()} px'),
+      const SizedBox(height: 14),
+      _CompactSlider('الهامش الأفقي', sub.horizontalMargin, 0, 120, (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v)), cs, display: (v) => '${v.toInt()} px'),
     ]);
   }
 
-  Widget _buildSyncSection() {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildSyncSection(ColorScheme cs) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _CompactSlider('تأخير الترجمة', widget.subtitleSync, -5.0, 5.0, widget.onSyncChanged, cs,
           display: (v) => '${v > 0 ? '+' : ''}${v.toStringAsFixed(1)} ثانية'),
@@ -315,34 +315,6 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
       value: s.rememberPosition,
       onChanged: s.setRememberPosition,
       activeColor: Theme.of(context).colorScheme.primary,
-    );
-  }
-}
-
-class _CompactSlider extends StatelessWidget {
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final ColorScheme cs;
-  final String Function(double)? display;
-  const _CompactSlider(this.label, this.value, this.min, this.max, this.onChanged, this.cs, {this.display});
-
-  @override
-  Widget build(BuildContext context) {
-    final displayed = display != null ? display!(value) : value.toStringAsFixed(1);
-    return Row(
-      children: [
-        SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
-        Expanded(
-          child: SliderTheme(
-            data: SliderThemeData(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), activeTrackColor: cs.primary, inactiveTrackColor: Colors.white24, thumbColor: cs.primary),
-            child: Slider(value: value, min: min, max: max, onChanged: onChanged),
-          ),
-        ),
-        SizedBox(width: 50, child: Text(displayed, style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.left)),
-      ],
     );
   }
 }
@@ -393,6 +365,34 @@ class _IntegratedSectionTile extends StatelessWidget {
           child: isOpen ? Padding(padding: const EdgeInsets.fromLTRB(12, 0, 12, 12), child: child) : const SizedBox.shrink(),
         ),
       ]),
+    );
+  }
+}
+
+class _CompactSlider extends StatelessWidget {
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+  final ColorScheme cs;
+  final String Function(double)? display;
+  const _CompactSlider(this.label, this.value, this.min, this.max, this.onChanged, this.cs, {this.display});
+
+  @override
+  Widget build(BuildContext context) {
+    final displayed = display != null ? display!(value) : value.toStringAsFixed(1);
+    return Row(
+      children: [
+        SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
+        Expanded(
+          child: SliderTheme(
+            data: SliderThemeData(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), activeTrackColor: cs.primary, inactiveTrackColor: Colors.white24, thumbColor: cs.primary),
+            child: Slider(value: value, min: min, max: max, onChanged: onChanged),
+          ),
+        ),
+        SizedBox(width: 50, child: Text(displayed, style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.left)),
+      ],
     );
   }
 }

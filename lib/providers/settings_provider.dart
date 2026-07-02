@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/subtitle_settings.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  // ─────────── إعدادات الترجمة الجديدة المجمعة ───────────
   SubtitleSettings _subtitleSettings = SubtitleSettings();
   SubtitleSettings get subtitleSettings => _subtitleSettings;
 
@@ -14,7 +13,6 @@ class SettingsProvider extends ChangeNotifier {
     _save();
   }
 
-  // ─────────── إعدادات التطبيق الأخرى (محفوظة كما هي) ───────────
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
@@ -36,16 +34,33 @@ class SettingsProvider extends ChangeNotifier {
   String _preferredAudioLanguage = 'ara';
   String get preferredAudioLanguage => _preferredAudioLanguage;
 
+  bool _showSubtitlesByDefault = true;
+  bool get showSubtitlesByDefault => _showSubtitlesByDefault;
+  void setShowSubtitlesByDefault(bool v) { _showSubtitlesByDefault = v; notifyListeners(); _save(); }
+
   String _subtitleFolder = '';
   String get subtitleFolder => _subtitleFolder;
+  void setSubtitleFolder(String v) { _subtitleFolder = v; notifyListeners(); _save(); }
+
   String _subtitleEncoding = 'UTF-8';
   String get subtitleEncoding => _subtitleEncoding;
+  void setSubtitleEncoding(String v) { _subtitleEncoding = v; notifyListeners(); _save(); }
+
+  String _preferredSubtitleLanguage = 'ara';
+  String get preferredSubtitleLanguage => _preferredSubtitleLanguage;
+  void setPreferredSubtitleLanguage(String v) { _preferredSubtitleLanguage = v; notifyListeners(); _save(); }
+
   double _defaultSubtitleSync = 0.0;
   double get defaultSubtitleSync => _defaultSubtitleSync;
+  void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
+
   bool _subtitleItalic = false;
   bool get subtitleItalic => _subtitleItalic;
+  void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
+
   bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
+  void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
 
   String _sortBy = 'date';
   String get sortBy => _sortBy;
@@ -77,23 +92,24 @@ class SettingsProvider extends ChangeNotifier {
 
   bool _silentResume = false;
   bool get silentResume => _silentResume;
+  void setSilentResume(bool v) { _silentResume = v; notifyListeners(); _save(); }
 
   bool _autoPipOnBackground = false;
   bool get autoPipOnBackground => _autoPipOnBackground;
+  void setAutoPipOnBackground(bool v) { _autoPipOnBackground = v; notifyListeners(); _save(); }
 
   bool _smartRotationEnabled = true;
   bool get smartRotationEnabled => _smartRotationEnabled;
+  void setSmartRotationEnabled(bool v) { _smartRotationEnabled = v; notifyListeners(); _save(); }
 
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
-    
-    // تحميل إعدادات الترجمة المجمعة
     final subtitleJsonString = p.getString('subtitleSettingsData');
     if (subtitleJsonString != null) {
       try {
         _subtitleSettings = SubtitleSettings.fromMap(json.decode(subtitleJsonString));
       } catch (e) {
-        _subtitleSettings = SubtitleSettings(); // الرجوع للافتراضي في حال الخطأ
+        _subtitleSettings = SubtitleSettings();
       }
     }
 
@@ -103,8 +119,10 @@ class SettingsProvider extends ChangeNotifier {
     _defaultSpeed = p.getDouble('defaultSpeed') ?? 1.0;
     _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
     _preferredAudioLanguage = p.getString('preferredAudioLanguage') ?? 'ara';
+    _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
     _subtitleFolder = p.getString('subtitleFolder') ?? '';
     _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
+    _preferredSubtitleLanguage = p.getString('preferredSubtitleLanguage') ?? 'ara';
     _defaultSubtitleSync = p.getDouble('defaultSubtitleSync') ?? 0.0;
     _subtitleItalic = p.getBool('subtitleItalic') ?? false;
     _subtitleRTL = p.getBool('subtitleRTL') ?? false;
@@ -130,18 +148,17 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
-    
-    // حفظ إعدادات الترجمة المجمعة
     await p.setString('subtitleSettingsData', json.encode(_subtitleSettings.toMap()));
-
     await p.setInt('themeMode', _themeMode.index);
     await p.setBool('rememberPosition', _rememberPosition);
     await p.setBool('autoPlay', _autoPlay);
     await p.setDouble('defaultSpeed', _defaultSpeed);
     await p.setDouble('defaultAudioBoost', _defaultAudioBoost);
     await p.setString('preferredAudioLanguage', _preferredAudioLanguage);
+    await p.setBool('showSubtitles', _showSubtitlesByDefault);
     await p.setString('subtitleFolder', _subtitleFolder);
     await p.setString('subtitleEncoding', _subtitleEncoding);
+    await p.setString('preferredSubtitleLanguage', _preferredSubtitleLanguage);
     await p.setDouble('defaultSubtitleSync', _defaultSubtitleSync);
     await p.setBool('subtitleItalic', _subtitleItalic);
     await p.setBool('subtitleRTL', _subtitleRTL);
@@ -164,15 +181,17 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   void resetAll() {
-    _subtitleSettings = SubtitleSettings(); // إعادة تعيين إعدادات الترجمة
+    _subtitleSettings = SubtitleSettings();
     _themeMode = ThemeMode.system;
     _rememberPosition = true;
     _autoPlay = true;
     _defaultSpeed = 1.0;
     _defaultAudioBoost = 100.0;
     _preferredAudioLanguage = 'ara';
+    _showSubtitlesByDefault = true;
     _subtitleFolder = '';
     _subtitleEncoding = 'UTF-8';
+    _preferredSubtitleLanguage = 'ara';
     _defaultSubtitleSync = 0.0;
     _subtitleItalic = false;
     _subtitleRTL = false;
@@ -192,23 +211,16 @@ class SettingsProvider extends ChangeNotifier {
     _silentResume = false;
     _autoPipOnBackground = false;
     _smartRotationEnabled = true;
-
     _save();
     notifyListeners();
   }
 
-  // Setters القديمة المحفوظة
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
   void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
   void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
   void setPreferredAudioLanguage(String v) { _preferredAudioLanguage = v; notifyListeners(); _save(); }
-  void setSubtitleFolder(String v) { _subtitleFolder = v; notifyListeners(); _save(); }
-  void setSubtitleEncoding(String v) { _subtitleEncoding = v; notifyListeners(); _save(); }
-  void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
-  void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
-  void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
   void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
   void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
   void setLibraryGridView(bool v) { _libraryGridView = v; notifyListeners(); _save(); }
@@ -222,9 +234,6 @@ class SettingsProvider extends ChangeNotifier {
   void setLongPressSpeedEnabled(bool v) { _longPressSpeedEnabled = v; notifyListeners(); _save(); }
   void setLongPressSpeedValue(double v) { _longPressSpeedValue = v; notifyListeners(); _save(); }
   void setGestureSensitivity(double v) { _gestureSensitivity = v; notifyListeners(); _save(); }
-  void setSilentResume(bool v) { _silentResume = v; notifyListeners(); _save(); }
-  void setAutoPipOnBackground(bool v) { _autoPipOnBackground = v; notifyListeners(); _save(); }
-  void setSmartRotationEnabled(bool v) { _smartRotationEnabled = v; notifyListeners(); _save(); }
 
   Map<String, dynamic> exportToJson() {
     return {
@@ -237,8 +246,10 @@ class SettingsProvider extends ChangeNotifier {
       'colorFormat': _colorFormat,
       'defaultAudioBoost': _defaultAudioBoost,
       'preferredAudioLanguage': _preferredAudioLanguage,
+      'showSubtitlesByDefault': _showSubtitlesByDefault,
       'subtitleFolder': _subtitleFolder,
       'subtitleEncoding': _subtitleEncoding,
+      'preferredSubtitleLanguage': _preferredSubtitleLanguage,
       'defaultSubtitleSync': _defaultSubtitleSync,
       'subtitleItalic': _subtitleItalic,
       'subtitleRTL': _subtitleRTL,
@@ -279,8 +290,10 @@ class SettingsProvider extends ChangeNotifier {
     _colorFormat = read('colorFormat', _colorFormat);
     _defaultAudioBoost = read('defaultAudioBoost', _defaultAudioBoost);
     _preferredAudioLanguage = read('preferredAudioLanguage', _preferredAudioLanguage);
+    _showSubtitlesByDefault = read('showSubtitlesByDefault', _showSubtitlesByDefault);
     _subtitleFolder = read('subtitleFolder', _subtitleFolder);
     _subtitleEncoding = read('subtitleEncoding', _subtitleEncoding);
+    _preferredSubtitleLanguage = read('preferredSubtitleLanguage', _preferredSubtitleLanguage);
     _defaultSubtitleSync = read('defaultSubtitleSync', _defaultSubtitleSync);
     _subtitleItalic = read('subtitleItalic', _subtitleItalic);
     _subtitleRTL = read('subtitleRTL', _subtitleRTL);
