@@ -45,18 +45,15 @@ class PlayerControlService {
     _hideTimer?.cancel();
   }
 
-  /// يبدأ تسريعاً مؤقتاً للتشغيل أثناء الضغط المطول (مثل يوتيوب)،
-  /// ويحفظ السرعة الحالية لاستعادتها عند رفع الإصبع.
   void startLongPressSpeedBoost() {
     if (!settingsProvider.longPressSpeedEnabled) return;
-    if (_preLongPressSpeed != null) return; // ضغط مطول قيد التنفيذ بالفعل
+    if (_preLongPressSpeed != null) return;
     _preLongPressSpeed = state.speed;
     player.setRate(settingsProvider.longPressSpeedValue);
     state.isSpeedBoosted = true;
     state.notifyListeners();
   }
 
-  /// ينهي التسريع المؤقت ويعيد السرعة الأصلية.
   void endLongPressSpeedBoost() {
     if (_preLongPressSpeed == null) return;
     player.setRate(_preLongPressSpeed!);
@@ -119,7 +116,6 @@ class PlayerControlService {
           applyInitialDecoderAndColor();
         }
 
-        // يُستخرج الفصول مع كل فيديو جديد في قائمة التشغيل (وليس مرة واحدة فقط)
         if (dur.inMilliseconds > 0) {
           extractChapters();
         }
@@ -131,7 +127,6 @@ class PlayerControlService {
           state.isPlaying = true;
 
           if (settingsProvider.silentResume) {
-            // استئناف صامت: نتابع من الموضع المحفوظ دون إظهار أي تنبيه.
             state.showResumeDialog = false;
           } else {
             state.showResumeDialog = true;
@@ -300,7 +295,7 @@ class PlayerControlService {
   void applyPreferredSubtitleLanguage() {
     if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
     for (final track in state.subtitleTracks) {
-      if (track.language == settingsProvider.preferredSubtitleLanguage) {
+      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
         player.setSubtitleTrack(track);
         state.showSubtitles = true;
         state.autoSubtitleSelected = true;
