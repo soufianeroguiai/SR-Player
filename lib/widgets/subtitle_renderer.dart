@@ -24,6 +24,7 @@ class SubtitleRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // استخدمنا trim() هنا أيضاً لعدم معالجة أي نص فارغ
     if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
       return const SizedBox.shrink();
     }
@@ -35,7 +36,8 @@ class SubtitleRenderer extends StatelessWidget {
       safeArea: safeArea,
     );
 
-    String displayText = currentEntry!.text;
+    // ✅ تحويل قفزات الأسطر الخاصة بملفات ASS إلى قفزات نظامية
+    String displayText = currentEntry!.text.replaceAll(r'\N', '\n');
 
     if (settings.ignoreAssEffects) {
       displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
@@ -43,6 +45,9 @@ class SubtitleRenderer extends StatelessWidget {
 
     // إزالة رموز الاتجاه المخفية التي تسبب مربعات بيضاء
     displayText = displayText.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E\u061C]'), '');
+
+    // 🌟 الحل الجذري للمشكلة: إجبار النص على إزالة أي أسطر فارغة سفلية تدفعه للأعلى
+    displayText = displayText.trim();
 
     final isArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(displayText);
 
@@ -100,7 +105,9 @@ class SubtitleRenderer extends StatelessWidget {
       child: IgnorePointer(
         child: Padding(
           padding: layout.padding,
-          child: Center(
+          // استخدام Align لضمان التصاق النص في أسفل الحيز المتاح له
+          child: Align(
+            alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: layout.maxWidth),
               child: textWidget,

@@ -64,14 +64,15 @@ class SubtitleLayoutEngine {
     double? bottomPos;
 
     if (settings.position == SubtitlePosition.top) {
-      // الوضع العلوي: مسافة من الأعلى = الهامش العمومي + مساحة الأمان العلوية (لحماية النوتش)
-      topPos = settings.verticalMargin + settings.safeAreaPadding + safeArea.top;
+      // ✅ تم تضمين احترام النوتش العلوي
+      final notchPadding = settings.respectNotch ? safeArea.top : 0.0;
+      topPos = settings.verticalMargin + settings.safeAreaPadding + notchPadding;
     } else if (settings.position == SubtitlePosition.center) {
       topPos = (screenSize.height / 2) - effectiveFontSize;
     } else {
-      // الوضع السفلي (الأهم): الهامش السفلي + مساحة الأمان التي يحددها المستخدم فقط.
-      // بدون safeArea.bottom الإجباري. إذا وضع المستخدم القيمتين صفراً، تكون الترجمة ملتصقة تماماً.
-      bottomPos = settings.bottomMargin + settings.safeAreaPadding;
+      // ✅ تم تضمين احترام شريط التنقل السفلي في حال تفعيله، وإلا سيكون صفر
+      final notchPadding = settings.respectNotch ? safeArea.bottom : 0.0;
+      bottomPos = settings.bottomMargin + settings.safeAreaPadding + notchPadding;
     }
 
     return SubtitleLayoutResult(
