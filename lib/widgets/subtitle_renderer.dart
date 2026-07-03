@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../models/subtitle_settings.dart';
 import '../services/subtitle_service.dart';
+import '../services/subtitle_parser.dart';
 import '../screens/player/subtitle_style_builder.dart';
 import '../services/subtitle_layout_engine.dart';
 
 class SubtitleRenderer extends StatelessWidget {
   final SubtitleEntry? currentEntry;
   final SubtitleSettings settings;
+  final Rect videoRect;
   final Size videoSize;
   final Size screenSize;
   final EdgeInsets safeArea;
@@ -16,6 +18,7 @@ class SubtitleRenderer extends StatelessWidget {
     super.key,
     required this.currentEntry,
     required this.settings,
+    required this.videoRect,
     required this.videoSize,
     required this.screenSize,
     required this.safeArea,
@@ -24,52 +27,43 @@ class SubtitleRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // استخدمنا trim() هنا أيضاً لعدم معالجة أي نص فارغ
-    if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
+    // التنظيف عبر الـ Parser المنفصل
+    final displayText = SubtitleParser.clean(
+      currentEntry?.text,
+      ignoreAssEffects: settings.ignoreAssEffects,
+    );
+
+    if (!visible || !settings.autoShow || displayText.isEmpty) {
       return const SizedBox.shrink();
     }
 
     final layout = SubtitleLayoutEngine.calculate(
       settings: settings,
       videoSize: videoSize,
+      videoRect: videoRect,
       screenSize: screenSize,
       safeArea: safeArea,
     );
 
-    // ✅ تحويل قفزات الأسطر الخاصة بملفات ASS إلى قفزات نظامية
-    String displayText = currentEntry!.text.replaceAll(r'\N', '\n');
+    final textStyle = buildSubtitleTextStyle(settings).copyWith(fontSize: layout.fontSize);
 
-    if (settings.ignoreAssEffects) {
-      displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
-    }
-
-    // إزالة رموز الاتجاه المخفية التي تسبب مربعات بيضاء
-    displayText = displayText.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E\u061C]'), '');
-
-    // 🌟 الحل الجذري للمشكلة: إجبار النص على إزالة أي أسطر فارغة سفلية تدفعه للأعلى
-    displayText = displayText.trim();
-
-    final isArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(displayText);
-
-    final textStyle = buildSubtitleTextStyle(settings).copyWith(
-      fontSize: layout.fontSize,
+    // بناء Span النص (جاهز للتوسعة لاحقاً)
+    final textSpan = TextSpan(
+      text: displayText,
+      style: textStyle,
     );
 
-    Widget textWidget = AnimatedDefaultTextStyle(
-      duration: const Duration(milliseconds: 200),
-      style: textStyle,
-      textAlign: layout.textAlign,
-      maxLines: settings.autoWrap ? settings.maxLines : 1,
-      overflow: TextOverflow.ellipsis,
-      child: Text(
-        displayText,
+    Widget textWidget = Directionality(
+      textDirection: Directionality.of(context), // يحترم اتجاه التطبيق (RTL) ولا يكسر الإنجليزية
+      child: RichText(
+        text: textSpan,
         textAlign: layout.textAlign,
-        textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
         maxLines: settings.autoWrap ? settings.maxLines : 1,
         overflow: TextOverflow.ellipsis,
       ),
     );
 
+    // خلفية
     if (settings.bgOpacity > 0) {
       double radius;
       switch (settings.bgShape) {
@@ -83,7 +77,6 @@ class SubtitleRenderer extends StatelessWidget {
         default:
           radius = settings.bgBorderRadius;
       }
-
       textWidget = Container(
         padding: EdgeInsets.all(settings.bgPadding),
         decoration: BoxDecoration(
@@ -97,17 +90,17 @@ class SubtitleRenderer extends StatelessWidget {
       );
     }
 
+    // الهيكل النهائي: الترجمة داخل مستطيل الفيديو، مع قص للحدود لتجنب تسرب الظلال
     return Positioned(
-      left: 0,
-      right: 0,
-      top: layout.top,
-      bottom: layout.bottom,
-      child: IgnorePointer(
-        child: Padding(
-          padding: layout.padding,
-          // استخدام Align لضمان التصاق النص في أسفل الحيز المتاح له
-          child: Align(
-            alignment: Alignment.bottomCenter,
+      left: videoRect.left,
+      top: videoRect.top,
+      width: videoRect.width,
+      height: videoRect.height,
+      child: ClipRect(
+        child: Align(
+          alignment: layout.alignment,
+          child: Padding(
+            padding: layout.padding,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: layout.maxWidth),
               child: textWidget,

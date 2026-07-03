@@ -20,6 +20,7 @@ import '../../widgets/color_adjustment_panel.dart';
 import '../../widgets/video_thumbnail_loader.dart';
 import '../../widgets/subtitle_renderer.dart';
 import '../../services/smart_enhance_service.dart';
+import '../../services/video_layout_calculator.dart'; // ← أضفنا هذا الاستيراد
 import '../info_screen.dart';
 import 'player_controls.dart';
 import 'player_audio_panel.dart';
@@ -974,23 +975,30 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
+                // هنا التعديل الوحيد: استخدام VideoLayoutCalculator لتوفير videoRect و videoSize
                 if (useFlutterRenderer && _state.currentSubtitleText != null && _state.currentSubtitleText!.trim().isNotEmpty)
-                  SubtitleRenderer(
-                    currentEntry: SubtitleEntry(
-                      start: Duration.zero,
-                      end: const Duration(hours: 1),
-                      text: _state.currentSubtitleText!,
-                    ),
-                    settings: subtitleSettings,
-                    videoSize: (_player.state.width != null &&
-                            _player.state.height != null &&
-                            _player.state.width! > 0 &&
-                            _player.state.height! > 0)
+                  () {
+                    final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
                         ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
-                        : MediaQuery.of(context).size,
-                    screenSize: MediaQuery.of(context).size,
-                    safeArea: MediaQuery.of(context).padding,
-                  ),
+                        : MediaQuery.of(context).size;
+                    final videoRect = VideoLayoutCalculator.calculate(
+                      videoSize: videoSize,
+                      screenSize: MediaQuery.of(context).size,
+                      fitMode: _state.fitMode,
+                    );
+                    return SubtitleRenderer(
+                      currentEntry: SubtitleEntry(
+                        start: Duration.zero,
+                        end: const Duration(hours: 1),
+                        text: _state.currentSubtitleText!,
+                      ),
+                      settings: subtitleSettings,
+                      videoRect: videoRect,
+                      videoSize: videoSize,
+                      screenSize: MediaQuery.of(context).size,
+                      safeArea: MediaQuery.of(context).padding,
+                    );
+                  }(),
 
                 IgnorePointer(
                   child: AnimatedOpacity(

@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/subtitle_settings.dart';
 
 class SubtitleLayoutResult {
-  final double? top;
-  final double? bottom;
+  final Alignment alignment;
+  final EdgeInsets padding;
   final double maxWidth;
   final double fontSize;
-  final EdgeInsets padding;
   final TextAlign textAlign;
 
   SubtitleLayoutResult({
-    this.top,
-    this.bottom,
+    required this.alignment,
+    required this.padding,
     required this.maxWidth,
     required this.fontSize,
-    required this.padding,
     required this.textAlign,
   });
 }
@@ -23,10 +21,11 @@ class SubtitleLayoutEngine {
   static SubtitleLayoutResult calculate({
     required SubtitleSettings settings,
     required Size videoSize,
+    required Rect videoRect,
     required Size screenSize,
     required EdgeInsets safeArea,
   }) {
-    // 1. حساب مقياس التكبير
+    // 1. مقياس التكبير بناءً على دقة الفيديو الأصلية
     double scaleFactor = 1.0;
     switch (settings.scaleMode) {
       case SubtitleScaleMode.fixed:
@@ -47,43 +46,57 @@ class SubtitleLayoutEngine {
     scaleFactor = scaleFactor.clamp(0.5, 3.0);
 
     // 2. أقصى عرض
-    double maxWidth = screenSize.width - (settings.horizontalMargin * 2);
-    if (settings.keepInsideVideo && videoSize.width > 0) {
-      final videoDisplayWidth = videoSize.width * scaleFactor;
-      maxWidth = videoDisplayWidth - (settings.horizontalMargin * 2);
-      if (maxWidth < 100) {
-        maxWidth = screenSize.width - (settings.horizontalMargin * 2);
-      }
+    double maxWidth;
+    if (settings.keepInsideVideo) {
+      maxWidth = videoRect.width;
+    } else {
+      maxWidth = screenSize.width;
     }
+    if (maxWidth < 100) maxWidth = screenSize.width;
 
-    // 3. حجم الخط الفعلي
+    // 3. حجم الخط
     final effectiveFontSize = settings.fontSize * settings.subtitleScale * scaleFactor;
 
-    // 4. حساب الموضع
-    double? topPos;
-    double? bottomPos;
+    // 4. الهوامش الأفقية
+    final horizontalPadding = settings.horizontalMargin;
 
-    if (settings.position == SubtitlePosition.top) {
-      // ✅ تم تضمين احترام النوتش العلوي
-      final notchPadding = settings.respectNotch ? safeArea.top : 0.0;
-      topPos = settings.verticalMargin + settings.safeAreaPadding + notchPadding;
-    } else if (settings.position == SubtitlePosition.center) {
-      topPos = (screenSize.height / 2) - effectiveFontSize;
-    } else {
-      // ✅ تم تضمين احترام شريط التنقل السفلي في حال تفعيله، وإلا سيكون صفر
-      final notchPadding = settings.respectNotch ? safeArea.bottom : 0.0;
-      bottomPos = settings.bottomMargin + settings.safeAreaPadding + notchPadding;
+    // 5. الحشوات العمودية واختيار المحاذاة
+    final Alignment alignment;
+    EdgeInsets padding;
+
+    final topNotch = settings.respectNotch ? safeArea.top : 0.0;
+    final bottomNotch = settings.respectNotch ? safeArea.bottom : 0.0;
+
+    switch (settings.position) {
+      case SubtitlePosition.top:
+        alignment = Alignment.topCenter;
+        padding = EdgeInsets.only(
+          left: horizontalPadding,
+          right: horizontalPadding,
+          top: settings.verticalMargin + settings.safeAreaPadding + topNotch,
+        );
+        break;
+
+      case SubtitlePosition.center:
+        alignment = Alignment.center;
+        padding = EdgeInsets.symmetric(horizontal: horizontalPadding);
+        break;
+
+      case SubtitlePosition.bottom:
+        alignment = Alignment.bottomCenter;
+        padding = EdgeInsets.only(
+          left: horizontalPadding,
+          right: horizontalPadding,
+          bottom: settings.bottomMargin + settings.safeAreaPadding + bottomNotch,
+        );
+        break;
     }
 
     return SubtitleLayoutResult(
-      top: topPos,
-      bottom: bottomPos,
+      alignment: alignment,
+      padding: padding,
       maxWidth: maxWidth,
       fontSize: effectiveFontSize,
-      padding: EdgeInsets.only(
-        left: settings.horizontalMargin,
-        right: settings.horizontalMargin,
-      ),
       textAlign: _getTextAlign(settings.alignment),
     );
   }
