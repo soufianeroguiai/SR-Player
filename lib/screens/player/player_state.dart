@@ -62,7 +62,7 @@ class PlayerUIState extends ChangeNotifier {
   List<VideoItem> playlistVideos = [];
   int currentPlaylistIndex = -1;
 
-  String? currentSubtitleText;
+  final ValueNotifier<String?> currentSubtitleText = ValueNotifier<String?>(null);
 
   // 🔍 تكبير/سحب حر (Pan & Zoom)
   double zoomScale = 1.0;
@@ -100,8 +100,14 @@ class PlayerUIState extends ChangeNotifier {
   }
 
   void updateSubtitleText(String? text) {
-    currentSubtitleText = text;
+    currentSubtitleText.value = text;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    currentSubtitleText.dispose();
+    super.dispose();
   }
 }
 
