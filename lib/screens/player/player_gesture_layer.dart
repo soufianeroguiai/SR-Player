@@ -5,9 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
+import 'player_fit_mode.dart';
 import 'player_indicators.dart';
 
-enum GestureType { none, seek, volume, brightness, subtitle }
+enum GestureType { none, seek, volume, brightness, subtitle, zoomPan }
 
 class PlayerGestureLayer extends StatefulWidget {
   final Player player;
@@ -19,11 +20,15 @@ class PlayerGestureLayer extends StatefulWidget {
   final Duration duration;
   final bool isPlaying;
   final bool isSpeedBoosted;
+  final VideoFitMode fitMode;
+  final double zoomScale;
+  final Offset panOffset;
   final VoidCallback onToggleControls;
   final void Function(double newVolume) onVolumeChanged;
   final VoidCallback onPlayPause;
   final VoidCallback? onLongPressSpeedStart;
   final VoidCallback? onLongPressSpeedEnd;
+  final void Function(double scale, Offset offset)? onZoomPanChanged;
   final Widget child;
 
   const PlayerGestureLayer({
@@ -37,11 +42,15 @@ class PlayerGestureLayer extends StatefulWidget {
     required this.duration,
     required this.isPlaying,
     this.isSpeedBoosted = false,
+    this.fitMode = VideoFitMode.contain,
+    this.zoomScale = 1.0,
+    this.panOffset = Offset.zero,
     required this.onToggleControls,
     required this.onVolumeChanged,
     required this.onPlayPause,
     this.onLongPressSpeedStart,
     this.onLongPressSpeedEnd,
+    this.onZoomPanChanged,
     required this.child,
   });
 
@@ -67,6 +76,10 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
   GestureType _activeGesture = GestureType.none;
   Offset _startPanOffset = Offset.zero;
   bool _isPanLocked = false;
+
+  // 🔍 تكبير/سحب حر
+  double _startZoomScale = 1.0;
+  Offset _startZoomPanOffset = Offset.zero;
 
   @override
   void dispose() {
@@ -151,6 +164,12 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               _activeGesture = GestureType.subtitle;
               return;
             }
+            if (details.pointerCount == 2 && widget.fitMode == VideoFitMode.free) {
+              _startZoomScale = widget.zoomScale;
+              _startZoomPanOffset = widget.panOffset;
+              _activeGesture = GestureType.zoomPan;
+              return;
+            }
             if (details.pointerCount == 2 && !widget.isPlaying) {
               _startSubtitleSize = sub.fontSize;
               _startBottomPadding = sub.bottomMargin;
@@ -171,6 +190,14 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               s.updateSubtitleSettings(sub.copyWith(subtitleScale: newScale));
               return;
             }
+
+            if (details.pointerCount == 2 && _activeGesture == GestureType.zoomPan) {
+              final newScale = (_startZoomScale * details.scale).clamp(1.0, 6.0);
+              final panDelta = details.focalPoint - _startPanOffset;
+              final newOffset = _startZoomPanOffset + panDelta;
+              widget.onZoomPanChanged?.call(newScale, newOffset);
+              return;
+            }
             
             // ✅ الإصلاح الذكي هنا: دمج تعديل الحجم والمكان معاً لمنع الـ Overwrite
             if (details.pointerCount == 2 && _activeGesture == GestureType.subtitle && !widget.isPlaying) {
@@ -185,7 +212,7 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               return;
             }
 
-            if (details.pointerCount != 1 || _activeGesture == GestureType.subtitle) return;
+            if (details.pointerCount != 1 || _activeGesture == GestureType.subtitle || _activeGesture == GestureType.zoomPan) return;
             if (details.focalPointDelta.distance < 0.5) return;
 
             if (!_isPanLocked) {
@@ -259,9 +286,9 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.75),
+                      color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: cs.primary.withOpacity(0.4), width: 1.5),
+                      border: Border.all(color: cs.primary.withValues(alpha: 0.4), width: 1.5),
                     ),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Icon(
@@ -335,9 +362,9 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: cs.primary.withOpacity(0.4)),
+                border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -370,9 +397,9 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: cs.primary.withOpacity(0.4)),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

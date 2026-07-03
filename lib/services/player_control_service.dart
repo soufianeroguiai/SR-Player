@@ -47,6 +47,43 @@ class PlayerControlService {
     _hideTimer?.cancel();
   }
 
+  // 🔁 تكرار مقطع A-B
+  void setRepeatPointA() {
+    state.repeatPointA = state.position;
+    if (state.repeatPointB != null && state.repeatPointB! <= state.repeatPointA!) {
+      state.repeatPointB = null;
+    }
+    state.notifyListeners();
+  }
+
+  void setRepeatPointB() {
+    if (state.repeatPointA == null) return;
+    if (state.position <= state.repeatPointA!) return;
+    state.repeatPointB = state.position;
+    state.notifyListeners();
+  }
+
+  void clearRepeatPoints() {
+    state.clearRepeatPoints();
+  }
+
+  // 🔍 تكبير/سحب حر
+  void updateZoomPan({double? scale, Offset? offset}) {
+    if (scale != null) state.zoomScale = scale.clamp(1.0, 6.0);
+    if (offset != null) state.panOffset = offset;
+    state.notifyListeners();
+  }
+
+  void resetZoomPan() {
+    state.resetZoomPan();
+  }
+
+  // 📊 معلومات تقنية
+  void toggleStatsOverlay() {
+    state.showStatsOverlay = !state.showStatsOverlay;
+    state.notifyListeners();
+  }
+
   void startLongPressSpeedBoost() {
     if (!settingsProvider.longPressSpeedEnabled) return;
     if (_preLongPressSpeed != null) return;
@@ -106,6 +143,7 @@ class PlayerControlService {
       final currentHw = await native.getProperty('hwdec-current') ?? 'no';
       state.hdrEnabled = videoInfo.isHDR;
       state.hwEnabled = currentHw != 'no' && currentHw.isNotEmpty;
+      state.videoInfo = videoInfo;
       state.notifyListeners();
 
       bool colorApplied = false;
@@ -149,6 +187,14 @@ class PlayerControlService {
 
       _playerSubscriptions.add(player.stream.position.listen((pos) {
         state.position = pos;
+
+        // 🔁 تكرار مقطع A-B: إلا وصلنا لنقطة B نرجعو لنقطة A تلقائياً
+        final a = state.repeatPointA;
+        final b = state.repeatPointB;
+        if (a != null && b != null && pos >= b) {
+          player.seek(a);
+        }
+
         state.notifyListeners();
 
         if (settingsProvider.rememberPosition && !state.showResumeDialog) {

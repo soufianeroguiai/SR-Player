@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'player_fit_mode.dart';
 
 class PlayerSettingsPanel extends StatefulWidget {
   final bool isFavorite;
@@ -9,6 +10,8 @@ class PlayerSettingsPanel extends StatefulWidget {
   final VoidCallback onAddToPlaylist;
   final VoidCallback onCaptureScreenshot;
   final VoidCallback onToggleFit;
+  final void Function(VideoFitMode mode)? onSetFitMode;
+  final VideoFitMode fitMode;
   final VoidCallback onEnterPip;
   final VoidCallback onShowInfo;
   final VoidCallback? onSleepTimer;
@@ -20,6 +23,23 @@ class PlayerSettingsPanel extends StatefulWidget {
   final String currentFitMode;
   final VoidCallback onClose;
 
+  // 🔁 تكرار A-B
+  final Duration? repeatPointA;
+  final Duration? repeatPointB;
+  final VoidCallback? onSetRepeatA;
+  final VoidCallback? onSetRepeatB;
+  final VoidCallback? onClearRepeat;
+
+  // 📊 معلومات تقنية
+  final bool showStats;
+  final VoidCallback? onToggleStats;
+
+  // 🔖 إشارات مرجعية
+  final List<Duration> bookmarks;
+  final VoidCallback? onAddBookmark;
+  final void Function(Duration)? onJumpToBookmark;
+  final void Function(Duration)? onRemoveBookmark;
+
   const PlayerSettingsPanel({
     super.key,
     required this.isFavorite,
@@ -27,6 +47,8 @@ class PlayerSettingsPanel extends StatefulWidget {
     required this.onAddToPlaylist,
     required this.onCaptureScreenshot,
     required this.onToggleFit,
+    this.onSetFitMode,
+    this.fitMode = VideoFitMode.contain,
     required this.onEnterPip,
     required this.onShowInfo,
     this.onSleepTimer,
@@ -37,6 +59,17 @@ class PlayerSettingsPanel extends StatefulWidget {
     this.currentSpeed = 1.0,
     this.currentFitMode = 'احتواء',
     required this.onClose,
+    this.repeatPointA,
+    this.repeatPointB,
+    this.onSetRepeatA,
+    this.onSetRepeatB,
+    this.onClearRepeat,
+    this.showStats = false,
+    this.onToggleStats,
+    this.bookmarks = const [],
+    this.onAddBookmark,
+    this.onJumpToBookmark,
+    this.onRemoveBookmark,
   });
 
   @override
@@ -83,9 +116,11 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
             isOpen: _openSection == 1,
             onTap: () => _toggleSection(1),
             child: Column(children: [
-              _SimpleTile(Icons.fit_screen_rounded, 'احتواء', widget.currentFitMode == 'احتواء', () { widget.onToggleFit(); _toggleSection(1); }),
-              _SimpleTile(Icons.fullscreen_rounded, 'تغطية', widget.currentFitMode == 'تغطية', () { widget.onToggleFit(); _toggleSection(1); }),
-              _SimpleTile(Icons.zoom_out_map_rounded, 'تمديد', widget.currentFitMode == 'تمديد', () { widget.onToggleFit(); _toggleSection(1); }),
+              _SimpleTile(Icons.fit_screen_rounded, 'احتواء', widget.fitMode == VideoFitMode.contain, () => _pickFit(VideoFitMode.contain)),
+              _SimpleTile(Icons.fullscreen_rounded, 'تغطية', widget.fitMode == VideoFitMode.cover, () => _pickFit(VideoFitMode.cover)),
+              _SimpleTile(Icons.aspect_ratio_rounded, 'ملء', widget.fitMode == VideoFitMode.fill, () => _pickFit(VideoFitMode.fill)),
+              _SimpleTile(Icons.zoom_out_map_rounded, 'تمديد', widget.fitMode == VideoFitMode.stretch, () => _pickFit(VideoFitMode.stretch)),
+              _SimpleTile(Icons.open_with_rounded, 'حر (سحب/تكبير بإصبعين)', widget.fitMode == VideoFitMode.free, () => _pickFit(VideoFitMode.free)),
             ]),
           ),
           const SizedBox(height: 4),
@@ -98,6 +133,81 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
           ],
           _QuickActionTile(icon: Symbols.info_rounded, title: 'معلومات الفيديو', onTap: widget.onShowInfo),
           const SizedBox(height: 8),
+
+          if (widget.onSetRepeatA != null) ...[
+            _IntegratedSectionTile(
+              icon: Icons.repeat_rounded,
+              title: 'تكرار مقطع A-B',
+              subtitle: widget.repeatPointA == null
+                  ? 'غير مفعّل'
+                  : widget.repeatPointB == null
+                      ? 'A محددة'
+                      : 'A-B مفعّل',
+              isOpen: _openSection == 3,
+              onTap: () => _toggleSection(3),
+              child: Column(children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.flag_rounded, color: Colors.white70, size: 20),
+                  title: Text(
+                    widget.repeatPointA == null ? 'تحديد نقطة البداية (A)' : 'إعادة تحديد A عند الموضع الحالي',
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  onTap: widget.onSetRepeatA,
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.sports_score_rounded, color: Colors.white70, size: 20),
+                  title: const Text('تحديد نقطة النهاية (B)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  enabled: widget.repeatPointA != null,
+                  onTap: widget.onSetRepeatB,
+                ),
+                if (widget.repeatPointA != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 20),
+                    title: const Text('إلغاء التكرار', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                    onTap: widget.onClearRepeat,
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 4),
+          ],
+
+          if (widget.onAddBookmark != null) ...[
+            _IntegratedSectionTile(
+              icon: Icons.bookmark_rounded,
+              title: 'إشارات مرجعية',
+              subtitle: widget.bookmarks.isEmpty ? '' : '${widget.bookmarks.length}',
+              isOpen: _openSection == 4,
+              onTap: () => _toggleSection(4),
+              child: Column(children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.add_rounded, color: Colors.white70, size: 20),
+                  title: const Text('إضافة إشارة عند الموضع الحالي', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  onTap: widget.onAddBookmark,
+                ),
+                if (widget.bookmarks.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Text('لا توجد إشارات محفوظة فهاد الفيديو', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  )
+                else
+                  ...widget.bookmarks.map((d) => ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.play_circle_rounded, color: Colors.white70, size: 20),
+                        title: Text(_fmtDuration(d), style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 18),
+                          onPressed: widget.onRemoveBookmark == null ? null : () => widget.onRemoveBookmark!(d),
+                        ),
+                        onTap: widget.onJumpToBookmark == null ? null : () => widget.onJumpToBookmark!(d),
+                      )),
+              ]),
+            ),
+            const SizedBox(height: 8),
+          ],
 
           _IntegratedSectionTile(
             icon: Symbols.settings_rounded,
@@ -122,11 +232,35 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                   onChanged: (_) => widget.onToggleRememberPosition!(),
                   activeColor: Theme.of(context).colorScheme.primary,
                 ),
+              if (widget.onToggleStats != null)
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('معلومات تقنية (Stats for Nerds)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  value: widget.showStats,
+                  onChanged: (_) => widget.onToggleStats!(),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
             ]),
           ),
         ],
       ),
     );
+  }
+
+  void _pickFit(VideoFitMode mode) {
+    if (widget.onSetFitMode != null) {
+      widget.onSetFitMode!(mode);
+    } else {
+      widget.onToggleFit();
+    }
+  }
+
+  String _fmtDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 }
 
@@ -141,7 +275,7 @@ class _QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.05))),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
       child: ListTile(
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -187,10 +321,10 @@ class _IntegratedSectionTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isOpen ? Colors.black.withOpacity(0.8) : Colors.black.withOpacity(0.6),
+        color: isOpen ? Colors.black.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isOpen ? cs.primary.withOpacity(0.6) : Colors.white.withOpacity(0.08), width: isOpen ? 1.5 : 1.0),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+        border: Border.all(color: isOpen ? cs.primary.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08), width: isOpen ? 1.5 : 1.0),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Column(children: [
         InkWell(
@@ -199,7 +333,7 @@ class _IntegratedSectionTile extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(children: [
-              Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: isOpen ? cs.primary.withOpacity(0.2) : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+              Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: isOpen ? cs.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, size: 18, color: isOpen ? cs.primary : Colors.white70)),
               const SizedBox(width: 12),
               Expanded(child: Text(title, style: TextStyle(color: isOpen ? Colors.white : Colors.white70, fontSize: 14, fontWeight: isOpen ? FontWeight.bold : FontWeight.w600))),

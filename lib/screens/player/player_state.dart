@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../models/video_item.dart';
+import '../../services/video_info_service.dart';
 import 'player_fit_mode.dart';
 
 class PlayerUIState extends ChangeNotifier {
@@ -62,6 +63,30 @@ class PlayerUIState extends ChangeNotifier {
   int currentPlaylistIndex = -1;
 
   String? currentSubtitleText;
+
+  // 🔍 تكبير/سحب حر (Pan & Zoom)
+  double zoomScale = 1.0;
+  Offset panOffset = Offset.zero;
+
+  // 🔁 تكرار مقطع A-B
+  Duration? repeatPointA;
+  Duration? repeatPointB;
+
+  // 📊 معلومات تقنية (Stats for Nerds)
+  bool showStatsOverlay = false;
+  VideoInfo? videoInfo;
+
+  void resetZoomPan() {
+    zoomScale = 1.0;
+    panOffset = Offset.zero;
+    notifyListeners();
+  }
+
+  void clearRepeatPoints() {
+    repeatPointA = null;
+    repeatPointB = null;
+    notifyListeners();
+  }
 
   void resetMenu() {
     currentMenu = ActiveMenu.none;

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum VideoFitMode { contain, cover, fill, stretch }
+enum VideoFitMode { contain, cover, fill, stretch, free }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
     case VideoFitMode.contain:
+    case VideoFitMode.free: // فالوضع الحر الفيديو الأساسي بـ contain، والتكبير/السحب كيتزادو فوقه بـ Transform
       return BoxFit.contain;
     case VideoFitMode.cover:
       return BoxFit.cover;
@@ -26,6 +27,8 @@ String modeName(VideoFitMode mode) {
       return 'ملء';
     case VideoFitMode.stretch:
       return 'تمديد';
+    case VideoFitMode.free:
+      return 'حر (سحب/تكبير)';
   }
 }
 

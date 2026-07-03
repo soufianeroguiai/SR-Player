@@ -190,6 +190,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _toggleFit() {
     _state.fitMode = VideoFitMode.values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
     _state.fitOverlayText = modeName(_state.fitMode);
+    if (_state.fitMode != VideoFitMode.free) {
+      _state.zoomScale = 1.0;
+      _state.panOffset = Offset.zero;
+    }
     _fitOverlayTimer?.cancel();
     _fitOverlayTimer = Timer(const Duration(milliseconds: 1200), () {
       _state.fitOverlayText = null;
@@ -197,6 +201,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
     _state.notifyListeners();
     VideoFitSettings.save(_state.fitMode);
+  }
+
+  void _setFitMode(VideoFitMode mode) {
+    _state.fitMode = mode;
+    _state.fitOverlayText = modeName(mode);
+    if (mode != VideoFitMode.free) {
+      _state.zoomScale = 1.0;
+      _state.panOffset = Offset.zero;
+    }
+    _fitOverlayTimer?.cancel();
+    _fitOverlayTimer = Timer(const Duration(milliseconds: 1200), () {
+      _state.fitOverlayText = null;
+      _state.notifyListeners();
+    });
+    _state.notifyListeners();
+    VideoFitSettings.save(mode);
   }
 
   void _toggleControls() {
@@ -777,6 +797,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 onAddToPlaylist: _service.addToPlaylist,
                                 onCaptureScreenshot: _service.captureScreenshot,
                                 onToggleFit: _toggleFit,
+                                onSetFitMode: _setFitMode,
                                 onEnterPip: () async => PipService.enter(),
                                 onShowInfo: () {
                                   _state.currentMenu = ActiveMenu.none;
@@ -795,11 +816,30 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 rememberPosition: _settingsProvider.rememberPosition,
                                 currentSpeed: _state.speed,
                                 currentFitMode: modeName(_state.fitMode),
+                                fitMode: _state.fitMode,
                                 onClose: () {
                                   _state.currentMenu = ActiveMenu.none;
                                   _state.notifyListeners();
                                 },
                                 onOpenPlaylistEditor: openPlaylistEditor,
+                                // 🔁 تكرار A-B
+                                repeatPointA: _state.repeatPointA,
+                                repeatPointB: _state.repeatPointB,
+                                onSetRepeatA: _service.setRepeatPointA,
+                                onSetRepeatB: _service.setRepeatPointB,
+                                onClearRepeat: _service.clearRepeatPoints,
+                                // 📊 معلومات تقنية
+                                showStats: _state.showStatsOverlay,
+                                onToggleStats: _service.toggleStatsOverlay,
+                                // 🔖 إشارات مرجعية
+                                bookmarks: _libraryProvider.getBookmarks(widget.video.path),
+                                onAddBookmark: () => _libraryProvider.addBookmark(widget.video.path, _state.position),
+                                onJumpToBookmark: (d) {
+                                  _player.seek(d);
+                                  _state.currentMenu = ActiveMenu.none;
+                                  _state.notifyListeners();
+                                },
+                                onRemoveBookmark: (d) => _libraryProvider.removeBookmark(widget.video.path, d),
                               )
                             : const SizedBox.shrink(),
               ),
@@ -961,18 +1001,28 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   duration: _state.duration,
                   isPlaying: _state.isPlaying,
                   isSpeedBoosted: _state.isSpeedBoosted,
+                  fitMode: _state.fitMode,
+                  zoomScale: _state.zoomScale,
+                  panOffset: _state.panOffset,
                   onToggleControls: _toggleControls,
                   onVolumeChanged: _service.onVolumeChanged,
                   onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
                   onLongPressSpeedStart: _service.startLongPressSpeedBoost,
                   onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
-                  child: Video(
-                    key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
-                    controller: _controller,
-                    fit: getBoxFit(_state.fitMode),
-                    controls: NoVideoControls,
-                    subtitleViewConfiguration: SubtitleViewConfiguration(
-                      visible: !useFlutterRenderer,
+                  onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..translate(_state.panOffset.dx, _state.panOffset.dy)
+                      ..scale(_state.fitMode == VideoFitMode.free ? _state.zoomScale : 1.0),
+                    child: Video(
+                      key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
+                      controller: _controller,
+                      fit: getBoxFit(_state.fitMode),
+                      controls: NoVideoControls,
+                      subtitleViewConfiguration: SubtitleViewConfiguration(
+                        visible: !useFlutterRenderer,
+                      ),
                     ),
                   ),
                 ),
@@ -987,6 +1037,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       videoSize: videoSize,
                       screenSize: MediaQuery.of(context).size,
                       fitMode: _state.fitMode,
+                      zoomScale: _state.zoomScale,
+                      panOffset: _state.panOffset,
                     );
                     return SubtitleRenderer(
                       currentEntry: SubtitleEntry(
@@ -1009,6 +1061,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     child: Container(color: Colors.white),
                   ),
                 ),
+
+                if (_state.showStatsOverlay)
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 60,
+                    left: 12,
+                    child: IgnorePointer(
+                      child: _StatsForNerdsPanel(state: _state),
+                    ),
+                  ),
 
                 if (_state.isLocked)
                   Positioned(
@@ -1370,6 +1431,61 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with SingleTickerPr
           },
         );
       }),
+    );
+  }
+}
+
+/// 📊 طبقة "Stats for Nerds" — معلومات تقنية حية فوق الفيديو
+class _StatsForNerdsPanel extends StatelessWidget {
+  final PlayerUIState state;
+  const _StatsForNerdsPanel({required this.state});
+
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final info = state.videoInfo;
+    final rows = <String>[
+      if (info != null) 'الدقة: ${info.width}×${info.height} (${info.resolutionText})',
+      if (info != null) 'الترميز: ${info.codec.toUpperCase()}',
+      if (info != null && info.fps > 0) 'معدل الإطارات: ${info.fps.toStringAsFixed(2)} fps',
+      if (info != null) 'HDR: ${info.isHDR ? "نعم" : "لا"}',
+      'تسريع العتاد (HW): ${state.hwEnabled ? "مفعّل" : "معطّل"}',
+      'الموضع: ${_fmt(state.position)} / ${_fmt(state.duration)}',
+      'السرعة: ${state.speed.toStringAsFixed(2)}x',
+      if (state.audioDelay != 0) 'تأخير الصوت: ${state.audioDelay.toStringAsFixed(2)}s',
+      if (state.subtitleSync != 0) 'مزامنة الترجمة: ${state.subtitleSync.toStringAsFixed(2)}s',
+    ];
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(maxWidth: 260),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: rows
+              .map((r) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1.5),
+                    child: Text(
+                      r,
+                      style: const TextStyle(color: Colors.greenAccent, fontSize: 11.5, fontFamily: 'monospace'),
+                    ),
+                  ))
+              .toList(),
+        ),
+      ),
     );
   }
 }

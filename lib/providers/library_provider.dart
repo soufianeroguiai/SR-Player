@@ -19,6 +19,7 @@ class LibraryProvider extends ChangeNotifier {
   String? _error;
 
   final Map<String, int> _positions = {};
+  Map<String, List<int>> _bookmarks = {};
 
   List<VideoItem>? _visibleVideosCache;
 
@@ -78,6 +79,58 @@ class LibraryProvider extends ChangeNotifier {
     _positions.remove(path);
     final p = await SharedPreferences.getInstance();
     await p.remove('pos_$path');
+    notifyListeners();
+  }
+
+  // 🔖 إشارات مرجعية متعددة داخل نفس الفيديو (بخلاف "استئناف التشغيل"
+  // اللي كيحتفظ بنقطة وحدة فقط)
+  List<Duration> getBookmarks(String path) {
+    final list = _bookmarks[path] ?? const <int>[];
+    return list.map((ms) => Duration(milliseconds: ms)).toList();
+  }
+
+  Future<void> loadBookmarks() async {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString('bookmarks_json');
+    if (raw != null) {
+      try {
+        final Map<String, dynamic> decoded = json.decode(raw);
+        _bookmarks = decoded.map((k, v) => MapEntry(k, List<int>.from(v as List)));
+      } catch (_) {
+        _bookmarks = {};
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveBookmarks() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString('bookmarks_json', json.encode(_bookmarks));
+  }
+
+  Future<void> addBookmark(String path, Duration position) async {
+    final list = _bookmarks.putIfAbsent(path, () => []);
+    final ms = position.inMilliseconds;
+    // تجنب إضافة إشارتين قريبتين بزاف من بعضهم (أقل من ثانيتين)
+    if (list.any((e) => (e - ms).abs() < 2000)) return;
+    list.add(ms);
+    list.sort();
+    await _saveBookmarks();
+    notifyListeners();
+  }
+
+  Future<void> removeBookmark(String path, Duration position) async {
+    final list = _bookmarks[path];
+    if (list == null) return;
+    list.remove(position.inMilliseconds);
+    if (list.isEmpty) _bookmarks.remove(path);
+    await _saveBookmarks();
+    notifyListeners();
+  }
+
+  Future<void> clearBookmarks(String path) async {
+    _bookmarks.remove(path);
+    await _saveBookmarks();
     notifyListeners();
   }
 
@@ -173,6 +226,7 @@ class LibraryProvider extends ChangeNotifier {
       await loadFavorites();
       await loadPlaylist();
       await loadRecent();
+      await loadBookmarks();
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/video_cache.json');
       if (await file.exists()) {
