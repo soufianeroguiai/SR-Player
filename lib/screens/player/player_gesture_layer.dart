@@ -171,12 +171,17 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               s.updateSubtitleSettings(sub.copyWith(subtitleScale: newScale));
               return;
             }
+            
+            // ✅ الإصلاح الذكي هنا: دمج تعديل الحجم والمكان معاً لمنع الـ Overwrite
             if (details.pointerCount == 2 && _activeGesture == GestureType.subtitle && !widget.isPlaying) {
               final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
-              s.updateSubtitleSettings(sub.copyWith(fontSize: newSize));
               final dy = details.focalPoint.dy - _startFocalPoint.dy;
               final newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.85);
-              s.updateSubtitleSettings(sub.copyWith(bottomMargin: newPadding));
+              
+              s.updateSubtitleSettings(sub.copyWith(
+                fontSize: newSize,
+                bottomMargin: newPadding,
+              ));
               return;
             }
 

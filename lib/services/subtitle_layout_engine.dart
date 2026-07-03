@@ -2,26 +2,20 @@ import 'package:flutter/material.dart';
 import '../models/subtitle_settings.dart';
 
 class SubtitleLayoutResult {
-  final Offset position;
+  final double? top;
+  final double? bottom;
   final double maxWidth;
-  final double scaleFactor;
+  final double fontSize;
   final EdgeInsets padding;
   final TextAlign textAlign;
-  final int? maxLines;
-  final bool keepInsideVideo;
-  final double subtitleScale;
-  final double fontSize;
 
   SubtitleLayoutResult({
-    required this.position,
+    this.top,
+    this.bottom,
     required this.maxWidth,
-    required this.scaleFactor,
+    required this.fontSize,
     required this.padding,
     required this.textAlign,
-    required this.maxLines,
-    required this.keepInsideVideo,
-    required this.subtitleScale,
-    required this.fontSize,
   });
 }
 
@@ -32,66 +26,69 @@ class SubtitleLayoutEngine {
     required Size screenSize,
     required EdgeInsets safeArea,
   }) {
-    final videoAspect = videoSize.width / videoSize.height;
-    final screenAspect = screenSize.width / screenSize.height;
-
+    // 1. حساب مقياس الحجم (Scale Factor)
     double scaleFactor = 1.0;
-
     switch (settings.scaleMode) {
       case SubtitleScaleMode.fixed:
         scaleFactor = 1.0;
         break;
       case SubtitleScaleMode.byResolution:
-        // يعتمد على دقة الفيديو فقط
-        final baseResolution = 720.0; // 720p هو الأساس
-        scaleFactor = videoSize.height / baseResolution;
+        // الاعتماد على دقة الفيديو (720p كأساس)
+        scaleFactor = (videoSize.height > 0 ? videoSize.height : 720.0) / 720.0;
         break;
       case SubtitleScaleMode.byWindow:
-        // يعتمد على حجم نافذة العرض (الشاشة)
-        final baseScreenHeight = 1280.0; // شاشة 720p كأساس
-        scaleFactor = screenSize.height / baseScreenHeight;
+        // الاعتماد على حجم نافذة العرض
+        scaleFactor = screenSize.height / 1280.0; 
         break;
       case SubtitleScaleMode.smart:
-        // ذكي: يجمع بين دقة الفيديو وحجم الشاشة
-        final videoRatio = videoSize.height / 720.0;
+        final videoRatio = (videoSize.height > 0 ? videoSize.height : 720.0) / 720.0;
         final screenRatio = screenSize.height / 1280.0;
         scaleFactor = (videoRatio + screenRatio) / 2.0;
         break;
     }
-
-    // لا نسمح للعامل أن يصبح صغيراً جداً أو كبيراً جداً
+    
+    // وضع حدود آمنة لمقياس التكبير
     scaleFactor = scaleFactor.clamp(0.5, 3.0);
 
-    double maxWidth = screenSize.width - settings.horizontalMargin * 2;
-    if (settings.keepInsideVideo) {
+    // 2. حساب أقصى عرض للترجمة (Max Width)
+    double maxWidth = screenSize.width - (settings.horizontalMargin * 2);
+    if (settings.keepInsideVideo && videoSize.width > 0) {
       final videoDisplayWidth = videoSize.width * scaleFactor;
-      final videoLeft = (screenSize.width - videoDisplayWidth) / 2;
-      maxWidth = videoDisplayWidth - settings.horizontalMargin * 2;
-      if (maxWidth < 100) maxWidth = screenSize.width - settings.horizontalMargin * 2;
+      maxWidth = videoDisplayWidth - (settings.horizontalMargin * 2);
+      if (maxWidth < 100) {
+        maxWidth = screenSize.width - (settings.horizontalMargin * 2);
+      }
     }
 
+    // 3. حساب الحجم النهائي للخط
     final effectiveFontSize = settings.fontSize * settings.subtitleScale * scaleFactor;
 
-    double bottomY = screenSize.height - settings.bottomMargin - settings.safeAreaPadding - safeArea.bottom;
+    // 4. حساب التموضع الديناميكي (Top vs Bottom)
+    double? topPos;
+    double? bottomPos;
+
     if (settings.position == SubtitlePosition.top) {
-      bottomY = settings.verticalMargin + settings.safeAreaPadding + safeArea.top;
+      // إذا كانت الترجمة علوية، نثبتها من الأعلى لتنمو للأسفل
+      topPos = settings.verticalMargin + settings.safeAreaPadding + safeArea.top;
     } else if (settings.position == SubtitlePosition.center) {
-      bottomY = screenSize.height / 2;
+      // إذا كانت في المنتصف
+      topPos = (screenSize.height / 2) - effectiveFontSize;
+    } else { 
+      // الافتراضي (سفلية): نثبتها من الأسفل لتنمو للأعلى 
+      // وهذا ما يحل مشكلة اختفاء السطر الثاني تماماً
+      bottomPos = settings.bottomMargin + settings.safeAreaPadding + safeArea.bottom;
     }
 
     return SubtitleLayoutResult(
-      position: Offset(0, bottomY),
+      top: topPos,
+      bottom: bottomPos,
       maxWidth: maxWidth,
-      scaleFactor: scaleFactor,
+      fontSize: effectiveFontSize,
       padding: EdgeInsets.only(
         left: settings.horizontalMargin,
         right: settings.horizontalMargin,
       ),
       textAlign: _getTextAlign(settings.alignment),
-      maxLines: settings.autoWrap ? settings.maxLines : 1,
-      keepInsideVideo: settings.keepInsideVideo,
-      subtitleScale: settings.subtitleScale,
-      fontSize: effectiveFontSize,
     );
   }
 

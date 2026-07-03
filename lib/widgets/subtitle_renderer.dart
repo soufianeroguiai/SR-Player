@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/subtitle_settings.dart'; // تأكد من مسار الملف
-import '../services/subtitle_service.dart'; // تأكد من مسار الملف
-import '../screens/player/subtitle_style_builder.dart'; // تأكد من مسار الملف
-import '../services/subtitle_layout_engine.dart'; // تأكد من مسار الملف
+import '../models/subtitle_settings.dart'; 
+import '../services/subtitle_service.dart'; 
+import '../screens/player/subtitle_style_builder.dart'; 
+import '../services/subtitle_layout_engine.dart'; 
 
 class SubtitleRenderer extends StatelessWidget {
   final SubtitleEntry? currentEntry;
@@ -24,11 +24,12 @@ class SubtitleRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ميزة: إخفاء الترجمة عند عدم وجود حوار تعمل هنا تلقائياً
+    // إخفاء الترجمة عند عدم وجود حوار
     if (currentEntry == null || !visible || !settings.autoShow || currentEntry!.text.trim().isEmpty) {
       return const SizedBox.shrink();
     }
 
+    // 1. استدعاء المحرك للحصول على الأبعاد والتموضع الجديد
     final layout = SubtitleLayoutEngine.calculate(
       settings: settings,
       videoSize: videoSize,
@@ -36,35 +37,42 @@ class SubtitleRenderer extends StatelessWidget {
       safeArea: safeArea,
     );
 
+    // 2. تنظيف النص وتهيئته
+    String displayText = currentEntry!.text;
+    
+    // تجاهل تأثيرات ASS إذا تم التفعيل
+    if (settings.ignoreAssEffects) {
+      displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
+    }
+    
+    // مسح رموز التوجيه المخفية (Bidi Controls) التي تسبب المربعات البيضاء في الخطوط
+    displayText = displayText.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E\u061C]'), '');
+    
+    // الكشف عن اللغة العربية لضبط اتجاه النص (لحل مشكلة علامات الترقيم)
+    final isArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(displayText);
+
+    // 3. بناء الخط
     final textStyle = buildSubtitleTextStyle(settings).copyWith(
       fontSize: layout.fontSize,
     );
 
-    final padding = buildSubtitlePadding(settings);
-    final textAlign = buildSubtitleTextAlign(settings);
-
-    // 🌟 السحر هنا: تنظيف النص من أكواد ASS إذا فعل المستخدم خيار "تجاهل تأثيرات ASS"
-    String displayText = currentEntry!.text;
-    if (settings.ignoreAssEffects) {
-      // يمسح أي كود بين أقواس معقوفة مثل {\an8} أو {\c&H0000FF&}
-      displayText = displayText.replaceAll(RegExp(r'\{.*?\}'), '');
-    }
-
+    // 4. بناء عنصر النص
     Widget textWidget = AnimatedDefaultTextStyle(
       duration: const Duration(milliseconds: 200),
       style: textStyle,
-      textAlign: textAlign,
+      textAlign: layout.textAlign,
       maxLines: settings.autoWrap ? settings.maxLines : 1,
       overflow: TextOverflow.ellipsis,
       child: Text(
         displayText,
-        textAlign: textAlign,
+        textAlign: layout.textAlign,
+        textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr, // السحر هنا لعلامات الترقيم
         maxLines: settings.autoWrap ? settings.maxLines : 1,
         overflow: TextOverflow.ellipsis,
       ),
     );
 
-    // بناء خلفية الترجمة (شكل الخلفية، الحدود، Padding)
+    // 5. بناء الخلفية
     if (settings.bgOpacity > 0) {
       double radius;
       switch (settings.bgShape) {
@@ -80,7 +88,7 @@ class SubtitleRenderer extends StatelessWidget {
       }
 
       textWidget = Container(
-        padding: EdgeInsets.all(settings.bgPadding), // الـ Padding الذي اخترته من الإعدادات
+        padding: EdgeInsets.all(settings.bgPadding),
         decoration: BoxDecoration(
           color: settings.bgColor.withOpacity(settings.bgOpacity),
           borderRadius: BorderRadius.circular(radius),
@@ -92,18 +100,17 @@ class SubtitleRenderer extends StatelessWidget {
       );
     }
 
-    // ✅ الإصلاح الجذري لمشكلة اللمس: Positioned هي الأساس
-    // ملاحظة: layout.position.dy محسوبة في SubtitleLayoutEngine كإحداثي
-    // مطلق من أعلى الشاشة (وليس كمسافة من الأسفل)، لذلك يجب استعمالها
-    // مع `top:` وليس `bottom:` — وإلا تُرسَم الترجمة قرب أعلى الشاشة
-    // خلف الشريط العلوي فتبدو غير ظاهرة إطلاقاً.
+    // 6. التموضع النهائي باستخدام Positioned
+    // استخدام top و bottom معاً يسمح للنص بالانطلاق من أسفل الشاشة والنمو للأعلى 
+    // دون أن يُقطع السطر الثاني أبداً، حتى لو كان الهامش 0!
     return Positioned(
       left: 0,
       right: 0,
-      top: layout.position.dy,
+      top: layout.top,       
+      bottom: layout.bottom, 
       child: IgnorePointer(
         child: Padding(
-          padding: padding,
+          padding: layout.padding,
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: layout.maxWidth),
