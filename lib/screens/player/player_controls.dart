@@ -545,6 +545,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
             SizedBox(
               height: 52,
               child: Row(children: [
+                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),  // ← زر القفل في أقصى اليسار
                 const Spacer(),
                 if (widget.onPrevious != null)
                   _BottomBtn(icon: Symbols.skip_previous_rounded, onTap: widget.onPrevious!, size: 28),
