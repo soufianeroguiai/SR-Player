@@ -64,12 +64,14 @@ class SubtitleLayoutEngine {
     double? bottomPos;
 
     if (settings.position == SubtitlePosition.top) {
+      // الوضع العلوي: مسافة من الأعلى = الهامش العمومي + مساحة الأمان العلوية (لحماية النوتش)
       topPos = settings.verticalMargin + settings.safeAreaPadding + safeArea.top;
     } else if (settings.position == SubtitlePosition.center) {
       topPos = (screenSize.height / 2) - effectiveFontSize;
     } else {
-      // الوضع السفلي: نستخدم الهامش السفلي فقط + safeArea.bottom (لشريط التنقل)
-      bottomPos = settings.bottomMargin + safeArea.bottom;
+      // الوضع السفلي (الأهم): الهامش السفلي + مساحة الأمان التي يحددها المستخدم فقط.
+      // بدون safeArea.bottom الإجباري. إذا وضع المستخدم القيمتين صفراً، تكون الترجمة ملتصقة تماماً.
+      bottomPos = settings.bottomMargin + settings.safeAreaPadding;
     }
 
     return SubtitleLayoutResult(
