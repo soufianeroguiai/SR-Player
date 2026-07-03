@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum VideoFitMode { contain, cover, fill }
+enum VideoFitMode { contain, cover, fill, stretch }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
@@ -11,6 +11,8 @@ BoxFit getBoxFit(VideoFitMode mode) {
       return BoxFit.cover;
     case VideoFitMode.fill:
       return BoxFit.fill;
+    case VideoFitMode.stretch:
+      return BoxFit.fill;   // stretch يملأ الشاشة مع تشويه النسبة (مثل fill)
   }
 }
 
@@ -21,6 +23,8 @@ String modeName(VideoFitMode mode) {
     case VideoFitMode.cover:
       return 'تغطية';
     case VideoFitMode.fill:
+      return 'ملء';
+    case VideoFitMode.stretch:
       return 'تمديد';
   }
 }

@@ -2,7 +2,6 @@ import 'dart:ui';
 import '../screens/player/player_fit_mode.dart';
 
 class VideoLayoutCalculator {
-  /// يحسب مستطيل الفيديو المعروض على الشاشة حسب وضع العرض
   static Rect calculate({
     required Size videoSize,
     required Size screenSize,
@@ -17,8 +16,6 @@ class VideoLayoutCalculator {
         // تمديد كامل مع تشويه النسبة (يملأ الشاشة بدون احترام الأبعاد)
         return Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
       case VideoFitMode.fill:
-        // يملأ الشاشة مع الحفاظ على النسبة وقص الزوائد (مشابه لـ Cover)
-        return _calculateCover(videoSize, screenSize);
       case VideoFitMode.cover:
         // يحافظ على النسبة ويملأ الشاشة مع قص الأطراف
         return _calculateCover(videoSize, screenSize);
