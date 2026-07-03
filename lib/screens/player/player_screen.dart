@@ -1,4 +1,3 @@
-// player_screen.dart (كامل)
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -101,6 +100,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     await _service.initPlayer();
     _state.addListener(_onStateChanged);
     _applyNativeAssSettings();
+    // تفعيل التحميل التلقائي للترجمة الخارجية المجاورة
+    await _loadSubtitleFromAdjacentFile();
   }
 
   void _onStateChanged() {
@@ -981,9 +982,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       text: _state.currentSubtitleText!,
                     ),
                     settings: subtitleSettings,
-                    // أبعاد الفيديو الحقيقية (وليس حجم الشاشة) لحساب "البقاء
-                    // داخل الفيديو" والتحجيم الذكي بدقة. نرجع لحجم الشاشة فقط
-                    // إذا لم تكن الأبعاد متوفرة بعد (قبل بدء فك التشفير).
                     videoSize: (_player.state.width != null &&
                             _player.state.height != null &&
                             _player.state.width! > 0 &&

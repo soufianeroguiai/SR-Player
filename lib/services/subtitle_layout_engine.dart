@@ -26,19 +26,17 @@ class SubtitleLayoutEngine {
     required Size screenSize,
     required EdgeInsets safeArea,
   }) {
-    // 1. حساب مقياس الحجم (Scale Factor)
+    // 1. حساب مقياس التكبير
     double scaleFactor = 1.0;
     switch (settings.scaleMode) {
       case SubtitleScaleMode.fixed:
         scaleFactor = 1.0;
         break;
       case SubtitleScaleMode.byResolution:
-        // الاعتماد على دقة الفيديو (720p كأساس)
         scaleFactor = (videoSize.height > 0 ? videoSize.height : 720.0) / 720.0;
         break;
       case SubtitleScaleMode.byWindow:
-        // الاعتماد على حجم نافذة العرض
-        scaleFactor = screenSize.height / 1280.0; 
+        scaleFactor = screenSize.height / 1280.0;
         break;
       case SubtitleScaleMode.smart:
         final videoRatio = (videoSize.height > 0 ? videoSize.height : 720.0) / 720.0;
@@ -46,11 +44,9 @@ class SubtitleLayoutEngine {
         scaleFactor = (videoRatio + screenRatio) / 2.0;
         break;
     }
-    
-    // وضع حدود آمنة لمقياس التكبير
     scaleFactor = scaleFactor.clamp(0.5, 3.0);
 
-    // 2. حساب أقصى عرض للترجمة (Max Width)
+    // 2. أقصى عرض
     double maxWidth = screenSize.width - (settings.horizontalMargin * 2);
     if (settings.keepInsideVideo && videoSize.width > 0) {
       final videoDisplayWidth = videoSize.width * scaleFactor;
@@ -60,23 +56,20 @@ class SubtitleLayoutEngine {
       }
     }
 
-    // 3. حساب الحجم النهائي للخط
+    // 3. حجم الخط الفعلي
     final effectiveFontSize = settings.fontSize * settings.subtitleScale * scaleFactor;
 
-    // 4. حساب التموضع الديناميكي (Top vs Bottom)
+    // 4. حساب الموضع
     double? topPos;
     double? bottomPos;
 
     if (settings.position == SubtitlePosition.top) {
-      // إذا كانت الترجمة علوية، نثبتها من الأعلى لتنمو للأسفل
       topPos = settings.verticalMargin + settings.safeAreaPadding + safeArea.top;
     } else if (settings.position == SubtitlePosition.center) {
-      // إذا كانت في المنتصف
       topPos = (screenSize.height / 2) - effectiveFontSize;
-    } else { 
-      // الافتراضي (سفلية): نثبتها من الأسفل لتنمو للأعلى 
-      // وهذا ما يحل مشكلة اختفاء السطر الثاني تماماً
-      bottomPos = settings.bottomMargin + settings.safeAreaPadding + safeArea.bottom;
+    } else {
+      // الوضع السفلي: نستخدم الهامش السفلي فقط + safeArea.bottom (لشريط التنقل)
+      bottomPos = settings.bottomMargin + safeArea.bottom;
     }
 
     return SubtitleLayoutResult(
@@ -94,10 +87,13 @@ class SubtitleLayoutEngine {
 
   static TextAlign _getTextAlign(SubtitleAlignment alignment) {
     switch (alignment) {
-      case SubtitleAlignment.right: return TextAlign.right;
-      case SubtitleAlignment.left: return TextAlign.left;
+      case SubtitleAlignment.right:
+        return TextAlign.right;
+      case SubtitleAlignment.left:
+        return TextAlign.left;
       case SubtitleAlignment.center:
-      default: return TextAlign.center;
+      default:
+        return TextAlign.center;
     }
   }
 }
