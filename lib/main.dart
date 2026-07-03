@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
@@ -66,6 +67,19 @@ class SPlayerApp extends StatelessWidget {
       theme: AppTheme.light(seed: settings.themeSeedColor),
       darkTheme: AppTheme.dark(seed: settings.themeSeedColor),
       themeMode: settings.themeMode,
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // يضبط اتجاه الواجهة افتراضياً RTL لكل الـ widgets، بدل تكرار
+      // Directionality يدوياً في كل شاشة.
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: child!,
+      ),
       home: const PermissionGate(child: HomeScreen()),
     );
   }

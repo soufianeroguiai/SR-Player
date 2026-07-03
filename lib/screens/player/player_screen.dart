@@ -159,7 +159,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text('تم قفل الشاشة', style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -261,6 +261,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       if (entries.isEmpty) return;
       _state.lastSubtitleEntries = entries;
       await _applySubtitleSyncOffset();
+      if (!mounted) return;
       _state.hasExternalSubtitle = true;
       _state.showSubtitles = true;
       _state.notifyListeners();
@@ -268,6 +269,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم تحميل الترجمة')));
       }
     } catch (e) {
+      if (!mounted) return;
       if (!silent) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل تحميل الترجمة: $e')));
       }
@@ -391,9 +393,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.85),
+                  color: Colors.black.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                 ),
                 child: StatefulBuilder(
                   builder: (context, setDialogState) {
@@ -517,9 +519,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.85),
+                  color: Colors.black.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                 ),
                 child: StatefulBuilder(
                   builder: (context, setDialogState) {
@@ -563,8 +565,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               });
                               Navigator.pop(context);
                             },
-                            selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                            backgroundColor: Colors.white.withOpacity(0.1),
+                            selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                            backgroundColor: Colors.white.withValues(alpha: 0.1),
                             labelStyle: const TextStyle(color: Colors.white),
                           )).toList(),
                         ),
@@ -644,9 +646,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.black.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: cs.primary.withOpacity(0.4)),
+              border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -655,12 +657,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 const SizedBox(width: 6),
                 Text(
                   'استئناف ${_fmt(pos)}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'اضغط للبداية',
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10),
                 ),
               ],
             ),
@@ -696,9 +698,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.65),
+                  color: Colors.black.withValues(alpha: 0.65),
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -719,7 +721,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
                         child: const Icon(Symbols.close_rounded, color: Colors.white, size: 20),
                       ),
                     ),
@@ -831,7 +833,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
 
     return Container(
-      color: Colors.black.withOpacity(0.65),
+      color: Colors.black.withValues(alpha: 0.65),
       child: Column(
         children: [
           AppBar(
@@ -874,7 +876,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               VideoThumbnailLoader(video: video, width: 80, height: 50),
                               if (isPlaying)
                                 Container(
-                                  color: Colors.black.withOpacity(0.55),
+                                  color: Colors.black.withValues(alpha: 0.55),
                                   width: double.infinity,
                                   height: double.infinity,
                                   child: const Center(
@@ -1056,10 +1058,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               height: _lockBtnSize + 8,
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.65),
+                                color: Colors.black.withValues(alpha: 0.65),
                                 borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
                                 border: Border.all(
-                                    color: cs.primary.withOpacity(0.4), width: 1.5),
+                                    color: cs.primary.withValues(alpha: 0.4), width: 1.5),
                               ),
                               child: Stack(
                                 alignment: Alignment.centerLeft,
@@ -1072,7 +1074,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                       width: _state.lockIconOffset + _lockBtnSize,
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: cs.primary.withOpacity(0.15),
+                                          color: cs.primary.withValues(alpha: 0.15),
                                           borderRadius: BorderRadius.circular(_lockBtnSize / 2),
                                         ),
                                       ),
@@ -1083,7 +1085,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                           ? 'أطلق للفتح'
                                           : 'اسحب لفتح القفل ←',
                                       style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
+                                          color: Colors.white.withValues(alpha: 0.8),
                                           fontSize: 13),
                                     ),
                                   ),
@@ -1099,7 +1101,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: cs.primary.withOpacity(0.5),
+                                            color: cs.primary.withValues(alpha: 0.5),
                                             blurRadius: 8,
                                           ),
                                         ],
@@ -1132,7 +1134,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

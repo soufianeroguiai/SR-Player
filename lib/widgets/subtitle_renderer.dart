@@ -80,7 +80,7 @@ class SubtitleRenderer extends StatelessWidget {
       textWidget = Container(
         padding: EdgeInsets.all(settings.bgPadding),
         decoration: BoxDecoration(
-          color: settings.bgColor.withOpacity(settings.bgOpacity),
+          color: settings.bgColor.withValues(alpha: settings.bgOpacity),
           borderRadius: BorderRadius.circular(radius),
           border: settings.bgBorderWidth > 0
               ? Border.all(color: settings.bgBorderColor, width: settings.bgBorderWidth)

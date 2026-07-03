@@ -31,6 +31,7 @@ class PlayerControlService {
   Timer? _saveTimer;
   Timer? _hideTimer;
   double? _preLongPressSpeed;
+  final List<StreamSubscription> _playerSubscriptions = [];
 
   PlayerControlService({
     required this.player,
@@ -108,7 +109,7 @@ class PlayerControlService {
       state.notifyListeners();
 
       bool colorApplied = false;
-      player.stream.duration.listen((dur) {
+      _playerSubscriptions.add(player.stream.duration.listen((dur) {
         state.duration = dur;
         state.notifyListeners();
 
@@ -140,13 +141,13 @@ class PlayerControlService {
           state.notifyListeners();
           scheduleHide();
         }
-      });
+      }));
 
       if (positionToResume == null && settingsProvider.autoPlay) {
         player.play();
       }
 
-      player.stream.position.listen((pos) {
+      _playerSubscriptions.add(player.stream.position.listen((pos) {
         state.position = pos;
         state.notifyListeners();
 
@@ -159,26 +160,26 @@ class PlayerControlService {
             }
           });
         }
-      });
+      }));
 
-      player.stream.playing.listen((p) {
+      _playerSubscriptions.add(player.stream.playing.listen((p) {
         state.isPlaying = p;
         state.notifyListeners();
-      });
+      }));
 
-      player.stream.tracks.listen((tracks) {
+      _playerSubscriptions.add(player.stream.tracks.listen((tracks) {
         state.subtitleTracks = tracks.subtitle;
         state.audioTracks = _cleanAudioTracks(tracks.audio);
         state.notifyListeners();
         applyPreferredSubtitleLanguage();
         applyPreferredAudioLanguage();
-      });
+      }));
 
-      player.stream.subtitle.listen((lines) {
+      _playerSubscriptions.add(player.stream.subtitle.listen((lines) {
         // لازم نمسح النص عند عدم وجود سطر نشط (lines فارغة)، وإلا يبقى آخر
         // نص معروضاً على الشاشة حتى بعد انتهاء الحوار الفعلي في الترجمة.
         state.updateSubtitleText(lines.isNotEmpty ? lines.join('\n') : null);
-      });
+      }));
 
       state.initialized = true;
       state.notifyListeners();
@@ -587,5 +588,9 @@ class PlayerControlService {
   void dispose() {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
+    for (final sub in _playerSubscriptions) {
+      sub.cancel();
+    }
+    _playerSubscriptions.clear();
   }
 }

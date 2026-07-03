@@ -24,7 +24,7 @@ TextStyle buildSubtitleTextStyle(SubtitleSettings s) {
 
   if (s.shadowEnabled) {
     shadows.add(Shadow(
-      color: s.shadowColor.withOpacity(s.shadowOpacity),
+      color: s.shadowColor.withValues(alpha: s.shadowOpacity),
       offset: Offset(s.shadowOffsetX, s.shadowOffsetY),
       blurRadius: s.shadowBlurRadius,
     ));
@@ -35,12 +35,12 @@ TextStyle buildSubtitleTextStyle(SubtitleSettings s) {
 
   final baseStyle = TextStyle(
     fontSize: effectiveFontSize,
-    color: s.textColor.withOpacity(s.textOpacity),
+    color: s.textColor.withValues(alpha: s.textOpacity),
     fontWeight: _fontWeight(s.fontWeightIndex),
     letterSpacing: s.letterSpacing,
     wordSpacing: s.wordSpacing,
     height: effectiveHeight > 0 ? effectiveHeight : null,
-    backgroundColor: s.bgOpacity > 0 ? s.bgColor.withOpacity(s.bgOpacity) : null,
+    backgroundColor: s.bgOpacity > 0 ? s.bgColor.withValues(alpha: s.bgOpacity) : null,
     shadows: shadows.isEmpty ? null : shadows,
   );
 

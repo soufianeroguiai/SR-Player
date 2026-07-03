@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: cs.outlineVariant.withOpacity(0.5)),
+                        color: cs.outlineVariant.withValues(alpha: 0.5)),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   builder: (_) => const FavoritesScreen()));
                         },
                       ),
-                      Divider(height: 1, color: cs.outlineVariant.withOpacity(0.3)),
+                      Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
                       _dropItem(
                         icon: Icons.queue_music_rounded,
                         iconOut: Icons.queue_music_rounded,
@@ -248,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       playlist: lib.playlistPaths)));
                         },
                       ),
-                      Divider(height: 1, color: cs.outlineVariant.withOpacity(0.3)),
+                      Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
                       _dropItem(
                         icon: Icons.playlist_play_rounded,
                         iconOut: Icons.playlist_play_rounded,
@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text('$count',
@@ -568,12 +568,12 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         height: 68,
         decoration: BoxDecoration(
-          color: cs.surface.withOpacity(0.95),
+          color: cs.surface.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(34),
-          border: Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 1),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.18),
+              color: Colors.black.withValues(alpha: 0.18),
               blurRadius: 24,
               offset: const Offset(0, 6),
             ),
@@ -596,7 +596,7 @@ class _HomeScreenState extends State<HomeScreen>
                   curve: Curves.easeInOutCubic,
                   width: tabWidth - 12,
                   decoration: BoxDecoration(
-                    color: cs.primary.withOpacity(0.15),
+                    color: cs.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(26),
                   ),
                 ),
@@ -1212,6 +1212,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تعذر فتح مدير الملفات')));
     }

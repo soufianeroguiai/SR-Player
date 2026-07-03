@@ -20,8 +20,13 @@ class LibraryProvider extends ChangeNotifier {
 
   final Map<String, int> _positions = {};
 
-  List<VideoItem> get videos =>
-      _videos.where((v) => !_hiddenPaths.contains(v.path)).toList();
+  List<VideoItem>? _visibleVideosCache;
+
+  List<VideoItem> get videos {
+    return _visibleVideosCache ??=
+        _videos.where((v) => !_hiddenPaths.contains(v.path)).toList();
+  }
+
   List<VideoItem> get allVideos => _videos;
   List<String> get recentPaths => _recentPaths;
   Set<String> get hiddenPaths => _hiddenPaths;
@@ -29,6 +34,14 @@ class LibraryProvider extends ChangeNotifier {
   List<String> get playlistPaths => _playlistPaths;
   bool get loading => _loading;
   String? get error => _error;
+
+  // كل تغيير فالحالة كيلغي الكاش، باش "videos" ما يعاودش يبني اللائحة
+  // غير إلا تغير شيء فعلاً (بدل ما كان كيبنيها من جديد فكل استدعاء).
+  @override
+  void notifyListeners() {
+    _visibleVideosCache = null;
+    super.notifyListeners();
+  }
 
   Map<String, List<VideoItem>> get byFolder {
     final map = <String, List<VideoItem>>{};
