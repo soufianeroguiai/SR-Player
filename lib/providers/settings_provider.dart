@@ -26,7 +26,7 @@ class SettingsProvider extends ChangeNotifier {
   String _hwDecoderMode = 'auto';
   String get hwDecoderMode => _hwDecoderMode;
 
-  String _colorFormat = 'rgb_full';
+  String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
   double _defaultAudioBoost = 100.0;
@@ -132,7 +132,7 @@ class SettingsProvider extends ChangeNotifier {
     _foldersGridView = p.getBool('foldersGridView') ?? false;
     _recentGridView = p.getBool('recentGridView') ?? false;
     _hwDecoderMode = p.getString('hwDecoderMode') ?? 'auto';
-    _colorFormat = p.getString('colorFormat') ?? 'rgb_full';
+    _colorFormat = p.getString('colorFormat') ?? 'yuv';
     _doubleTapSeekSeconds = p.getInt('doubleTapSeekSeconds') ?? 10;
     _themeSeedColorValue = p.getInt('themeSeedColorValue') ?? 0xFF1B6CA8;
     _controlsHideSeconds = p.getInt('controlsHideSeconds') ?? 4;
@@ -201,7 +201,7 @@ class SettingsProvider extends ChangeNotifier {
     _foldersGridView = false;
     _recentGridView = false;
     _hwDecoderMode = 'auto';
-    _colorFormat = 'rgb_full';
+    _colorFormat = 'yuv';
     _doubleTapSeekSeconds = 10;
     _themeSeedColorValue = 0xFF1B6CA8;
     _controlsHideSeconds = 4;
