@@ -1351,9 +1351,9 @@ class _StatsForNerdsPanel extends StatelessWidget {
     final pState = player.state;
     final width = pState.width;
     final height = pState.height;
-    final videoParams = state.videoParams;
-    final codec = videoParams?.codec ?? '---';
-    final fps = videoParams?.fps ?? 0.0;
+    final videoInfo = state.videoInfo;
+    final codec = videoInfo?.codec ?? '---';
+    final fps = videoInfo?.fps ?? 0.0;
     final isHDR = state.hdrEnabled;
 
     final rows = <String>[

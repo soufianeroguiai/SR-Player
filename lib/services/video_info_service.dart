@@ -38,7 +38,6 @@ class VideoInfo {
     required this.isH264,
   });
 
-  // 💡 إضافة ذكية: معرفة الدقة كـ نص لعرضها في الـ UI (مثلاً: 1080p أو 4K)
   String get resolutionText {
     if (is4K) return '4K Ultra HD';
     if (is2K) return '2K QHD';
@@ -58,7 +57,6 @@ class VideoInfoService {
   static Future<VideoInfo> read(Player player) async {
     final native = player.platform as NativePlayer;
 
-    // دالة داخلية آمنة للقراءة لمنع حدوث أي Crash
     Future<String> safeGet(String property) async {
       try {
         final res = await native.getProperty(property);
@@ -68,7 +66,6 @@ class VideoInfoService {
       }
     }
 
-    // 💡 التحديث الأهم: قراءة جميع الخصائص في نفس الوقت (Parallel) لسرعة خارقة
     final results = await Future.wait([
       safeGet('video-codec'),
       safeGet('video-params/gamma'),
@@ -95,7 +92,6 @@ class VideoInfoService {
     final chroma = results[9];
     final aspect = results[10];
 
-    // تحسين شرط الـ HDR ليكون فائق الدقة ومتوافق مع شاشات الأندرويد
     final is10bit = pixelFormat.contains('p10') || pixelFormat.contains('10bit');
     final hdr = primaries.contains('bt.2020') ||
         gamma.contains('pq') ||
