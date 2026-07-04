@@ -1,4 +1,3 @@
-// player_control_service.dart (كامل)
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -47,7 +46,6 @@ class PlayerControlService {
     _hideTimer?.cancel();
   }
 
-  // 🔁 تكرار مقطع A-B
   void setRepeatPointA() {
     state.repeatPointA = state.position;
     if (state.repeatPointB != null && state.repeatPointB! <= state.repeatPointA!) {
@@ -67,7 +65,6 @@ class PlayerControlService {
     state.clearRepeatPoints();
   }
 
-  // 🔍 تكبير/سحب حر
   void updateZoomPan({double? scale, Offset? offset}) {
     if (scale != null) state.zoomScale = scale.clamp(1.0, 6.0);
     if (offset != null) state.panOffset = offset;
@@ -78,7 +75,6 @@ class PlayerControlService {
     state.resetZoomPan();
   }
 
-  // 📊 معلومات تقنية
   void toggleStatsOverlay() {
     state.showStatsOverlay = !state.showStatsOverlay;
     state.notifyListeners();
@@ -188,7 +184,6 @@ class PlayerControlService {
       _playerSubscriptions.add(player.stream.position.listen((pos) {
         state.position = pos;
 
-        // 🔁 تكرار مقطع A-B: إلا وصلنا لنقطة B نرجعو لنقطة A تلقائياً
         final a = state.repeatPointA;
         final b = state.repeatPointB;
         if (a != null && b != null && pos >= b) {
@@ -222,9 +217,12 @@ class PlayerControlService {
       }));
 
       _playerSubscriptions.add(player.stream.subtitle.listen((lines) {
-        // لازم نمسح النص عند عدم وجود سطر نشط (lines فارغة)، وإلا يبقى آخر
-        // نص معروضاً على الشاشة حتى بعد انتهاء الحوار الفعلي في الترجمة.
         state.updateSubtitleText(lines.isNotEmpty ? lines.join('\n') : null);
+      }));
+
+      _playerSubscriptions.add(player.stream.videoParams.listen((params) {
+        state.videoParams = params;
+        state.notifyListeners();
       }));
 
       state.initialized = true;

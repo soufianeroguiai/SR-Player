@@ -1157,7 +1157,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   Positioned(
                     top: MediaQuery.of(context).padding.top + 60,
                     left: 12,
-                    child: IgnorePointer(child: _StatsForNerdsPanel(state: _state)),
+                    child: IgnorePointer(child: _StatsForNerdsPanel(state: _state, player: _player)),
                   ),
                 if (_state.isLocked)
                   Positioned(
@@ -1328,27 +1328,46 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with SingleTickerPr
 
 class _StatsForNerdsPanel extends StatelessWidget {
   final PlayerUIState state;
-  const _StatsForNerdsPanel({required this.state});
+  final Player player;
+  const _StatsForNerdsPanel({required this.state, required this.player});
+
   String _fmt(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
+
+  String _resolutionText(int? width, int? height) {
+    if (width == null || height == null) return '---';
+    if (height >= 2160) return '4K UHD';
+    if (height >= 1080) return 'Full HD';
+    if (height >= 720) return 'HD';
+    return 'SD';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final info = state.videoInfo;
+    final pState = player.state;
+    final width = pState.width;
+    final height = pState.height;
+    final videoParams = state.videoParams;
+    final codec = videoParams?.codec ?? '---';
+    final fps = videoParams?.fps ?? 0.0;
+    final isHDR = state.hdrEnabled;
+
     final rows = <String>[
-      if (info != null) 'الدقة: ${info.width}×${info.height} (${info.resolutionText})',
-      if (info != null) 'الترميز: ${info.codec.toUpperCase()}',
-      if (info != null && info.fps > 0) 'معدل الإطارات: ${info.fps.toStringAsFixed(2)} fps',
-      if (info != null) 'HDR: ${info.isHDR ? "نعم" : "لا"}',
+      'الدقة: ${width ?? "---"}×${height ?? "---"} (${_resolutionText(width, height)})',
+      'الترميز: ${codec.toUpperCase()}',
+      if (fps > 0) 'معدل الإطارات: ${fps.toStringAsFixed(2)} fps',
+      'HDR: ${isHDR ? "نعم" : "لا"}',
       'تسريع العتاد (HW): ${state.hwEnabled ? "مفعّل" : "معطّل"}',
       'الموضع: ${_fmt(state.position)} / ${_fmt(state.duration)}',
       'السرعة: ${state.speed.toStringAsFixed(2)}x',
       if (state.audioDelay != 0) 'تأخير الصوت: ${state.audioDelay.toStringAsFixed(2)}s',
       if (state.subtitleSync != 0) 'مزامنة الترجمة: ${state.subtitleSync.toStringAsFixed(2)}s',
     ];
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Container(
@@ -1362,10 +1381,15 @@ class _StatsForNerdsPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          children: rows.map((r) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 1.5),
-            child: Text(r, style: const TextStyle(color: Colors.greenAccent, fontSize: 11.5, fontFamily: 'monospace')),
-          )).toList(),
+          children: rows
+              .map((r) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1.5),
+                    child: Text(
+                      r,
+                      style: const TextStyle(color: Colors.greenAccent, fontSize: 11.5, fontFamily: 'monospace'),
+                    ),
+                  ))
+              .toList(),
         ),
       ),
     );

@@ -64,17 +64,15 @@ class PlayerUIState extends ChangeNotifier {
 
   final ValueNotifier<String?> currentSubtitleText = ValueNotifier<String?>(null);
 
-  // 🔍 تكبير/سحب حر (Pan & Zoom)
   double zoomScale = 1.0;
   Offset panOffset = Offset.zero;
 
-  // 🔁 تكرار مقطع A-B
   Duration? repeatPointA;
   Duration? repeatPointB;
 
-  // 📊 معلومات تقنية (Stats for Nerds)
   bool showStatsOverlay = false;
   VideoInfo? videoInfo;
+  VideoParams? videoParams;
 
   void resetZoomPan() {
     zoomScale = 1.0;
