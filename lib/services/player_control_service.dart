@@ -47,6 +47,62 @@ class PlayerControlService {
     _hideTimer?.cancel();
   }
 
+  // ---------- تطبيق إعدادات الصوت ----------
+  Future<void> applyAudioSettings() async {
+    final s = settingsProvider;
+    final native = player.platform as NativePlayer;
+
+    // تضخيم الصوت
+    final boost = s.defaultAudioBoost / 100.0;
+    final baseVolume = state.volumeLevel.clamp(0.0, 2.0);
+    player.setVolume((baseVolume * boost).clamp(0.0, 200.0));
+
+    // تأخير الصوت
+    await native.setProperty('audio-delay', (s.audioDelayMs / 1000.0).toStringAsFixed(3));
+
+    // تجميع الفلاتر
+    final List<String> filters = [];
+
+    // موازنة الصوت (Balance)
+    if (s.audioBalance.abs() > 0.01) {
+      final left = (1.0 - s.audioBalance).clamp(0.0, 1.0);
+      final right = (1.0 + s.audioBalance).clamp(0.0, 1.0);
+      filters.add('pan=stereo|c0=$left*c0|c1=$right*c1');
+    }
+
+    // وضع إخراج الصوت
+    if (s.audioOutputMode == 'mono') {
+      filters.add('stereotools=mode=mono');
+    } else if (s.audioOutputMode == 'surround') {
+      filters.add('surround');
+    }
+
+    // Bass Boost
+    if (s.bassBoost) {
+      filters.add('superequalizer=1.2:1.1:1.05:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0');
+    }
+
+    // المعادل الرسومي
+    final eq = s.equalizerBands;
+    if (eq.any((v) => v.abs() > 0.01)) {
+      final gains = eq.map((v) => v.toStringAsFixed(1)).join(':');
+      filters.add('firequalizer=gain=$gains');
+    }
+
+    // محيطي
+    if (s.surroundSound) {
+      filters.add('surround');
+    }
+
+    // تطبيق الفلاتر
+    if (filters.isNotEmpty) {
+      final filterString = filters.join(',');
+      await native.setProperty('af', filterString);
+    } else {
+      await native.setProperty('af', '');
+    }
+  }
+
   void setRepeatPointA() {
     state.repeatPointA = state.position;
     if (state.repeatPointB != null && state.repeatPointB! <= state.repeatPointA!) {
@@ -235,6 +291,7 @@ class PlayerControlService {
       state.notifyListeners();
       if (!state.showResumeDialog) scheduleHide();
       await loadColorSettings();
+      await applyAudioSettings(); // <-- تطبيق إعدادات الصوت
       buildPlaylistFromFolder();
     } catch (e) {
       if (context.mounted) {
@@ -284,6 +341,7 @@ class PlayerControlService {
     state.position = Duration.zero;
     player.setRate(state.speed);
     applyInitialDecoderAndColor();
+    applyAudioSettings(); // <-- إعادة تطبيق عند تغيير الفيديو
     state.notifyListeners();
   }
 
@@ -378,7 +436,8 @@ class PlayerControlService {
 
   void onVolumeChanged(double newLevel) {
     state.volumeLevel = newLevel.clamp(0.0, 2.0);
-    player.setVolume(state.volumeLevel * 100.0);
+    final boost = settingsProvider.defaultAudioBoost / 100.0;
+    player.setVolume((state.volumeLevel * boost).clamp(0.0, 200.0));
     state.notifyListeners();
     savePersistedVolume();
   }

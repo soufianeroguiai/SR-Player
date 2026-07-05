@@ -19,8 +19,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // 1. تغيير القيمة الافتراضية إلى -1 لكي تكون جميع التبويبات مغلقة عند فتح الشاشة
-  int _openSection = -1; 
+  int _openSection = -1;
   int? _cacheSizeBytes;
 
   @override
@@ -106,33 +105,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _divider(),
           _switchTile(context, Symbols.picture_in_picture_rounded, 'صورة داخل صورة تلقائياً', 'عند الخروج من التطبيق أثناء التشغيل', s.autoPipOnBackground, s.setAutoPipOnBackground),
           _divider(),
-          _choiceTile(
-            context,
-            Symbols.memory_rounded,
-            'وضع فك التشفير',
-            hwDecoderName(s.hwDecoderMode),
-            () => _showDecoderPicker(context, s),
-          ),
+          _choiceTile(context, Symbols.memory_rounded, 'وضع فك التشفير', hwDecoderName(s.hwDecoderMode), () => _showDecoderPicker(context, s)),
           _divider(),
-          _choiceTile(
-            context,
-            Symbols.palette_rounded,
-            'تنسيق الألوان',
-            colorFormatName(s.colorFormat),
-            () => _showColorFormatPicker(context, s),
-          ),
+          _choiceTile(context, Symbols.palette_rounded, 'تنسيق الألوان', colorFormatName(s.colorFormat), () => _showColorFormatPicker(context, s)),
         ]),
         const SizedBox(height: 16),
+
+        // ========== قسم الصوت (موسع) ==========
         _sectionHeader(context, 'الصوت', Symbols.graphic_eq_rounded),
+
         _card(context, [
-          _choiceTile(context, Symbols.volume_up_rounded, 'تضخيم الصوت الافتراضي', '${s.defaultAudioBoost.round()}%', () => showBoostDialog(context, s)),
-          _divider(),
-          _choiceTile(context, Symbols.language_rounded, 'لغة الصوت المفضلة', langName(s.preferredAudioLanguage), () => showAudioLanguagePicker(context, s)),
+          _sectionFoldHeader(context, 'الصوت العام', Symbols.volume_up_rounded, _openSection == 4, () => setState(() => _openSection = _openSection == 4 ? -1 : 4)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 4
+                ? Column(children: [
+                    _choiceTile(context, Symbols.volume_up_rounded, 'تضخيم الصوت الافتراضي', '${s.defaultAudioBoost.round()}%', () => showBoostDialog(context, s)),
+                    _divider(),
+                    _sliderRow(context, 'موازنة الصوت (Balance)', s.audioBalance, -1.0, 1.0, s.audioBalance.toStringAsFixed(1), (v) => s.setAudioBalance(v)),
+                    _divider(),
+                    _switchTile(context, Symbols.volume_up_rounded, 'تذكر مستوى الصوت لكل فيديو', '', s.rememberVolumePerVideo, s.setRememberVolumePerVideo),
+                    _divider(),
+                    _switchTile(context, Symbols.restart_alt_rounded, 'إعادة ضبط مستوى الصوت لكل فيديو', '', s.resetVolumePerVideo, s.setResetVolumePerVideo),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        _card(context, [
+          _sectionFoldHeader(context, 'إخراج الصوت', Symbols.speaker_rounded, _openSection == 5, () => setState(() => _openSection = _openSection == 5 ? -1 : 5)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 5
+                ? Column(children: [
+                    _choiceTile(context, Symbols.speaker_rounded, 'وضع إخراج الصوت', s.audioOutputMode == 'stereo' ? 'ستيريو' : s.audioOutputMode == 'mono' ? 'أحادي' : 'محيطي', () => _showAudioModePicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.bluetooth_rounded, 'التحويل التلقائي عند توصيل سماعة', '', s.autoSwitchBluetooth, s.setAutoSwitchBluetooth),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        _card(context, [
+          _sectionFoldHeader(context, 'المسارات الصوتية', Symbols.playlist_play_rounded, _openSection == 6, () => setState(() => _openSection = _openSection == 6 ? -1 : 6)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 6
+                ? Column(children: [
+                    _choiceTile(context, Symbols.language_rounded, 'لغة الصوت المفضلة', langName(s.preferredAudioLanguage), () => showAudioLanguagePicker(context, s)),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        _card(context, [
+          _sectionFoldHeader(context, 'معادل الصوت', Symbols.equalizer_rounded, _openSection == 7, () => setState(() => _openSection = _openSection == 7 ? -1 : 7)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 7
+                ? Column(children: [
+                    _switchTile(context, Symbols.equalizer_rounded, 'تشغيل المعادل', '', s.bassBoost, s.setBassBoost),
+                    if (s.bassBoost) ...[
+                      _divider(),
+                      _choiceTile(context, Symbols.tune_rounded, 'فتح المعادل الرسومي', '10 نطاقات', () => _showEqualizerDialog(context, s)),
+                    ],
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        _card(context, [
+          _sectionFoldHeader(context, 'مزامنة الصوت', Symbols.timeline_rounded, _openSection == 8, () => setState(() => _openSection = _openSection == 8 ? -1 : 8)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 8
+                ? Column(children: [
+                    _sliderRow(context, 'تأخير الصوت (ms)', s.audioDelayMs.toDouble(), -5000, 5000, '${s.audioDelayMs} ms', (v) => s.setAudioDelayMs(v.toInt())),
+                    _divider(),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => s.setAudioDelayMs(0),
+                        icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                        label: Text('إعادة ضبط', style: TextStyle(color: cs.primary)),
+                      ),
+                    ),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        _card(context, [
+          _sectionFoldHeader(context, 'معالجة الصوت', Symbols.hearing_rounded, _openSection == 9, () => setState(() => _openSection = _openSection == 9 ? -1 : 9)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 9
+                ? Column(children: [
+                    _switchTile(context, Symbols.surround_sound_rounded, 'صوت محيطي (Surround)', 'محاكاة صوت محيطي', s.surroundSound, s.setSurroundSound),
+                    _divider(),
+                    _switchTile(context, Symbols.equalizer_rounded, 'Bass Boost', 'تضخيم الترددات المنخفضة', s.bassBoost, s.setBassBoost),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
         const SizedBox(height: 16),
+
+        // ========== قسم الترجمة ==========
         _sectionHeader(context, 'الترجمة', Symbols.subtitles_rounded),
 
-        // ========== قسم المظهر (استخدام AnimatedSize لمنع القفز) ==========
         _card(context, [
           _sectionFoldHeader(context, 'المظهر', Symbols.palette_rounded, _openSection == 0, () => setState(() => _openSection = _openSection == 0 ? -1 : 0)),
           AnimatedSize(
@@ -184,7 +280,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم الموضع (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'الموضع', Symbols.open_with_rounded, _openSection == 1, () => setState(() => _openSection = _openSection == 1 ? -1 : 1)),
           AnimatedSize(
@@ -225,7 +320,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم السلوك (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'السلوك', Symbols.settings_rounded, _openSection == 2, () => setState(() => _openSection = _openSection == 2 ? -1 : 2)),
           AnimatedSize(
@@ -273,7 +367,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // ========== قسم التوافق (استخدام AnimatedSize) ==========
         _card(context, [
           _sectionFoldHeader(context, 'التوافق', Symbols.tune_rounded, _openSection == 3, () => setState(() => _openSection = _openSection == 3 ? -1 : 3)),
           AnimatedSize(
@@ -871,7 +964,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ]);
   }
 
-  // --- عناصر الواجهة المساعدة ---
+  // --- دوال واجهة المستخدم المساعدة ---
   Widget _sectionHeader(BuildContext context, String title, IconData icon) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
@@ -964,4 +1057,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ]),
     );
   }
+
+  // --- دوال إعدادات الصوت الجديدة ---
+  void _showAudioModePicker(BuildContext context, SettingsProvider s) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('وضع إخراج الصوت', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('ستيريو'),
+            leading: const Icon(Symbols.speaker_rounded),
+            trailing: s.audioOutputMode == 'stereo' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setAudioOutputMode('stereo'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('أحادي'),
+            leading: const Icon(Symbols.speaker_rounded),
+            trailing: s.audioOutputMode == 'mono' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setAudioOutputMode('mono'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('محيطي'),
+            leading: const Icon(Symbols.surround_sound_rounded),
+            trailing: s.audioOutputMode == 'surround' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setAudioOutputMode('surround'); Navigator.pop(ctx); },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final bands = List<double>.from(s.equalizerBands);
+          return AlertDialog(
+            title: const Text('معادل الصوت'),
+            content: SizedBox(
+              width: 300,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < bands.length; i++)
+                      _sliderRow(ctx, '${_bandFrequencies[i]} Hz', bands[i], -20, 20, '${bands[i].toStringAsFixed(1)} dB', (v) {
+                        bands[i] = v;
+                        setDialogState(() {});
+                      }),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              ElevatedButton(
+                onPressed: () {
+                  s.setEqualizerBands(bands);
+                  Navigator.pop(ctx);
+                },
+                child: const Text('تطبيق'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  final List<int> _bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
 }

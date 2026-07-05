@@ -29,10 +29,48 @@ class SettingsProvider extends ChangeNotifier {
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
+  // ---------------------- إعدادات الصوت ----------------------
   double _defaultAudioBoost = 100.0;
   double get defaultAudioBoost => _defaultAudioBoost;
   String _preferredAudioLanguage = 'ara';
   String get preferredAudioLanguage => _preferredAudioLanguage;
+
+  bool _surroundSound = false;
+  bool get surroundSound => _surroundSound;
+  void setSurroundSound(bool v) { _surroundSound = v; notifyListeners(); _save(); }
+
+  bool _bassBoost = false;
+  bool get bassBoost => _bassBoost;
+  void setBassBoost(bool v) { _bassBoost = v; notifyListeners(); _save(); }
+
+  double _audioBalance = 0.0;
+  double get audioBalance => _audioBalance;
+  void setAudioBalance(double v) { _audioBalance = v.clamp(-1.0, 1.0); notifyListeners(); _save(); }
+
+  String _audioOutputMode = 'stereo';
+  String get audioOutputMode => _audioOutputMode;
+  void setAudioOutputMode(String v) { _audioOutputMode = v; notifyListeners(); _save(); }
+
+  int _audioDelayMs = 0;
+  int get audioDelayMs => _audioDelayMs;
+  void setAudioDelayMs(int v) { _audioDelayMs = v; notifyListeners(); _save(); }
+
+  bool _autoSwitchBluetooth = true;
+  bool get autoSwitchBluetooth => _autoSwitchBluetooth;
+  void setAutoSwitchBluetooth(bool v) { _autoSwitchBluetooth = v; notifyListeners(); _save(); }
+
+  bool _rememberVolumePerVideo = false;
+  bool get rememberVolumePerVideo => _rememberVolumePerVideo;
+  void setRememberVolumePerVideo(bool v) { _rememberVolumePerVideo = v; notifyListeners(); _save(); }
+
+  bool _resetVolumePerVideo = true;
+  bool get resetVolumePerVideo => _resetVolumePerVideo;
+  void setResetVolumePerVideo(bool v) { _resetVolumePerVideo = v; notifyListeners(); _save(); }
+
+  List<double> _equalizerBands = [0,0,0,0,0,0,0,0,0,0];
+  List<double> get equalizerBands => _equalizerBands;
+  void setEqualizerBands(List<double> bands) { _equalizerBands = bands; notifyListeners(); _save(); }
+  // -----------------------------------------------------------
 
   bool _showSubtitlesByDefault = true;
   bool get showSubtitlesByDefault => _showSubtitlesByDefault;
@@ -143,6 +181,20 @@ class SettingsProvider extends ChangeNotifier {
     _autoPipOnBackground = p.getBool('autoPipOnBackground') ?? false;
     _smartRotationEnabled = p.getBool('smartRotationEnabled') ?? true;
 
+    // إعدادات الصوت الجديدة
+    _surroundSound = p.getBool('surroundSound') ?? false;
+    _bassBoost = p.getBool('bassBoost') ?? false;
+    _audioBalance = p.getDouble('audioBalance') ?? 0.0;
+    _audioOutputMode = p.getString('audioOutputMode') ?? 'stereo';
+    _audioDelayMs = p.getInt('audioDelayMs') ?? 0;
+    _autoSwitchBluetooth = p.getBool('autoSwitchBluetooth') ?? true;
+    _rememberVolumePerVideo = p.getBool('rememberVolumePerVideo') ?? false;
+    _resetVolumePerVideo = p.getBool('resetVolumePerVideo') ?? true;
+    final eqList = p.getStringList('equalizerBands');
+    if (eqList != null && eqList.length == 10) {
+      _equalizerBands = eqList.map((e) => double.tryParse(e) ?? 0.0).toList();
+    }
+
     notifyListeners();
   }
 
@@ -178,6 +230,17 @@ class SettingsProvider extends ChangeNotifier {
     await p.setBool('silentResume', _silentResume);
     await p.setBool('autoPipOnBackground', _autoPipOnBackground);
     await p.setBool('smartRotationEnabled', _smartRotationEnabled);
+
+    // إعدادات الصوت الجديدة
+    await p.setBool('surroundSound', _surroundSound);
+    await p.setBool('bassBoost', _bassBoost);
+    await p.setDouble('audioBalance', _audioBalance);
+    await p.setString('audioOutputMode', _audioOutputMode);
+    await p.setInt('audioDelayMs', _audioDelayMs);
+    await p.setBool('autoSwitchBluetooth', _autoSwitchBluetooth);
+    await p.setBool('rememberVolumePerVideo', _rememberVolumePerVideo);
+    await p.setBool('resetVolumePerVideo', _resetVolumePerVideo);
+    await p.setStringList('equalizerBands', _equalizerBands.map((e) => e.toString()).toList());
   }
 
   void resetAll() {
@@ -211,6 +274,17 @@ class SettingsProvider extends ChangeNotifier {
     _silentResume = false;
     _autoPipOnBackground = false;
     _smartRotationEnabled = true;
+
+    _surroundSound = false;
+    _bassBoost = false;
+    _audioBalance = 0.0;
+    _audioOutputMode = 'stereo';
+    _audioDelayMs = 0;
+    _autoSwitchBluetooth = true;
+    _rememberVolumePerVideo = false;
+    _resetVolumePerVideo = true;
+    _equalizerBands = [0,0,0,0,0,0,0,0,0,0];
+
     _save();
     notifyListeners();
   }
@@ -267,6 +341,15 @@ class SettingsProvider extends ChangeNotifier {
       'silentResume': _silentResume,
       'autoPipOnBackground': _autoPipOnBackground,
       'smartRotationEnabled': _smartRotationEnabled,
+      'surroundSound': _surroundSound,
+      'bassBoost': _bassBoost,
+      'audioBalance': _audioBalance,
+      'audioOutputMode': _audioOutputMode,
+      'audioDelayMs': _audioDelayMs,
+      'autoSwitchBluetooth': _autoSwitchBluetooth,
+      'rememberVolumePerVideo': _rememberVolumePerVideo,
+      'resetVolumePerVideo': _resetVolumePerVideo,
+      'equalizerBands': _equalizerBands,
     };
   }
 
@@ -275,6 +358,8 @@ class SettingsProvider extends ChangeNotifier {
       final v = jsonSettings[key];
       if (v is T) return v;
       if (v != null && fallback is double && v is num) return v.toDouble() as T;
+      if (fallback is int && v is num) return v.toInt() as T;
+      if (fallback is List<double> && v is List) return List<double>.from(v) as T;
       return fallback;
     }
 
@@ -311,6 +396,16 @@ class SettingsProvider extends ChangeNotifier {
     _silentResume = read('silentResume', _silentResume);
     _autoPipOnBackground = read('autoPipOnBackground', _autoPipOnBackground);
     _smartRotationEnabled = read('smartRotationEnabled', _smartRotationEnabled);
+
+    _surroundSound = read('surroundSound', _surroundSound);
+    _bassBoost = read('bassBoost', _bassBoost);
+    _audioBalance = read('audioBalance', _audioBalance);
+    _audioOutputMode = read('audioOutputMode', _audioOutputMode);
+    _audioDelayMs = read('audioDelayMs', _audioDelayMs);
+    _autoSwitchBluetooth = read('autoSwitchBluetooth', _autoSwitchBluetooth);
+    _rememberVolumePerVideo = read('rememberVolumePerVideo', _rememberVolumePerVideo);
+    _resetVolumePerVideo = read('resetVolumePerVideo', _resetVolumePerVideo);
+    _equalizerBands = read<List<double>>('equalizerBands', _equalizerBands);
 
     notifyListeners();
     await _save();

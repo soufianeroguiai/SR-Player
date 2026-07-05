@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:provider/provider.dart';
+import '../../providers/settings_provider.dart';
 
 class AudioSettingsPanel extends StatefulWidget {
   final Player player;
@@ -43,6 +45,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = context.watch<SettingsProvider>();
     final activeAudioName = widget.currentAudioTrack?.title ??
                             widget.currentAudioTrack?.language ??
                             'لا يوجد مسار نشط';
@@ -52,6 +55,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          // رأس القسم مع mute
           Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -82,18 +86,20 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
                     ],
                   ),
                 ),
-                Switch(
-                  value: !_muted,
-                  onChanged: (v) {
-                    setState(() => _muted = !v);
-                    widget.player.setVolume(v ? (widget.volumeLevel * 100.0) : 0);
+                // زر Mute
+                _QuickIconBtn(
+                  icon: _muted ? Symbols.volume_off_rounded : Symbols.volume_up_rounded,
+                  color: _muted ? Colors.redAccent : Colors.white70,
+                  onTap: () {
+                    setState(() => _muted = !_muted);
+                    widget.player.setVolume(_muted ? 0 : (widget.volumeLevel * 100.0));
                   },
-                  activeColor: cs.primary,
                 ),
               ],
             ),
           ),
 
+          // المسارات الصوتية
           if (widget.audioTracks.isNotEmpty) ...[
             _IntegratedSectionTile(
               icon: Symbols.audiotrack_rounded,
@@ -105,6 +111,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             ),
           ],
 
+          // مستوى الصوت
           _IntegratedSectionTile(
             icon: Symbols.volume_up_rounded,
             title: 'مستوى الصوت',
@@ -114,6 +121,17 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildVolumeSection(),
           ),
 
+          // المعادل (Equalizer)
+          _IntegratedSectionTile(
+            icon: Symbols.equalizer_rounded,
+            title: 'المعادل',
+            subtitle: s.bassBoost ? 'مفعل' : 'غير مفعل',
+            isOpen: _openSection == 4,
+            onTap: () => _toggleSection(4),
+            child: _buildEqualizerSection(cs, s),
+          ),
+
+          // مزامنة الصوت
           _IntegratedSectionTile(
             icon: Symbols.timeline_rounded,
             title: 'مزامنة الصوت',
@@ -123,6 +141,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildAudioSyncSection(),
           ),
 
+          // معلومات الصوت
           _IntegratedSectionTile(
             icon: Symbols.info_rounded,
             title: 'معلومات الصوت',
@@ -175,6 +194,42 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
     ]);
   }
 
+  Widget _buildEqualizerSection(ColorScheme cs, SettingsProvider s) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Bass Boost
+      SwitchListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Bass Boost', style: TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: const Text('تضخيم الترددات المنخفضة', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        value: s.bassBoost,
+        onChanged: (v) => s.setBassBoost(v),
+        activeColor: cs.primary,
+      ),
+      const Divider(height: 1, color: Colors.white12),
+      // Treble Boost
+      SwitchListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Treble Boost', style: TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: const Text('تضخيم الترددات العالية', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        value: s.surroundSound, // نستخدم surroundSound مؤقتاً للـ Treble
+        onChanged: (v) => s.setSurroundSound(v),
+        activeColor: cs.primary,
+      ),
+      const Divider(height: 1, color: Colors.white12),
+      // فتح المعادل الرسومي
+      ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: const Text('فتح المعادل الرسومي', style: TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: const Text('10 نطاقات تردد', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        trailing: const Icon(Symbols.chevron_right_rounded, color: Colors.white54, size: 20),
+        onTap: () => _showEqualizerDialog(context, s),
+      ),
+    ]);
+  }
+
   Widget _buildAudioSyncSection() {
     final cs = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -218,8 +273,50 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
       ]),
     );
   }
+
+  // نافذة المعادل الرسومي (مطابقة لتلك الموجودة في SettingsScreen)
+  void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
+    final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final bands = List<double>.from(s.equalizerBands);
+          return AlertDialog(
+            title: const Text('المعادل الرسومي'),
+            content: SizedBox(
+              width: 300,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < bands.length; i++)
+                      _CompactSlider('${bandFrequencies[i]} Hz', bands[i], -20, 20, (v) {
+                        bands[i] = v;
+                        setDialogState(() {});
+                      }, Theme.of(context).colorScheme, display: (v) => '${v.toStringAsFixed(1)} dB'),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              ElevatedButton(
+                onPressed: () {
+                  s.setEqualizerBands(bands);
+                  Navigator.pop(ctx);
+                },
+                child: const Text('تطبيق'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
+// --- مكوّنات متكاملة ---
 class _IntegratedSectionTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -294,6 +391,28 @@ class _CompactSlider extends StatelessWidget {
         ),
         SizedBox(width: 50, child: Text(displayed, style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.left)),
       ],
+    );
+  }
+}
+
+class _QuickIconBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _QuickIconBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
     );
   }
 }
