@@ -707,12 +707,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       bottom: 0,
       right: _state.currentMenu != ActiveMenu.none ? 0 : -panelWidth,
       width: panelWidth,
-      child: SafeArea(
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: RepaintBoundary(
+        child: SafeArea(
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Container(
                 margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -842,6 +843,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -1207,7 +1209,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 if (controlsVisible) ...[
                   Positioned(
                     top: 0, left: 0, right: 0,
-                    child: PlayerTopBar(
+                    child: RepaintBoundary(
+                      child: PlayerTopBar(
                       videoName: widget.video.name,
                       onBack: () => Navigator.pop(context),
                       onAudioMenu: () {
@@ -1303,13 +1306,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               _qaBtn(Symbols.palette_rounded, Colors.white70, _showColorAdjustment),
                             ]
                           : [],
+                      ),
                     ),
                   ),
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: PlayerBottomBar(
+                    child: RepaintBoundary(
+                      child: PlayerBottomBar(
                       position: _state.position,
                       duration: _state.duration,
                       onSeek: (v) => _player.seek(Duration(milliseconds: (v * _state.duration.inMilliseconds).toInt())),
@@ -1330,11 +1335,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       chapters: _state.chapters,
                       onPrevious: _service.playPrevious,
                       onNext: _service.playNext,
+                      ),
                     ),
                   ),
                 ],
                 if (_state.showResumeDialog) _buildResumeDialog(),
-                RepaintBoundary(child: _buildSidePanel()),
+                _buildSidePanel(),
                 if (_showPlaylistEditor)
                   Positioned(
                     top: 0,
