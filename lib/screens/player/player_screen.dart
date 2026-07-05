@@ -1311,8 +1311,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: RepaintBoundary(
-                      child: PlayerBottomBar(
+                    child: PlayerBottomBar(
                       position: _state.position,
                       duration: _state.duration,
                       onSeek: (v) => _player.seek(Duration(milliseconds: (v * _state.duration.inMilliseconds).toInt())),
@@ -1333,7 +1332,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       chapters: _state.chapters,
                       onPrevious: _service.playPrevious,
                       onNext: _service.playNext,
-                      ),
                     ),
                   ),
                 ],
