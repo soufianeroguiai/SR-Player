@@ -1019,35 +1019,38 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 ),
 
                 // الترجمة
-                ValueListenableBuilder<String?>(
-                  valueListenable: _state.currentSubtitleText,
-                  builder: (context, text, _) {
-                    if (!_shouldUseFlutterRenderer() || text == null || text.trim().isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
-                        ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
-                        : MediaQuery.of(context).size;
-                    final videoRect = VideoLayoutCalculator.calculate(
-                      videoSize: videoSize,
-                      screenSize: MediaQuery.of(context).size,
-                      fitMode: _state.fitMode,
-                      zoomScale: _state.zoomScale,
-                      panOffset: _state.panOffset,
-                    );
-                    return SubtitleRenderer(
-                      currentEntry: SubtitleEntry(
-                        start: Duration.zero,
-                        end: const Duration(hours: 1),
-                        text: text,
-                      ),
-                      settings: subtitleSettings,
-                      videoRect: videoRect,
-                      videoSize: videoSize,
-                      screenSize: MediaQuery.of(context).size,
-                      safeArea: MediaQuery.of(context).padding,
-                    );
-                  },
+                // 🧪 اختبار #1: RepaintBoundary هنا فقط لمعرفة هل هي مصدر الطبقة الرمادية
+                RepaintBoundary(
+                  child: ValueListenableBuilder<String?>(
+                    valueListenable: _state.currentSubtitleText,
+                    builder: (context, text, _) {
+                      if (!_shouldUseFlutterRenderer() || text == null || text.trim().isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
+                          ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
+                          : MediaQuery.of(context).size;
+                      final videoRect = VideoLayoutCalculator.calculate(
+                        videoSize: videoSize,
+                        screenSize: MediaQuery.of(context).size,
+                        fitMode: _state.fitMode,
+                        zoomScale: _state.zoomScale,
+                        panOffset: _state.panOffset,
+                      );
+                      return SubtitleRenderer(
+                        currentEntry: SubtitleEntry(
+                          start: Duration.zero,
+                          end: const Duration(hours: 1),
+                          text: text,
+                        ),
+                        settings: subtitleSettings,
+                        videoRect: videoRect,
+                        videoSize: videoSize,
+                        screenSize: MediaQuery.of(context).size,
+                        safeArea: MediaQuery.of(context).padding,
+                      );
+                    },
+                  ),
                 ),
 
                 IgnorePointer(
