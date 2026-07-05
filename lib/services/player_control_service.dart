@@ -274,6 +274,16 @@ class PlayerControlService {
       state.videoInfo = videoInfo;
       state.notifyListeners();
 
+      // ✅ لازم نطبق إعدادات الصوت (af, audio-delay, volume...) والفلاتر
+      // قبل بدء التشغيل (play) وليس بعده. تغيير خاصية "af" أثناء تشغيل
+      // الصوت فعلياً كيجبر mpv يعاود تهيئة سلسلة الصوت، وهاد الشي كيسبب
+      // كتم الصوت بشكل صامت فحالات كثيرة (خصوصاً على أندرويد) لحد ما
+      // المستخدم يدير أي تفاعل آخر بالصوت (مثلاً كتم/إلغاء كتم) اللي
+      // كيجبر إعادة التشغيل الحقيقية للصوت. تطبيقها هنا، والملف مازال
+      // متوقف (play: false)، كيضمن أن الصوت يبدا سليم من أول لحظة.
+      await loadColorSettings();
+      await applyPlayerSettings();
+
       bool colorApplied = false;
       _playerSubscriptions.add(player.stream.duration.listen((dur) {
         state.duration = dur;
@@ -365,8 +375,6 @@ class PlayerControlService {
       state.initialized = true;
       state.notifyListeners();
       if (!state.showResumeDialog) scheduleHide();
-      await loadColorSettings();
-      await applyPlayerSettings(); // <-- تطبيق جميع إعدادات المشغل والصوت
       buildPlaylistFromFolder();
     } catch (e) {
       if (context.mounted) {
