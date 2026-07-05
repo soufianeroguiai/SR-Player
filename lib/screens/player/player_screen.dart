@@ -1207,8 +1207,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 if (controlsVisible) ...[
                   Positioned(
                     top: 0, left: 0, right: 0,
-                    child: RepaintBoundary(
-                      child: PlayerTopBar(
+                    child: PlayerTopBar(
                       videoName: widget.video.name,
                       onBack: () => Navigator.pop(context),
                       onAudioMenu: () {
@@ -1304,7 +1303,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               _qaBtn(Symbols.palette_rounded, Colors.white70, _showColorAdjustment),
                             ]
                           : [],
-                      ),
                     ),
                   ),
                   Positioned(
