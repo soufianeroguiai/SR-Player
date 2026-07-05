@@ -78,6 +78,7 @@ class _SubtitleRendererState extends State<SubtitleRenderer> {
         textAlign: layout.textAlign,
         maxLines: widget.settings.autoWrap ? widget.settings.maxLines : 1,
         overflow: TextOverflow.ellipsis,
+        textWidthBasis: TextWidthBasis.longestLine,
       ),
     );
 
