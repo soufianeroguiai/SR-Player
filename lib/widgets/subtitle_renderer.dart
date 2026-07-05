@@ -112,16 +112,14 @@ class _SubtitleRendererState extends State<SubtitleRenderer> {
       top: widget.videoRect.top,
       width: widget.videoRect.width,
       height: widget.videoRect.height,
-      child: RepaintBoundary(
-        child: ClipRect(
-          child: Align(
-            alignment: layout.alignment,
-            child: Padding(
-              padding: layout.padding,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: layout.maxWidth),
-                child: textWidget,
-              ),
+      child: ClipRect(
+        child: Align(
+          alignment: layout.alignment,
+          child: Padding(
+            padding: layout.padding,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: layout.maxWidth),
+              child: textWidget,
             ),
           ),
         ),
