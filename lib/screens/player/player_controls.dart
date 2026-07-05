@@ -553,6 +553,8 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
             SizedBox(
               height: 52,
               child: Row(children: [
+                // زر القفل فأقصى اليسار
+                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),
                 const Spacer(),
                 if (widget.onPrevious != null)
                   _BottomBtn(icon: Symbols.skip_previous_rounded, onTap: widget.onPrevious!, size: 28),
@@ -570,8 +572,8 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                 if (widget.onNext != null)
                   _BottomBtn(icon: Symbols.skip_next_rounded, onTap: widget.onNext!, size: 28),
                 const Spacer(),
+                // زر الفيت والبيب فأقصى اليمين
                 _BottomBtn(icon: Symbols.picture_in_picture_rounded, onTap: widget.onPip, size: 22),
-                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),
                 _BottomBtn(icon: Symbols.aspect_ratio_rounded, onTap: widget.onToggleFit, size: 22),
               ]),
             ),
