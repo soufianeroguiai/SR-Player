@@ -76,6 +76,7 @@ String langName(String code) {
     'spa': 'الإسبانية',
     'deu': 'الألمانية',
     'ita': 'الإيطالية',
+    'jpn': 'اليابانية',
   };
   return names[code] ?? code.toUpperCase();
 }

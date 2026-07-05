@@ -55,7 +55,13 @@ void showBoostDialog(BuildContext ctx, SettingsProvider s) {
 }
 
 void showAudioLanguagePicker(BuildContext ctx, SettingsProvider s) {
-  final langs = {'ara': 'العربية', 'eng': 'الإنجليزية', 'fra': 'الفرنسية', 'spa': 'الإسبانية'};
+  final langs = {
+    'ara': 'العربية',
+    'eng': 'الإنجليزية',
+    'fra': 'الفرنسية',
+    'spa': 'الإسبانية',
+    'jpn': 'اليابانية',
+  };
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
