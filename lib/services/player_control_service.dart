@@ -118,13 +118,16 @@ class PlayerControlService {
     final s = settingsProvider;
     final native = player.platform as NativePlayer;
 
-    double boost = s.defaultAudioBoost / 100.0;
-    if (boost < 0.5) boost = 0.5;
-
+    // --- إصلاح مستوى الصوت المنخفض جداً ---
     double baseVolume = state.volumeLevel;
     if (baseVolume < 0.05) baseVolume = 0.5;
 
-    player.setVolume((baseVolume * boost).clamp(0.0, 200.0));
+    double boost = s.defaultAudioBoost / 100.0;
+    if (boost < 0.5) boost = 0.5;
+
+    // player.setVolume يتوقع قيمة بين 0 و 200 (نطاق mpv)
+    player.setVolume((baseVolume * 100 * boost).clamp(0.0, 200.0));
+    // ---------------------------------------
 
     await native.setProperty('audio-delay', (s.audioDelayMs / 1000.0).toStringAsFixed(3));
 
@@ -230,10 +233,9 @@ class PlayerControlService {
     if (saved != null) {
       state.volumeLevel = saved.clamp(0.0, 2.0);
     }
-    // ضمان صوت مسموع دائمًا عند بدء التشغيل
     if (state.volumeLevel < 0.05) {
       state.volumeLevel = 0.5;
-      await savePersistedVolume(); // حفظ القيمة الآمنة فورًا
+      await savePersistedVolume();
     }
     state.notifyListeners();
   }
@@ -509,7 +511,7 @@ class PlayerControlService {
     state.volumeLevel = newLevel.clamp(0.0, 2.0);
     double boost = settingsProvider.defaultAudioBoost / 100.0;
     if (boost < 0.5) boost = 0.5;
-    player.setVolume((state.volumeLevel * boost).clamp(0.0, 200.0));
+    player.setVolume((state.volumeLevel * 100 * boost).clamp(0.0, 200.0));
     state.notifyListeners();
     savePersistedVolume();
   }
@@ -768,7 +770,7 @@ class PlayerControlService {
   }
 
   void dispose() {
-    savePersistedVolume(); // حفظ مستوى الصوت عند الخروج من المشغل
+    savePersistedVolume();
     _saveTimer?.cancel();
     _hideTimer?.cancel();
     _sleepTimer?.cancel();
