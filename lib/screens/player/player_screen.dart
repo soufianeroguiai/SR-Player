@@ -962,7 +962,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('RepaintBoundary حول الفيديو: نعم'),
+              Text('RepaintBoundary حول الفيديو: لا'),
               Text('RepaintBoundary حول الترجمة: نعم'),
               Text('وجود SubtitleRenderer: ${_state.currentSubtitleText.value != null && _state.currentSubtitleText.value!.isNotEmpty}'),
               Text('نص الترجمة الحالي: ${_state.currentSubtitleText.value ?? "لا يوجد"}'),
@@ -1013,38 +1013,38 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_state.initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
-                RepaintBoundary(
-                  child: PlayerGestureLayer(
-                    player: _player,
-                    isLocked: _state.isLocked,
-                    volumeLevel: _state.volumeLevel,
-                    brightnessNotifier: _brightnessNotifier,
-                    seekMsNotifier: _seekMsNotifier,
-                    position: _state.position,
-                    duration: _state.duration,
-                    isPlaying: _state.isPlaying,
-                    isSpeedBoosted: _state.isSpeedBoosted,
-                    fitMode: _state.fitMode,
-                    zoomScale: _state.zoomScale,
-                    panOffset: _state.panOffset,
-                    onToggleControls: _toggleControls,
-                    onVolumeChanged: _service.onVolumeChanged,
-                    onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
-                    onLongPressSpeedStart: _service.startLongPressSpeedBoost,
-                    onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
-                    onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
-                    child: Video(
-                      key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
-                      controller: _controller,
-                      fit: getBoxFit(_state.fitMode),
-                      controls: NoVideoControls,
-                      subtitleViewConfiguration: SubtitleViewConfiguration(
-                        visible: !useFlutterRenderer,
-                      ),
+                // ⚠️ تم إزالة RepaintBoundary من حول الفيديو – كان يسبب الشاشة الرمادية
+                PlayerGestureLayer(
+                  player: _player,
+                  isLocked: _state.isLocked,
+                  volumeLevel: _state.volumeLevel,
+                  brightnessNotifier: _brightnessNotifier,
+                  seekMsNotifier: _seekMsNotifier,
+                  position: _state.position,
+                  duration: _state.duration,
+                  isPlaying: _state.isPlaying,
+                  isSpeedBoosted: _state.isSpeedBoosted,
+                  fitMode: _state.fitMode,
+                  zoomScale: _state.zoomScale,
+                  panOffset: _state.panOffset,
+                  onToggleControls: _toggleControls,
+                  onVolumeChanged: _service.onVolumeChanged,
+                  onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
+                  onLongPressSpeedStart: _service.startLongPressSpeedBoost,
+                  onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
+                  onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
+                  child: Video(
+                    key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
+                    controller: _controller,
+                    fit: getBoxFit(_state.fitMode),
+                    controls: NoVideoControls,
+                    subtitleViewConfiguration: SubtitleViewConfiguration(
+                      visible: !useFlutterRenderer,
                     ),
                   ),
                 ),
 
+                // ✅ عزل الترجمة ما زال مفعّلاً
                 RepaintBoundary(
                   child: ValueListenableBuilder<String?>(
                     valueListenable: _state.currentSubtitleText,
