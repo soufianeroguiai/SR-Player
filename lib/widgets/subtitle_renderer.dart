@@ -120,7 +120,12 @@ class _SubtitleRendererState extends State<SubtitleRenderer> {
             padding: layout.padding,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: layout.maxWidth),
-              child: textWidget,
+              // ✅ RepaintBoundary هنا فقط، حول الصندوق الصغير الذي يحتوي فعليًا
+              // على النص — وليس حول الـ Positioned الكبير بحجم الفيديو كامل،
+              // لتجنّب تخصيص طبقة تركيب بحجم الشاشة تظهر رمادية جزئيًا.
+              child: RepaintBoundary(
+                child: textWidget,
+              ),
             ),
           ),
         ),
