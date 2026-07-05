@@ -230,9 +230,10 @@ class PlayerControlService {
     if (saved != null) {
       state.volumeLevel = saved.clamp(0.0, 2.0);
     }
-    // حماية: ألا يبدأ الصوت من الصفر
+    // ضمان صوت مسموع دائمًا عند بدء التشغيل
     if (state.volumeLevel < 0.05) {
       state.volumeLevel = 0.5;
+      await savePersistedVolume(); // حفظ القيمة الآمنة فورًا
     }
     state.notifyListeners();
   }
@@ -767,6 +768,7 @@ class PlayerControlService {
   }
 
   void dispose() {
+    savePersistedVolume(); // حفظ مستوى الصوت عند الخروج من المشغل
     _saveTimer?.cancel();
     _hideTimer?.cancel();
     _sleepTimer?.cancel();
