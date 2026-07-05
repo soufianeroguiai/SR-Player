@@ -79,39 +79,259 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ]),
         const SizedBox(height: 16),
+
+        // ==========================================
+        //         المشغل (قسم موسع بالكامل)
+        // ==========================================
         _sectionHeader(context, 'المشغل', Symbols.play_circle_rounded),
+
+        // --- التشغيل ---
         _card(context, [
-          _switchTile(context, Symbols.resume_rounded, 'تذكر موضع التشغيل', 'متابعة من آخر موضع', s.rememberPosition, s.setRememberPosition),
-          _divider(),
-          _switchTile(context, Symbols.notifications_off_rounded, 'استئناف صامت', 'متابعة من الموضع بدون إظهار تنبيه', s.silentResume, s.setSilentResume),
-          _divider(),
-          _switchTile(context, Symbols.play_arrow_rounded, 'تشغيل تلقائي', 'تشغيل الفيديو فور الفتح', s.autoPlay, s.setAutoPlay),
-          _divider(),
-          _choiceTile(context, Symbols.speed_rounded, 'سرعة التشغيل الافتراضية', '${s.defaultSpeed}x', () => showSpeedPicker(context, s)),
-          _divider(),
-          _choiceTile(context, Symbols.fast_forward_rounded, 'مدة القفز عند النقر المزدوج', '${s.doubleTapSeekSeconds} ثوانٍ', () => showSeekSecondsPicker(context, s)),
-          _divider(),
-          _choiceTile(context, Symbols.timer_rounded, 'مدة اختفاء أزرار التحكم', '${s.controlsHideSeconds} ثوانٍ', () => showHideDelayPicker(context, s)),
-          _divider(),
-          _switchTile(context, Symbols.fast_forward_rounded, 'تسريع بالضغط المطول', 'تسريع مؤقت عند الضغط باستمرار', s.longPressSpeedEnabled, s.setLongPressSpeedEnabled),
-          if (s.longPressSpeedEnabled) ...[
-            _divider(),
-            _choiceTile(context, Symbols.speed_rounded, 'سرعة الضغط المطول', '${s.longPressSpeedValue.toStringAsFixed(1)}x', () => showLongPressSpeedDialog(context, s)),
-          ],
-          _divider(),
-          _choiceTile(context, Symbols.touch_app_rounded, 'حساسية الإيماءات', '${(s.gestureSensitivity * 100).round()}%', () => showGestureSensitivityDialog(context, s)),
-          _divider(),
-          _switchTile(context, Symbols.screen_rotation_rounded, 'تدوير الشاشة الذكي', 'حسب وضعية الهاتف تلقائياً', s.smartRotationEnabled, s.setSmartRotationEnabled),
-          _divider(),
-          _switchTile(context, Symbols.picture_in_picture_rounded, 'صورة داخل صورة تلقائياً', 'عند الخروج من التطبيق أثناء التشغيل', s.autoPipOnBackground, s.setAutoPipOnBackground),
-          _divider(),
-          _choiceTile(context, Symbols.memory_rounded, 'وضع فك التشفير', hwDecoderName(s.hwDecoderMode), () => _showDecoderPicker(context, s)),
-          _divider(),
-          _choiceTile(context, Symbols.palette_rounded, 'تنسيق الألوان', colorFormatName(s.colorFormat), () => _showColorFormatPicker(context, s)),
+          _sectionFoldHeader(context, 'التشغيل', Symbols.play_arrow_rounded, _openSection == 100, () => setState(() => _openSection = _openSection == 100 ? -1 : 100)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 100
+                ? Column(children: [
+                    _switchTile(context, Symbols.play_arrow_rounded, 'التشغيل التلقائي', '', s.autoPlay, s.setAutoPlay),
+                    _divider(),
+                    _switchTile(context, Symbols.resume_rounded, 'استئناف آخر موضع', '', s.rememberPosition, s.setRememberPosition),
+                    _divider(),
+                    _switchTile(context, Symbols.speed_rounded, 'تذكر سرعة التشغيل', '', s.rememberPlaybackSpeed, s.setRememberPlaybackSpeed),
+                    _divider(),
+                    _choiceTile(context, Symbols.repeat_rounded, 'التشغيل المتكرر', loopModeName(s.loopMode), () => _showLoopModePicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.skip_next_rounded, 'الانتقال للفيديو التالي تلقائياً', '', s.autoNextVideo, s.setAutoNextVideo),
+                    _divider(),
+                    _switchTile(context, Symbols.picture_in_picture_rounded, 'الانتقال للوضع المصغر عند الخروج', '', s.autoPipOnBackground, s.setAutoPipOnBackground),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- سرعة التشغيل ---
+        _card(context, [
+          _sectionFoldHeader(context, 'سرعة التشغيل', Symbols.speed_rounded, _openSection == 101, () => setState(() => _openSection = _openSection == 101 ? -1 : 101)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 101
+                ? Column(children: [
+                    _choiceTile(context, Symbols.speed_rounded, 'سرعة التشغيل الافتراضية', '${s.defaultSpeed}x', () => showSpeedPicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.history_rounded, 'تذكر آخر سرعة', '', s.rememberSpeed, s.setRememberSpeed),
+                    _divider(),
+                    _switchTile(context, Symbols.fast_forward_rounded, 'السماح بسرعة حتى 4×', '', s.allowSpeedUpTo4x, s.setAllowSpeedUpTo4x),
+                    _divider(),
+                    _switchTile(context, Symbols.music_note_rounded, 'تصحيح طبقة الصوت (Pitch Correction)', '', s.pitchCorrection, s.setPitchCorrection),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- عرض الفيديو ---
+        _card(context, [
+          _sectionFoldHeader(context, 'عرض الفيديو', Symbols.aspect_ratio_rounded, _openSection == 102, () => setState(() => _openSection = _openSection == 102 ? -1 : 102)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 102
+                ? Column(children: [
+                    _choiceTile(context, Symbols.aspect_ratio_rounded, 'الوضع الافتراضي', videoModeName(s.defaultVideoMode), () => _showVideoModePicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.history_rounded, 'تذكر آخر وضع', '', s.rememberVideoMode, s.setRememberVideoMode),
+                    _divider(),
+                    _switchTile(context, Symbols.screen_rotation_rounded, 'تدوير تلقائي', '', s.autoRotate, s.setAutoRotate),
+                    _divider(),
+                    _switchTile(context, Symbols.fullscreen_rounded, 'ملء الشاشة تلقائياً', '', s.autoFullscreen, s.setAutoFullscreen),
+                    _divider(),
+                    _switchTile(context, Symbols.screen_lock_landscape_rounded, 'إبقاء الشاشة مضاءة', '', s.keepScreenOn, s.setKeepScreenOn),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- التحكم بالإيماءات ---
+        _card(context, [
+          _sectionFoldHeader(context, 'التحكم بالإيماءات', Symbols.touch_app_rounded, _openSection == 103, () => setState(() => _openSection = _openSection == 103 ? -1 : 103)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 103
+                ? Column(children: [
+                    _switchTile(context, Symbols.volume_up_rounded, 'السحب للصوت', '', s.gestureVolume, s.setGestureVolume),
+                    _divider(),
+                    _switchTile(context, Symbols.brightness_6_rounded, 'السحب للسطوع', '', s.gestureBrightness, s.setGestureBrightness),
+                    _divider(),
+                    _switchTile(context, Symbols.fast_forward_rounded, 'السحب للتقديم والترجيع', '', s.gestureSeek, s.setGestureSeek),
+                    _divider(),
+                    _switchTile(context, Symbols.touch_app_rounded, 'النقر للإيقاف', '', s.tapToPause, s.setTapToPause),
+                    _divider(),
+                    _switchTile(context, Symbols.double_arrow_rounded, 'النقر المزدوج', '', s.doubleTapSeek, s.setDoubleTapSeek),
+                    _divider(),
+                    _switchTile(context, Symbols.speed_rounded, 'الضغط المطول = سرعة مؤقتة ×2', '', s.longPressSpeed, s.setLongPressSpeed),
+                    _divider(),
+                    _switchTile(context, Symbols.vibration_rounded, 'اهتزاز عند الوصول للنهاية', '', s.vibrateOnEnd, s.setVibrateOnEnd),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- التقديم والترجيع ---
+        _card(context, [
+          _sectionFoldHeader(context, 'التقديم والترجيع', Symbols.fast_rewind_rounded, _openSection == 104, () => setState(() => _openSection = _openSection == 104 ? -1 : 104)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 104
+                ? Column(children: [
+                    _choiceTile(context, Symbols.timeline_rounded, 'مدة التخطي', '${s.doubleTapSeekSeconds} ثوانٍ', () => showSeekSecondsPicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.image_rounded, 'إظهار معاينة أثناء السحب', '', s.showSeekPreview, s.setShowSeekPreview),
+                    _divider(),
+                    _switchTile(context, Symbols.timer_rounded, 'إظهار الوقت أثناء السحب', '', s.showSeekTime, s.setShowSeekTime),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- واجهة المشغل ---
+        _card(context, [
+          _sectionFoldHeader(context, 'واجهة المشغل', Symbols.layers_rounded, _openSection == 105, () => setState(() => _openSection = _openSection == 105 ? -1 : 105)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 105
+                ? Column(children: [
+                    _switchTile(context, Symbols.visibility_off_rounded, 'إخفاء الأزرار تلقائياً', '', s.autoHideControls, s.setAutoHideControls),
+                    if (s.autoHideControls) ...[
+                      _divider(),
+                      _choiceTile(context, Symbols.timer_rounded, 'مدة الإخفاء', '${s.controlsHideSeconds} ثوانٍ', () => showHideDelayPicker(context, s)),
+                    ],
+                    _divider(),
+                    _switchTile(context, Symbols.timer_off_rounded, 'إظهار الوقت المتبقي', '', s.showRemainingTime, s.setShowRemainingTime),
+                    _divider(),
+                    _switchTile(context, Symbols.timer_rounded, 'إظهار الوقت المنقضي', '', s.showElapsedTime, s.setShowElapsedTime),
+                    _divider(),
+                    _switchTile(context, Symbols.title_rounded, 'إظهار اسم الفيديو', '', s.showVideoTitle, s.setShowVideoTitle),
+                    _divider(),
+                    _switchTile(context, Symbols.battery_full_rounded, 'إظهار البطارية', '', s.showBattery, s.setShowBattery),
+                    _divider(),
+                    _switchTile(context, Symbols.schedule_rounded, 'إظهار الساعة', '', s.showClock, s.setShowClock),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- القوائم ---
+        _card(context, [
+          _sectionFoldHeader(context, 'القوائم', Symbols.queue_music_rounded, _openSection == 106, () => setState(() => _openSection = _openSection == 106 ? -1 : 106)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 106
+                ? Column(children: [
+                    _switchTile(context, Symbols.auto_mode_rounded, 'التشغيل المتواصل', '', s.continuousPlayback, s.setContinuousPlayback),
+                    _divider(),
+                    _switchTile(context, Symbols.delete_rounded, 'إزالة الفيديو بعد التشغيل', '', s.removeVideoAfterPlayback, s.setRemoveVideoAfterPlayback),
+                    _divider(),
+                    _switchTile(context, Symbols.history_rounded, 'تذكر القائمة الأخيرة', '', s.rememberLastPlaylist, s.setRememberLastPlaylist),
+                    _divider(),
+                    _switchTile(context, Symbols.save_rounded, 'حفظ ترتيب التشغيل', '', s.savePlaylistOrder, s.setSavePlaylistOrder),
+                    _divider(),
+                    _switchTile(context, Symbols.shuffle_rounded, 'تشغيل عشوائي', '', s.shufflePlaylist, s.setShufflePlaylist),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- الطاقة ---
+        _card(context, [
+          _sectionFoldHeader(context, 'الطاقة', Symbols.battery_saver_rounded, _openSection == 107, () => setState(() => _openSection = _openSection == 107 ? -1 : 107)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 107
+                ? Column(children: [
+                    _switchTile(context, Symbols.screen_lock_landscape_rounded, 'منع قفل الشاشة', '', s.preventScreenLock, s.setPreventScreenLock),
+                    _divider(),
+                    _switchTile(context, Symbols.brightness_4_rounded, 'خفض السطوع عند التوقف', '', s.reduceBrightnessOnPause, s.setReduceBrightnessOnPause),
+                    _divider(),
+                    _switchTile(context, Symbols.stop_rounded, 'إيقاف التشغيل بعد انتهاء الفيديو', '', s.stopAfterVideo, s.setStopAfterVideo),
+                    _divider(),
+                    _choiceTile(context, Symbols.bedtime_rounded, 'مؤقت النوم (Sleep Timer)', s.sleepTimerMinutes == 0 ? 'معطل' : '${s.sleepTimerMinutes} دقيقة', () => _showSleepTimerPicker(context, s)),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- التحكم ---
+        _card(context, [
+          _sectionFoldHeader(context, 'التحكم', Symbols.gamepad_rounded, _openSection == 108, () => setState(() => _openSection = _openSection == 108 ? -1 : 108)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 108
+                ? Column(children: [
+                    _switchTile(context, Symbols.volume_up_rounded, 'أزرار الصوت للتقديم', '', s.volumeKeysSeek, s.setVolumeKeysSeek),
+                    _divider(),
+                    _switchTile(context, Symbols.keyboard_rounded, 'دعم لوحة المفاتيح', '', s.keyboardSupport, s.setKeyboardSupport),
+                    _divider(),
+                    _switchTile(context, Symbols.gamepad_rounded, 'دعم يد التحكم', '', s.gamepadSupport, s.setGamepadSupport),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ]),
+        const SizedBox(height: 12),
+
+        // --- خيارات متقدمة ---
+        _card(context, [
+          _sectionFoldHeader(context, 'خيارات متقدمة', Symbols.settings_rounded, _openSection == 109, () => setState(() => _openSection = _openSection == 109 ? -1 : 109)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _openSection == 109
+                ? Column(children: [
+                    _choiceTile(context, Symbols.memory_rounded, 'وضع فك التشفير', hwDecoderName(s.hwDecoderMode), () => _showDecoderPicker(context, s)),
+                    _divider(),
+                    _switchTile(context, Symbols.auto_fix_high_rounded, 'الرجوع إلى Software عند الفشل', '', s.fallbackToSoftware, s.setFallbackToSoftware),
+                    _divider(),
+                    _switchTile(context, Symbols.speed_rounded, 'تشغيل منخفض التأخير', '', s.lowLatencyPlayback, s.setLowLatencyPlayback),
+                    _divider(),
+                    _switchTile(context, Symbols.video_stable_rounded, 'Frame Dropping', '', s.frameDropping, s.setFrameDropping),
+                    _divider(),
+                    _switchTile(context, Symbols.video_settings_rounded, 'VSync', '', s.vsync, s.setVsync),
+                    _divider(),
+                    _switchTile(context, Symbols.bug_report_rounded, 'Logging', '', s.loggingEnabled, s.setLoggingEnabled),
+                    _divider(),
+                    _switchTile(context, Symbols.info_rounded, 'إظهار معلومات الفيديو', '', s.showVideoInfo, s.setShowVideoInfo),
+                  ])
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ]),
         const SizedBox(height: 16),
 
-        // ========== قسم الصوت (موسع) ==========
+        // ==========================================
+        //                الصوت
+        // ==========================================
         _sectionHeader(context, 'الصوت', Symbols.graphic_eq_rounded),
 
         _card(context, [
@@ -226,7 +446,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 16),
 
-        // ========== قسم الترجمة ==========
+        // ==========================================
+        //                الترجمة
+        // ==========================================
         _sectionHeader(context, 'الترجمة', Symbols.subtitles_rounded),
 
         _card(context, [
@@ -454,7 +676,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال الحفظ والتصدير وإعدادات أخرى ---
+  // --- دوال الحفظ والتصدير ---
   void _confirmReset(BuildContext context, SettingsProvider s) {
     showDialog(
       context: context,
@@ -1058,7 +1280,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال إعدادات الصوت الجديدة ---
+  // --- دوال إعدادات المشغل الجديدة ---
+  String loopModeName(String mode) {
+    switch (mode) {
+      case 'video': return 'تكرار الفيديو';
+      case 'playlist': return 'تكرار القائمة';
+      default: return 'بدون';
+    }
+  }
+
+  void _showLoopModePicker(BuildContext context, SettingsProvider s) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('التشغيل المتكرر', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('بدون'),
+            leading: const Icon(Symbols.block_rounded),
+            trailing: s.loopMode == 'none' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setLoopMode('none'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('تكرار الفيديو'),
+            leading: const Icon(Symbols.repeat_one_rounded),
+            trailing: s.loopMode == 'video' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setLoopMode('video'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('تكرار القائمة'),
+            leading: const Icon(Symbols.repeat_rounded),
+            trailing: s.loopMode == 'playlist' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setLoopMode('playlist'); Navigator.pop(ctx); },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  String videoModeName(String mode) {
+    switch (mode) {
+      case 'cover': return 'Cover';
+      case 'fill': return 'Fill';
+      case 'stretch': return 'Stretch';
+      default: return 'Contain';
+    }
+  }
+
+  void _showVideoModePicker(BuildContext context, SettingsProvider s) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('الوضع الافتراضي', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('Contain'),
+            leading: const Icon(Symbols.fit_screen_rounded),
+            trailing: s.defaultVideoMode == 'contain' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setDefaultVideoMode('contain'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('Cover'),
+            leading: const Icon(Symbols.fullscreen_rounded),
+            trailing: s.defaultVideoMode == 'cover' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setDefaultVideoMode('cover'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('Fill'),
+            leading: const Icon(Symbols.aspect_ratio_rounded),
+            trailing: s.defaultVideoMode == 'fill' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setDefaultVideoMode('fill'); Navigator.pop(ctx); },
+          ),
+          ListTile(
+            title: const Text('Stretch'),
+            leading: const Icon(Symbols.zoom_out_map_rounded),
+            trailing: s.defaultVideoMode == 'stretch' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setDefaultVideoMode('stretch'); Navigator.pop(ctx); },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _showSleepTimerPicker(BuildContext context, SettingsProvider s) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('مؤقت النوم', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            title: const Text('معطل'),
+            leading: const Icon(Symbols.block_rounded),
+            trailing: s.sleepTimerMinutes == 0 ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+            onTap: () { s.setSleepTimerMinutes(0); Navigator.pop(ctx); },
+          ),
+          for (final mins in [15, 30, 60, 90, 120])
+            ListTile(
+              title: Text('$mins دقيقة'),
+              leading: const Icon(Symbols.bedtime_rounded),
+              trailing: s.sleepTimerMinutes == mins ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
+              onTap: () { s.setSleepTimerMinutes(mins); Navigator.pop(ctx); },
+            ),
+        ]),
+      ),
+    );
+  }
+
+  // --- دوال إعدادات الصوت (محفوظة) ---
   void _showAudioModePicker(BuildContext context, SettingsProvider s) {
     showModalBottomSheet(
       context: context,
@@ -1092,13 +1429,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
+    final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           final bands = List<double>.from(s.equalizerBands);
           return AlertDialog(
-            title: const Text('معادل الصوت'),
+            title: const Text('المعادل الرسومي'),
             content: SizedBox(
               width: 300,
               child: SingleChildScrollView(
@@ -1106,7 +1444,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     for (int i = 0; i < bands.length; i++)
-                      _sliderRow(ctx, '${_bandFrequencies[i]} Hz', bands[i], -20, 20, '${bands[i].toStringAsFixed(1)} dB', (v) {
+                      _sliderRow(ctx, '${bandFrequencies[i]} Hz', bands[i], -20, 20, '${bands[i].toStringAsFixed(1)} dB', (v) {
                         bands[i] = v;
                         setDialogState(() {});
                       }),
@@ -1129,6 +1467,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  final List<int> _bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
 }

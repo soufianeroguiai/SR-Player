@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
+import '../../providers/settings_provider.dart';
 import 'player_fit_mode.dart';
 
 class PlayerSettingsPanel extends StatefulWidget {
@@ -23,18 +25,15 @@ class PlayerSettingsPanel extends StatefulWidget {
   final String currentFitMode;
   final VoidCallback onClose;
 
-  // 🔁 تكرار A-B
   final Duration? repeatPointA;
   final Duration? repeatPointB;
   final VoidCallback? onSetRepeatA;
   final VoidCallback? onSetRepeatB;
   final VoidCallback? onClearRepeat;
 
-  // 📊 معلومات تقنية
   final bool showStats;
   final VoidCallback? onToggleStats;
 
-  // 🔖 إشارات مرجعية
   final List<Duration> bookmarks;
   final VoidCallback? onAddBookmark;
   final void Function(Duration)? onJumpToBookmark;
@@ -88,6 +87,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = context.watch<SettingsProvider>();
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -107,6 +107,43 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
           _QuickActionTile(icon: Symbols.playlist_add_rounded, title: 'إضافة إلى قائمة التشغيل', onTap: widget.onAddToPlaylist),
           const SizedBox(height: 4),
           _QuickActionTile(icon: Symbols.camera_rounded, title: 'لقطة شاشة', onTap: widget.onCaptureScreenshot),
+          const SizedBox(height: 8),
+
+          // التشغيل المتكرر
+          _QuickActionTile(
+            icon: Symbols.repeat_rounded,
+            title: s.loopMode == 'none' ? 'تكرار: بدون' : s.loopMode == 'video' ? 'تكرار: الفيديو' : 'تكرار: القائمة',
+            iconColor: s.loopMode != 'none' ? Colors.amber : Colors.white70,
+            onTap: () {
+              if (s.loopMode == 'none') {
+                s.setLoopMode('video');
+              } else if (s.loopMode == 'video') {
+                s.setLoopMode('playlist');
+              } else {
+                s.setLoopMode('none');
+              }
+            },
+          ),
+          const SizedBox(height: 4),
+
+          // منع قفل الشاشة
+          _QuickActionTile(
+            icon: Symbols.screen_lock_landscape_rounded,
+            title: s.preventScreenLock ? 'قفل الشاشة: ممنوع' : 'قفل الشاشة: مسموح',
+            iconColor: s.preventScreenLock ? Colors.amber : Colors.white70,
+            onTap: () => s.setPreventScreenLock(!s.preventScreenLock),
+          ),
+          const SizedBox(height: 4),
+
+          // إظهار معلومات الفيديو
+          if (widget.onToggleStats != null)
+            _QuickActionTile(
+              icon: Symbols.info_rounded,
+              title: widget.showStats ? 'إخفاء معلومات الفيديو' : 'إظهار معلومات الفيديو',
+              iconColor: widget.showStats ? Colors.amber : Colors.white70,
+              onTap: widget.onToggleStats!,
+            ),
+
           const SizedBox(height: 8),
 
           _IntegratedSectionTile(

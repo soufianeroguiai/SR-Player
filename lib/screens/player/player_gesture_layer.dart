@@ -77,7 +77,6 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
   Offset _startPanOffset = Offset.zero;
   bool _isPanLocked = false;
 
-  // 🔍 تكبير/سحب حر
   double _startZoomScale = 1.0;
   Offset _startZoomPanOffset = Offset.zero;
 
@@ -100,6 +99,7 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
   }
 
   void _showSeekHint(int seconds) {
+    if (!context.read<SettingsProvider>().showSeekTime) return;
     setState(() => _hintSeconds = seconds);
     _seekHintTimer?.cancel();
     _seekHintTimer = Timer(const Duration(milliseconds: 700), () {
@@ -124,8 +124,8 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
     return Stack(
       children: [
         GestureDetector(
-          onTap: widget.onToggleControls,
-          onDoubleTapDown: widget.isLocked
+          onTap: s.tapToPause && !widget.isLocked ? widget.onToggleControls : null,
+          onDoubleTapDown: widget.isLocked || !s.doubleTapSeek
               ? null
               : (details) {
                   final seekSeconds = s.doubleTapSeekSeconds;
@@ -142,13 +142,13 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
                     widget.onPlayPause();
                   }
                 },
-          onLongPressStart: widget.isLocked || !s.longPressSpeedEnabled
+          onLongPressStart: widget.isLocked || !s.longPressSpeed
               ? null
               : (_) => widget.onLongPressSpeedStart?.call(),
-          onLongPressEnd: widget.isLocked || !s.longPressSpeedEnabled
+          onLongPressEnd: widget.isLocked || !s.longPressSpeed
               ? null
               : (_) => widget.onLongPressSpeedEnd?.call(),
-          onLongPressCancel: widget.isLocked || !s.longPressSpeedEnabled
+          onLongPressCancel: widget.isLocked || !s.longPressSpeed
               ? null
               : () => widget.onLongPressSpeedEnd?.call(),
           onScaleStart: (details) {
@@ -198,17 +198,12 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               widget.onZoomPanChanged?.call(newScale, newOffset);
               return;
             }
-            
-            // ✅ الإصلاح الذكي هنا: دمج تعديل الحجم والمكان معاً لمنع الـ Overwrite
+
             if (details.pointerCount == 2 && _activeGesture == GestureType.subtitle && !widget.isPlaying) {
               final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
               final dy = details.focalPoint.dy - _startFocalPoint.dy;
               final newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.85);
-              
-              s.updateSubtitleSettings(sub.copyWith(
-                fontSize: newSize,
-                bottomMargin: newPadding,
-              ));
+              s.updateSubtitleSettings(sub.copyWith(fontSize: newSize, bottomMargin: newPadding));
               return;
             }
 
@@ -221,12 +216,12 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
               if (totalDx > 10 || totalDy > 10) {
                 _isPanLocked = true;
-                if (totalDx > totalDy) {
+                if (totalDx > totalDy && s.gestureSeek) {
                   _activeGesture = GestureType.seek;
-                } else {
+                } else if (totalDx <= totalDy) {
                   _activeGesture = details.focalPoint.dx > screenWidth / 2
-                      ? GestureType.volume
-                      : GestureType.brightness;
+                      ? (s.gestureVolume ? GestureType.volume : GestureType.none)
+                      : (s.gestureBrightness ? GestureType.brightness : GestureType.none);
                 }
               }
             }

@@ -10,6 +10,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
@@ -31,6 +32,7 @@ class PlayerControlService {
   Timer? _saveTimer;
   Timer? _hideTimer;
   double? _preLongPressSpeed;
+  Timer? _sleepTimer;
   final List<StreamSubscription> _playerSubscriptions = [];
 
   PlayerControlService({
@@ -45,6 +47,79 @@ class PlayerControlService {
   void disposeTimers() {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
+    _sleepTimer?.cancel();
+  }
+
+  // ---------- تطبيق إعدادات المشغل ----------
+  Future<void> applyPlayerSettings() async {
+    final s = settingsProvider;
+    final native = player.platform as NativePlayer;
+
+    // إعدادات الصوت
+    await applyAudioSettings();
+
+    // وضع التكرار
+    switch (s.loopMode) {
+      case 'video':
+        player.setPlaylistMode(PlaylistMode.single);
+        break;
+      case 'playlist':
+        player.setPlaylistMode(PlaylistMode.loop);
+        break;
+      default:
+        player.setPlaylistMode(PlaylistMode.none);
+    }
+
+    // سرعة التشغيل
+    if (s.rememberSpeed) {
+      player.setRate(s.defaultSpeed);
+    }
+
+    // تصحيح طبقة الصوت
+    if (s.pitchCorrection) {
+      await native.setProperty('audio-pitch-correction', 'yes');
+    } else {
+      await native.setProperty('audio-pitch-correction', 'no');
+    }
+
+    // منع قفل الشاشة
+    if (s.preventScreenLock) {
+      WakelockPlus.enable();
+    }
+
+    // Frame Dropping
+    if (s.frameDropping) {
+      await native.setProperty('framedrop', 'yes');
+    } else {
+      await native.setProperty('framedrop', 'no');
+    }
+
+    // VSync
+    if (s.vsync) {
+      await native.setProperty('video-sync', 'audio');
+    } else {
+      await native.setProperty('video-sync', 'display-desync');
+    }
+
+    // Logging
+    if (s.loggingEnabled) {
+      await native.setProperty('msg-level', 'all=v');
+    } else {
+      await native.setProperty('msg-level', 'all=no');
+    }
+
+    // مؤقت النوم
+    _sleepTimer?.cancel();
+    if (s.sleepTimerMinutes > 0) {
+      _sleepTimer = Timer(Duration(minutes: s.sleepTimerMinutes), () {
+        player.pause();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم إيقاف التشغيل بواسطة مؤقت النوم')),
+          );
+        }
+      });
+    }
   }
 
   // ---------- تطبيق إعدادات الصوت ----------
@@ -138,7 +213,7 @@ class PlayerControlService {
   }
 
   void startLongPressSpeedBoost() {
-    if (!settingsProvider.longPressSpeedEnabled) return;
+    if (!settingsProvider.longPressSpeedEnabled || !settingsProvider.longPressSpeed) return;
     if (_preLongPressSpeed != null) return;
     _preLongPressSpeed = state.speed;
     player.setRate(settingsProvider.longPressSpeedValue);
@@ -291,7 +366,7 @@ class PlayerControlService {
       state.notifyListeners();
       if (!state.showResumeDialog) scheduleHide();
       await loadColorSettings();
-      await applyAudioSettings(); // <-- تطبيق إعدادات الصوت
+      await applyPlayerSettings(); // <-- تطبيق جميع إعدادات المشغل والصوت
       buildPlaylistFromFolder();
     } catch (e) {
       if (context.mounted) {
@@ -341,7 +416,7 @@ class PlayerControlService {
     state.position = Duration.zero;
     player.setRate(state.speed);
     applyInitialDecoderAndColor();
-    applyAudioSettings(); // <-- إعادة تطبيق عند تغيير الفيديو
+    await applyPlayerSettings(); // <-- إعادة تطبيق عند تغيير الفيديو
     state.notifyListeners();
   }
 
@@ -379,6 +454,10 @@ class PlayerControlService {
         await native.setProperty('hwdec', 'auto-safe');
     }
 
+    if (settingsProvider.fallbackToSoftware) {
+      await native.setProperty('hwdec', 'auto');
+    }
+
     switch (settingsProvider.colorFormat) {
       case 'rgb_full':
         await native.setProperty('video-output-levels', 'full');
@@ -399,6 +478,7 @@ class PlayerControlService {
 
   void scheduleHide() {
     _hideTimer?.cancel();
+    if (!settingsProvider.autoHideControls) return;
     _hideTimer = Timer(Duration(seconds: settingsProvider.controlsHideSeconds), () {
       if (state.isPlaying && !state.isLocked &&
           state.currentMenu == ActiveMenu.none && !state.showQuickActions) {
@@ -452,15 +532,14 @@ class PlayerControlService {
   }
 
   void toggleRepeat() {
-    if (state.playlistMode == PlaylistMode.none) {
-      state.playlistMode = PlaylistMode.loop;
-    } else if (state.playlistMode == PlaylistMode.loop) {
-      state.playlistMode = PlaylistMode.single;
+    if (settingsProvider.loopMode == 'none') {
+      settingsProvider.setLoopMode('playlist');
+    } else if (settingsProvider.loopMode == 'playlist') {
+      settingsProvider.setLoopMode('video');
     } else {
-      state.playlistMode = PlaylistMode.none;
+      settingsProvider.setLoopMode('none');
     }
-    player.setPlaylistMode(state.playlistMode);
-    state.notifyListeners();
+    applyPlayerSettings();
   }
 
   void toggleShuffle() {
@@ -690,13 +769,16 @@ class PlayerControlService {
   void setSpeed(double sp) {
     state.speed = sp;
     player.setRate(sp);
-    settingsProvider.setDefaultSpeed(sp);
+    if (settingsProvider.rememberSpeed) {
+      settingsProvider.setDefaultSpeed(sp);
+    }
     state.notifyListeners();
   }
 
   void dispose() {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
+    _sleepTimer?.cancel();
     for (final sub in _playerSubscriptions) {
       sub.cancel();
     }

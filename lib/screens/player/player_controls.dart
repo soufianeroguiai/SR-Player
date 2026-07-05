@@ -344,6 +344,9 @@ class PlayerBottomBar extends StatefulWidget {
   final VoidCallback? onNext;
   final bool hasPrevious;
   final bool hasNext;
+  final bool showRemainingTime;
+  final bool showElapsedTime;
+  final bool showVideoTitle;
 
   const PlayerBottomBar({
     super.key,
@@ -363,6 +366,9 @@ class PlayerBottomBar extends StatefulWidget {
     this.onNext,
     this.hasPrevious = true,
     this.hasNext = true,
+    this.showRemainingTime = true,
+    this.showElapsedTime = true,
+    this.showVideoTitle = true,
   });
 
   @override
@@ -412,7 +418,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (_currentChapter != null)
+            if (_currentChapter != null && widget.showVideoTitle)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
@@ -430,8 +436,9 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Row(children: [
-                Text(_fmt(widget.position),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                if (widget.showElapsedTime)
+                  Text(_fmt(widget.position),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 
                 Expanded(
                   child: LayoutBuilder(
@@ -537,15 +544,15 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                   ),
                 ),
                 
-                Text(_fmt(widget.duration),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                if (widget.showRemainingTime)
+                  Text(_fmt(widget.duration),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
               ]),
             ),
 
             SizedBox(
               height: 52,
               child: Row(children: [
-                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),  // ← زر القفل في أقصى اليسار
                 const Spacer(),
                 if (widget.onPrevious != null)
                   _BottomBtn(icon: Symbols.skip_previous_rounded, onTap: widget.onPrevious!, size: 28),
@@ -564,6 +571,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                   _BottomBtn(icon: Symbols.skip_next_rounded, onTap: widget.onNext!, size: 28),
                 const Spacer(),
                 _BottomBtn(icon: Symbols.picture_in_picture_rounded, onTap: widget.onPip, size: 22),
+                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),
                 _BottomBtn(icon: Symbols.aspect_ratio_rounded, onTap: widget.onToggleFit, size: 22),
               ]),
             ),
