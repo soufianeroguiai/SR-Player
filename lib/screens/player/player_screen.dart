@@ -953,6 +953,32 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
+  void _showDebugDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تشخيص الأداء'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('RepaintBoundary حول الفيديو: نعم'),
+              Text('RepaintBoundary حول الترجمة: نعم'),
+              Text('وجود SubtitleRenderer: ${_state.currentSubtitleText.value != null && _state.currentSubtitleText.value!.isNotEmpty}'),
+              Text('نص الترجمة الحالي: ${_state.currentSubtitleText.value ?? "لا يوجد"}'),
+              Text('دقة الفيديو: ${_player.state.width}x${_player.state.height}'),
+              Text('حالة الترجمة: ${_state.showSubtitles ? "مفعلة" : "معطلة"}'),
+              Text('نظام العرض: ${_shouldUseFlutterRenderer() ? "Flutter Renderer" : "mpv أصلي"}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1349,6 +1375,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: _buildPlaylistEditor(),
                   ),
+
+                // زر التشخيص
+                Positioned(
+                  top: 50,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: _showDebugDialog,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.bug_report, color: Colors.white70, size: 20),
+                    ),
+                  ),
+                ),
               ]),
       ),
     );
