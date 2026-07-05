@@ -1,3 +1,7 @@
+/// Services/subtitle_render_service.dart
+/// خدمة معالجة نصوص الترجمة (تنظيف، إزالة تأثيرات ASS، دعم RTL)
+/// تُستخدم مرة واحدة عند تحميل الترجمة أو عند ورود نص جديد من المشغل.
+
 class SubtitleRenderService {
   static String processText(
     String rawText, {
@@ -5,14 +9,27 @@ class SubtitleRenderService {
     required bool ignoreAssEffects,
     required bool fullUnicodeRtlSupport,
   }) {
+    if (rawText.trim().isEmpty) return '';
+
     String processed = rawText;
 
+    // 1. تحويل فواصل الأسطر الخاصة بـ ASS إلى \n نظامي
+    processed = processed.replaceAll(RegExp(r'\\[Nn]'), '\n');
+
+    // 2. إزالة أكواد ASS (خطوط، تأثيرات، أو كل شيء)
     if (ignoreAssEffects || ignoreAssFonts) {
       processed = _parseAssTags(processed, ignoreAssEffects, ignoreAssFonts);
     }
 
-    processed = processed.replaceAll(RegExp(r'\\[Nn]'), '\n');
+    if (ignoreAssEffects) {
+      // إزالة أي أقواس متبقية (تأثيرات لم تعالجها _parseAssTags)
+      processed = processed.replaceAll(RegExp(r'\{.*?\}'), '');
+    }
 
+    // 3. إزالة رموز الاتجاه المخفية (Bidi Controls)
+    processed = processed.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E\u061C]'), '');
+
+    // 4. دعم RTL بإضافة وسم ترتيب Unicode إذا كان النص عربيًا
     if (fullUnicodeRtlSupport && _containsArabic(processed)) {
       processed = '\u2067$processed\u2069';
     }
@@ -20,37 +37,43 @@ class SubtitleRenderService {
     return processed.trim();
   }
 
-  static String _parseAssTags(String text, bool ignoreEffects, bool ignoreFonts) {
-    String result = text;
+  // --- private helpers ---
 
+  /// يعالج أكواد ASS: إما يحذف كل الأقواس (تأثيرات) أو فقط ما يتعلق بالخطوط
+  static String _parseAssTags(String text, bool ignoreEffects, bool ignoreFonts) {
     if (ignoreEffects) {
-      result = result.replaceAll(RegExp(r'\{[^}]*\}'), '');
-    } else if (ignoreFonts) {
-      result = result.replaceAll(RegExp(r'\\fn[^}\\]*'), '');
-      result = result.replaceAll(RegExp(r'\\fs\d+'), '');
-      result = result.replaceAll(RegExp(r'\\fsc[xy]?\d+'), '');
-      result = result.replaceAll(RegExp(r'\\fsp\d+'), '');
-      result = result.replaceAll(RegExp(r'\\bord\d+'), '');
-      result = result.replaceAll(RegExp(r'\\blur\d+'), '');
-      result = result.replaceAll(RegExp(r'\\be\d+'), '');
-      result = result.replaceAll(RegExp(r'\\shad\d+'), '');
-      result = result.replaceAll(RegExp(r'\\fr[xyz]?\d+'), '');
-      result = result.replaceAll(RegExp(r'\\c&H[^}&]+'), '');
-      result = result.replaceAll(RegExp(r'\\alpha&H[^}&]+'), '');
-      result = result.replaceAll(RegExp(r'\\move\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\fade\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\clip\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\t\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\q\d'), '');
-      result = result.replaceAll(RegExp(r'\\an\d'), '');
-      result = result.replaceAll(RegExp(r'\\pos\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\org\([^}]*\)'), '');
-      result = result.replaceAll(RegExp(r'\\k[f]?\d+'), '');
-      result = result.replaceAll(RegExp(r'\\K\d+'), '');
-      result = result.replaceAll(RegExp(r'\\p\d+'), '');
-      result = result.replaceAll(RegExp(r'\\pbo\d+'), '');
+      // إزالة كل ما بين {} بما في ذلك تأثيرات الحركة والقص...
+      return text.replaceAll(RegExp(r'\{[^}]*\}'), '');
     }
 
+    // وضع تجاهل الخطوط فقط (إزالة وسوم معينة دون إزالة الأقواس بالكامل)
+    String result = text;
+    if (ignoreFonts) {
+      result = result
+          .replaceAll(RegExp(r'\\fn[^}\\]*'), '')
+          .replaceAll(RegExp(r'\\fs\d+'), '')
+          .replaceAll(RegExp(r'\\fsc[xy]?\d+'), '')
+          .replaceAll(RegExp(r'\\fsp\d+'), '')
+          .replaceAll(RegExp(r'\\bord\d+'), '')
+          .replaceAll(RegExp(r'\\blur\d+'), '')
+          .replaceAll(RegExp(r'\\be\d+'), '')
+          .replaceAll(RegExp(r'\\shad\d+'), '')
+          .replaceAll(RegExp(r'\\fr[xyz]?\d+'), '')
+          .replaceAll(RegExp(r'\\c&H[^}&]+'), '')
+          .replaceAll(RegExp(r'\\alpha&H[^}&]+'), '')
+          .replaceAll(RegExp(r'\\move\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\fade\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\clip\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\t\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\q\d'), '')
+          .replaceAll(RegExp(r'\\an\d'), '')
+          .replaceAll(RegExp(r'\\pos\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\org\([^}]*\)'), '')
+          .replaceAll(RegExp(r'\\k[f]?\d+'), '')
+          .replaceAll(RegExp(r'\\K\d+'), '')
+          .replaceAll(RegExp(r'\\p\d+'), '')
+          .replaceAll(RegExp(r'\\pbo\d+'), '');
+    }
     return result;
   }
 

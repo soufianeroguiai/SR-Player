@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/subtitle_settings.dart';
 import 'subtitle_encodings.dart';
 import 'subtitle_render_service.dart';
+import 'subtitle_parser.dart';
 
 class SubtitleEntry {
   final Duration start;
@@ -95,11 +96,11 @@ List<SubtitleEntry> parseSubtitleContent(Map<String, dynamic> params) {
   if (ext == 'ssa' || ext == 'ass') {
     return _parseSsa(content, ignoreAssFonts, ignoreAssEffects, hideWhenNoDialog, fullUnicodeRtlSupport);
   } else {
-    return _parseSrt(content, fullUnicodeRtlSupport);
+    return _parseSrt(content, fullUnicodeRtlSupport, ignoreAssEffects);
   }
 }
 
-List<SubtitleEntry> _parseSrt(String content, bool fullUnicodeRtlSupport) {
+List<SubtitleEntry> _parseSrt(String content, bool fullUnicodeRtlSupport, bool ignoreAssEffects) {
   final entries = <SubtitleEntry>[];
   final blocks = content.trim().split(RegExp(r'\r?\n\r?\n'));
 
@@ -117,8 +118,15 @@ List<SubtitleEntry> _parseSrt(String content, bool fullUnicodeRtlSupport) {
       String text = lines.sublist(2).join('\n').replaceAll(RegExp(r'<[^>]*>'), '').trim();
 
       if (fullUnicodeRtlSupport) {
-        text = SubtitleRenderService.processText(text, ignoreAssFonts: false, ignoreAssEffects: false, fullUnicodeRtlSupport: true);
+        text = SubtitleRenderService.processText(
+          text,
+          ignoreAssFonts: false,
+          ignoreAssEffects: false,
+          fullUnicodeRtlSupport: true,
+        );
       }
+
+      text = SubtitleParser.clean(text, ignoreAssEffects: ignoreAssEffects);
 
       if (text.isNotEmpty) {
         entries.add(SubtitleEntry(start: start, end: end, text: text));
@@ -164,12 +172,16 @@ List<SubtitleEntry> _parseSsa(
         final start = _parseSsaTime(parts[1]);
         final end = _parseSsaTime(parts[2]);
         final rawText = parts.sublist(formatIndex).join(',');
-        final cleanText = SubtitleRenderService.processText(
+
+        String cleanText = SubtitleRenderService.processText(
           rawText,
           ignoreAssFonts: ignoreAssFonts,
           ignoreAssEffects: ignoreAssEffects,
           fullUnicodeRtlSupport: fullUnicodeRtlSupport,
         );
+
+        cleanText = SubtitleParser.clean(cleanText, ignoreAssEffects: ignoreAssEffects);
+
         if (cleanText.isEmpty && hideWhenNoDialog) continue;
         if (cleanText.isNotEmpty) {
           entries.add(SubtitleEntry(start: start, end: end, text: cleanText));

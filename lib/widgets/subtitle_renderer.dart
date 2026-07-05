@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/subtitle_settings.dart';
 import '../services/subtitle_service.dart';
-import '../services/subtitle_parser.dart';
 import '../screens/player/subtitle_style_builder.dart';
 import '../services/subtitle_layout_engine.dart';
 
-class SubtitleRenderer extends StatelessWidget {
+class SubtitleRenderer extends StatefulWidget {
   final SubtitleEntry? currentEntry;
   final SubtitleSettings settings;
   final Rect videoRect;
@@ -26,47 +25,65 @@ class SubtitleRenderer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // التنظيف عبر الـ Parser المنفصل
-    final displayText = SubtitleParser.clean(
-      currentEntry?.text,
-      ignoreAssEffects: settings.ignoreAssEffects,
-    );
+  State<SubtitleRenderer> createState() => _SubtitleRendererState();
+}
 
-    if (!visible || !settings.autoShow || displayText.isEmpty) {
+class _SubtitleRendererState extends State<SubtitleRenderer> {
+  late SubtitleSettings _cachedSettings;
+  late TextStyle _cachedTextStyle;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedSettings = widget.settings;
+    _cachedTextStyle = buildSubtitleTextStyle(_cachedSettings);
+  }
+
+  @override
+  void didUpdateWidget(covariant SubtitleRenderer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.settings != widget.settings) {
+      _cachedSettings = widget.settings;
+      _cachedTextStyle = buildSubtitleTextStyle(_cachedSettings);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = widget.currentEntry?.text ?? '';
+
+    if (!widget.visible || !widget.settings.autoShow || displayText.isEmpty) {
       return const SizedBox.shrink();
     }
 
     final layout = SubtitleLayoutEngine.calculate(
-      settings: settings,
-      videoSize: videoSize,
-      videoRect: videoRect,
-      screenSize: screenSize,
-      safeArea: safeArea,
+      settings: widget.settings,
+      videoSize: widget.videoSize,
+      videoRect: widget.videoRect,
+      screenSize: widget.screenSize,
+      safeArea: widget.safeArea,
     );
 
-    final textStyle = buildSubtitleTextStyle(settings).copyWith(fontSize: layout.fontSize);
+    final textStyle = _cachedTextStyle.copyWith(fontSize: layout.fontSize);
 
-    // بناء Span النص (جاهز للتوسعة لاحقاً)
     final textSpan = TextSpan(
       text: displayText,
       style: textStyle,
     );
 
     Widget textWidget = Directionality(
-      textDirection: Directionality.of(context), // يحترم اتجاه التطبيق (RTL) ولا يكسر الإنجليزية
+      textDirection: Directionality.of(context),
       child: RichText(
         text: textSpan,
         textAlign: layout.textAlign,
-        maxLines: settings.autoWrap ? settings.maxLines : 1,
+        maxLines: widget.settings.autoWrap ? widget.settings.maxLines : 1,
         overflow: TextOverflow.ellipsis,
       ),
     );
 
-    // خلفية
-    if (settings.bgOpacity > 0) {
+    if (widget.settings.bgOpacity > 0) {
       double radius;
-      switch (settings.bgShape) {
+      switch (widget.settings.bgShape) {
         case SubtitleBgShape.rectangle:
           radius = 0;
           break;
@@ -75,35 +92,36 @@ class SubtitleRenderer extends StatelessWidget {
           break;
         case SubtitleBgShape.rounded:
         default:
-          radius = settings.bgBorderRadius;
+          radius = widget.settings.bgBorderRadius;
       }
       textWidget = Container(
-        padding: EdgeInsets.all(settings.bgPadding),
+        padding: EdgeInsets.all(widget.settings.bgPadding),
         decoration: BoxDecoration(
-          color: settings.bgColor.withValues(alpha: settings.bgOpacity),
+          color: widget.settings.bgColor.withValues(alpha: widget.settings.bgOpacity),
           borderRadius: BorderRadius.circular(radius),
-          border: settings.bgBorderWidth > 0
-              ? Border.all(color: settings.bgBorderColor, width: settings.bgBorderWidth)
+          border: widget.settings.bgBorderWidth > 0
+              ? Border.all(color: widget.settings.bgBorderColor, width: widget.settings.bgBorderWidth)
               : null,
         ),
         child: textWidget,
       );
     }
 
-    // الهيكل النهائي: الترجمة داخل مستطيل الفيديو، مع قص للحدود لتجنب تسرب الظلال
     return Positioned(
-      left: videoRect.left,
-      top: videoRect.top,
-      width: videoRect.width,
-      height: videoRect.height,
-      child: ClipRect(
-        child: Align(
-          alignment: layout.alignment,
-          child: Padding(
-            padding: layout.padding,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: layout.maxWidth),
-              child: textWidget,
+      left: widget.videoRect.left,
+      top: widget.videoRect.top,
+      width: widget.videoRect.width,
+      height: widget.videoRect.height,
+      child: RepaintBoundary(
+        child: ClipRect(
+          child: Align(
+            alignment: layout.alignment,
+            child: Padding(
+              padding: layout.padding,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: layout.maxWidth),
+                child: textWidget,
+              ),
             ),
           ),
         ),

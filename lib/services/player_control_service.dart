@@ -14,6 +14,7 @@ import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
 import 'subtitle_service.dart';
+import 'subtitle_parser.dart';
 import 'smart_enhance_service.dart';
 import 'video_info_service.dart';
 import '../screens/player/player_state.dart';
@@ -217,7 +218,12 @@ class PlayerControlService {
       }));
 
       _playerSubscriptions.add(player.stream.subtitle.listen((lines) {
-        state.updateSubtitleText(lines.isNotEmpty ? lines.join('\n') : null);
+        final rawText = lines.isNotEmpty ? lines.join('\n') : null;
+        final cleanText = SubtitleParser.clean(
+          rawText,
+          ignoreAssEffects: settingsProvider.subtitleSettings.ignoreAssEffects,
+        );
+        state.updateSubtitleText(cleanText);
       }));
 
       _playerSubscriptions.add(player.stream.videoParams.listen((params) {
