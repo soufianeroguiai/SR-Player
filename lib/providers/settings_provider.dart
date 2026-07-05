@@ -16,20 +16,49 @@ class SettingsProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
+  // ---------- دوال قديمة يجب أن تبقى ----------
+  void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
+  void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
+  void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
+  void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
+  void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
+  void setPreferredAudioLanguage(String v) { _preferredAudioLanguage = v; notifyListeners(); _save(); }
+  void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
+  void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
+  void setLibraryGridView(bool v) { _libraryGridView = v; notifyListeners(); _save(); }
+  void setFoldersGridView(bool v) { _foldersGridView = v; notifyListeners(); _save(); }
+  void setRecentGridView(bool v) { _recentGridView = v; notifyListeners(); _save(); }
+  void setHwDecoderMode(String v) { _hwDecoderMode = v; notifyListeners(); _save(); }
+  void setColorFormat(String v) { _colorFormat = v; notifyListeners(); _save(); }
+  void setDoubleTapSeekSeconds(int v) { _doubleTapSeekSeconds = v; notifyListeners(); _save(); }
+  void setThemeSeedColor(Color c) { _themeSeedColorValue = c.toARGB32(); notifyListeners(); _save(); }
+  void setControlsHideSeconds(int v) { _controlsHideSeconds = v; notifyListeners(); _save(); }
+  void setLongPressSpeedEnabled(bool v) { _longPressSpeedEnabled = v; notifyListeners(); _save(); }
+  void setLongPressSpeedValue(double v) { _longPressSpeedValue = v; notifyListeners(); _save(); }
+  void setGestureSensitivity(double v) { _gestureSensitivity = v; notifyListeners(); _save(); }
+  void setSilentResume(bool v) { _silentResume = v; notifyListeners(); _save(); }
+  void setAutoPipOnBackground(bool v) { _autoPipOnBackground = v; notifyListeners(); _save(); }
+  void setSmartRotationEnabled(bool v) { _smartRotationEnabled = v; notifyListeners(); _save(); }
+  void setShowSubtitlesByDefault(bool v) { _showSubtitlesByDefault = v; notifyListeners(); _save(); }
+  void setSubtitleFolder(String v) { _subtitleFolder = v; notifyListeners(); _save(); }
+  void setSubtitleEncoding(String v) { _subtitleEncoding = v; notifyListeners(); _save(); }
+  void setPreferredSubtitleLanguage(String v) { _preferredSubtitleLanguage = v; notifyListeners(); _save(); }
+  void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
+  void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
+  void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
+
   // ---------- المشغل: التشغيل ----------
   bool _autoPlay = true;
   bool get autoPlay => _autoPlay;
-  void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
 
   bool _rememberPosition = true;
   bool get rememberPosition => _rememberPosition;
-  void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
 
   bool _rememberPlaybackSpeed = false;
   bool get rememberPlaybackSpeed => _rememberPlaybackSpeed;
   void setRememberPlaybackSpeed(bool v) { _rememberPlaybackSpeed = v; notifyListeners(); _save(); }
 
-  String _loopMode = 'none'; // none, video, playlist
+  String _loopMode = 'none';
   String get loopMode => _loopMode;
   void setLoopMode(String v) { _loopMode = v; notifyListeners(); _save(); }
 
@@ -40,7 +69,6 @@ class SettingsProvider extends ChangeNotifier {
   // ---------- المشغل: سرعة التشغيل ----------
   double _defaultSpeed = 1.0;
   double get defaultSpeed => _defaultSpeed;
-  void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
 
   bool _rememberSpeed = false;
   bool get rememberSpeed => _rememberSpeed;
@@ -55,7 +83,7 @@ class SettingsProvider extends ChangeNotifier {
   void setPitchCorrection(bool v) { _pitchCorrection = v; notifyListeners(); _save(); }
 
   // ---------- المشغل: عرض الفيديو ----------
-  String _defaultVideoMode = 'contain'; // contain, cover, fill, stretch
+  String _defaultVideoMode = 'contain';
   String get defaultVideoMode => _defaultVideoMode;
   void setDefaultVideoMode(String v) { _defaultVideoMode = v; notifyListeners(); _save(); }
 
@@ -107,7 +135,6 @@ class SettingsProvider extends ChangeNotifier {
   // ---------- المشغل: التقديم والترجيع ----------
   int _doubleTapSeekSeconds = 10;
   int get doubleTapSeekSeconds => _doubleTapSeekSeconds;
-  void setDoubleTapSeekSeconds(int v) { _doubleTapSeekSeconds = v; notifyListeners(); _save(); }
 
   bool _showSeekPreview = true;
   bool get showSeekPreview => _showSeekPreview;
@@ -124,7 +151,6 @@ class SettingsProvider extends ChangeNotifier {
 
   int _controlsHideSeconds = 4;
   int get controlsHideSeconds => _controlsHideSeconds;
-  void setControlsHideSeconds(int v) { _controlsHideSeconds = v; notifyListeners(); _save(); }
 
   bool _showRemainingTime = true;
   bool get showRemainingTime => _showRemainingTime;
@@ -180,7 +206,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get stopAfterVideo => _stopAfterVideo;
   void setStopAfterVideo(bool v) { _stopAfterVideo = v; notifyListeners(); _save(); }
 
-  int _sleepTimerMinutes = 0; // 0 = معطل
+  int _sleepTimerMinutes = 0;
   int get sleepTimerMinutes => _sleepTimerMinutes;
   void setSleepTimerMinutes(int v) { _sleepTimerMinutes = v; notifyListeners(); _save(); }
 
@@ -200,7 +226,6 @@ class SettingsProvider extends ChangeNotifier {
   // ---------- المشغل: خيارات متقدمة ----------
   String _hwDecoderMode = 'auto';
   String get hwDecoderMode => _hwDecoderMode;
-  void setHwDecoderMode(String v) { _hwDecoderMode = v; notifyListeners(); _save(); }
 
   bool _fallbackToSoftware = true;
   bool get fallbackToSoftware => _fallbackToSoftware;
@@ -226,14 +251,12 @@ class SettingsProvider extends ChangeNotifier {
   bool get showVideoInfo => _showVideoInfo;
   void setShowVideoInfo(bool v) { _showVideoInfo = v; notifyListeners(); _save(); }
 
-  // ---------- الصوت (محفوظة من الدفعة السابقة) ----------
+  // ---------- الصوت ----------
   double _defaultAudioBoost = 100.0;
   double get defaultAudioBoost => _defaultAudioBoost;
-  void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
 
   String _preferredAudioLanguage = 'ara';
   String get preferredAudioLanguage => _preferredAudioLanguage;
-  void setPreferredAudioLanguage(String v) { _preferredAudioLanguage = v; notifyListeners(); _save(); }
 
   bool _surroundSound = false;
   bool get surroundSound => _surroundSound;
@@ -274,85 +297,65 @@ class SettingsProvider extends ChangeNotifier {
   // ---------- الترجمة ----------
   bool _showSubtitlesByDefault = true;
   bool get showSubtitlesByDefault => _showSubtitlesByDefault;
-  void setShowSubtitlesByDefault(bool v) { _showSubtitlesByDefault = v; notifyListeners(); _save(); }
 
   String _subtitleFolder = '';
   String get subtitleFolder => _subtitleFolder;
-  void setSubtitleFolder(String v) { _subtitleFolder = v; notifyListeners(); _save(); }
 
   String _subtitleEncoding = 'UTF-8';
   String get subtitleEncoding => _subtitleEncoding;
-  void setSubtitleEncoding(String v) { _subtitleEncoding = v; notifyListeners(); _save(); }
 
   String _preferredSubtitleLanguage = 'ara';
   String get preferredSubtitleLanguage => _preferredSubtitleLanguage;
-  void setPreferredSubtitleLanguage(String v) { _preferredSubtitleLanguage = v; notifyListeners(); _save(); }
 
   double _defaultSubtitleSync = 0.0;
   double get defaultSubtitleSync => _defaultSubtitleSync;
-  void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
 
   bool _subtitleItalic = false;
   bool get subtitleItalic => _subtitleItalic;
-  void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
 
   bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
-  void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
 
   // ---------- المكتبة ----------
   String _sortBy = 'date';
   String get sortBy => _sortBy;
-  void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
 
   bool _sortDesc = true;
   bool get sortDesc => _sortDesc;
-  void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
 
   bool _libraryGridView = false;
   bool get libraryGridView => _libraryGridView;
-  void setLibraryGridView(bool v) { _libraryGridView = v; notifyListeners(); _save(); }
 
   bool _foldersGridView = false;
   bool get foldersGridView => _foldersGridView;
-  void setFoldersGridView(bool v) { _foldersGridView = v; notifyListeners(); _save(); }
 
   bool _recentGridView = false;
   bool get recentGridView => _recentGridView;
-  void setRecentGridView(bool v) { _recentGridView = v; notifyListeners(); _save(); }
 
   // ---------- عام ----------
   int _themeSeedColorValue = 0xFF1B6CA8;
   Color get themeSeedColor => Color(_themeSeedColorValue);
-  void setThemeSeedColor(Color c) { _themeSeedColorValue = c.toARGB32(); notifyListeners(); _save(); }
 
   bool _silentResume = false;
   bool get silentResume => _silentResume;
-  void setSilentResume(bool v) { _silentResume = v; notifyListeners(); _save(); }
 
   bool _autoPipOnBackground = false;
   bool get autoPipOnBackground => _autoPipOnBackground;
-  void setAutoPipOnBackground(bool v) { _autoPipOnBackground = v; notifyListeners(); _save(); }
 
   bool _smartRotationEnabled = true;
   bool get smartRotationEnabled => _smartRotationEnabled;
-  void setSmartRotationEnabled(bool v) { _smartRotationEnabled = v; notifyListeners(); _save(); }
 
   bool _longPressSpeedEnabled = true;
   bool get longPressSpeedEnabled => _longPressSpeedEnabled;
-  void setLongPressSpeedEnabled(bool v) { _longPressSpeedEnabled = v; notifyListeners(); _save(); }
 
   double _longPressSpeedValue = 2.0;
   double get longPressSpeedValue => _longPressSpeedValue;
-  void setLongPressSpeedValue(double v) { _longPressSpeedValue = v; notifyListeners(); _save(); }
 
   double _gestureSensitivity = 1.0;
   double get gestureSensitivity => _gestureSensitivity;
-  void setGestureSensitivity(double v) { _gestureSensitivity = v; notifyListeners(); _save(); }
 
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
-  void setColorFormat(String v) { _colorFormat = v; notifyListeners(); _save(); }
 
   // ---------- load / save ----------
   Future<void> load() async {
