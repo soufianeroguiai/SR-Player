@@ -1161,101 +1161,124 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     left: 12,
                     child: IgnorePointer(child: _StatsForNerdsPanel(state: _state, player: _player)),
                   ),
-                if (_state.isLocked)
-                  Positioned(
-                    bottom: 40, left: 0, right: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => _state.showLockHint = true);
-                          Future.delayed(const Duration(seconds: 2), () {
-                            if (mounted) setState(() => _state.showLockHint = false);
-                          });
-                        },
-                        onHorizontalDragUpdate: (details) {
-                          setState(() {
+                ListenableBuilder(
+                  listenable: _state,
+                  builder: (context, _) {
+                    if (!_state.isLocked) return const SizedBox.shrink();
+                    return Positioned(
+                      bottom: 40, left: 0, right: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            _state.showLockHint = true;
+                            _state.notifyListeners();
+                            Future.delayed(const Duration(seconds: 2), () {
+                              if (mounted) {
+                                _state.showLockHint = false;
+                                _state.notifyListeners();
+                              }
+                            });
+                          },
+                          onHorizontalDragUpdate: (details) {
                             _state.lockIconOffset = (_state.lockIconOffset + details.delta.dx).clamp(0.0, _lockTrackWidth - _lockBtnSize);
-                          });
-                        },
-                        onHorizontalDragEnd: (_) {
-                          if (_state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8) _toggleLock();
-                          setState(() {
+                            _state.notifyListeners();
+                          },
+                          onHorizontalDragEnd: (_) {
+                            if (_state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8) {
+                              _toggleLock();
+                            }
                             _state.lockIconOffset = 0.0;
                             _state.showLockHint = false;
-                          });
-                        },
-                        child: AnimatedOpacity(
-                          opacity: _state.showLockHint ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Builder(builder: (context) {
-                            final cs = Theme.of(context).colorScheme;
-                            final progress = (_state.lockIconOffset / (_lockTrackWidth - _lockBtnSize)).clamp(0.0, 1.0);
-                            return Container(
-                              width: _lockTrackWidth, height: _lockBtnSize + 8,
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
-                                border: Border.all(color: cs.primary.withValues(alpha: 0.4), width: 1.5),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.centerLeft,
-                                children: [
-                                  if (progress > 0)
-                                    Positioned(
-                                      left: 0, top: 0, bottom: 0,
-                                      width: _state.lockIconOffset + _lockBtnSize,
+                            _state.notifyListeners();
+                          },
+                          child: AnimatedOpacity(
+                            opacity: _state.showLockHint ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Builder(builder: (context) {
+                              final cs = Theme.of(context).colorScheme;
+                              final progress = (_state.lockIconOffset / (_lockTrackWidth - _lockBtnSize)).clamp(0.0, 1.0);
+                              return Container(
+                                width: _lockTrackWidth, height: _lockBtnSize + 8,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.65),
+                                  borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
+                                  border: Border.all(color: cs.primary.withValues(alpha: 0.4), width: 1.5),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    if (progress > 0)
+                                      Positioned(
+                                        left: 0, top: 0, bottom: 0,
+                                        width: _state.lockIconOffset + _lockBtnSize,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: cs.primary.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(_lockBtnSize / 2),
+                                          ),
+                                        ),
+                                      ),
+                                    Center(
+                                      child: Text(
+                                        progress > 0.6 ? 'أطلق للفتح' : 'اسحب لفتح القفل ←',
+                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                                      ),
+                                    ),
+                                    AnimatedPositioned(
+                                      duration: Duration.zero,
+                                      left: _state.lockIconOffset,
+                                      top: 0, bottom: 0,
                                       child: Container(
+                                        width: _lockBtnSize,
                                         decoration: BoxDecoration(
-                                          color: cs.primary.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(_lockBtnSize / 2),
+                                          color: cs.primary, shape: BoxShape.circle,
+                                          boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.5), blurRadius: 8)],
+                                        ),
+                                        child: Icon(
+                                          _state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8
+                                              ? Symbols.lock_open_rounded : Symbols.lock_rounded,
+                                          color: cs.onPrimary, size: 20,
                                         ),
                                       ),
                                     ),
-                                  Center(
-                                    child: Text(
-                                      progress > 0.6 ? 'أطلق للفتح' : 'اسحب لفتح القفل ←',
-                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
-                                    ),
-                                  ),
-                                  AnimatedPositioned(
-                                    duration: Duration.zero,
-                                    left: _state.lockIconOffset,
-                                    top: 0, bottom: 0,
-                                    child: Container(
-                                      width: _lockBtnSize,
-                                      decoration: BoxDecoration(
-                                        color: cs.primary, shape: BoxShape.circle,
-                                        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.5), blurRadius: 8)],
-                                      ),
-                                      child: Icon(
-                                        _state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8
-                                            ? Symbols.lock_open_rounded : Symbols.lock_rounded,
-                                        color: cs.onPrimary, size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                if (_state.fitOverlayText != null)
-                  Positioned(
-                    top: 100, left: 0, right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(20)),
-                        child: Text(_state.fitOverlayText!, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    );
+                  },
+                ),
+                ListenableBuilder(
+                  listenable: _state,
+                  builder: (context, _) {
+                    if (_state.fitOverlayText == null) return const SizedBox.shrink();
+                    return Positioned(
+                      top: 100, left: 0, right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(20)),
+                          child: Text(_state.fitOverlayText!, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                        ),
                       ),
-                    ),
-                  ),
-                if (_state.showResumeDialog) _buildResumeDialog(),
-                _buildSidePanel(),
+                    );
+                  },
+                ),
+                ListenableBuilder(
+                  listenable: _state,
+                  builder: (context, _) {
+                    if (!_state.showResumeDialog) return const SizedBox.shrink();
+                    return _buildResumeDialog();
+                  },
+                ),
+                ListenableBuilder(
+                  listenable: _state,
+                  builder: (context, _) => _buildSidePanel(),
+                ),
                 if (_showPlaylistEditor)
                   Positioned(
                     top: 0, bottom: 0, right: 0,
