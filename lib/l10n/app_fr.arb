@@ -481,5 +481,12 @@
   "durationLabel": "Durée",
   "pathLabel": "Chemin",
   "playlistTitle": "Liste de lecture",
-  "emptyPlaylist": "Liste de lecture vide"
+  "emptyPlaylist": "Liste de lecture vide",
+  "colorAdjustmentTitle": "Réglage des couleurs",
+  "brightness": "Luminosité",
+  "contrast": "Contraste",
+  "saturation": "Saturation",
+  "hue": "Teinte",
+  "subtitlePreviewText": "Bienvenue sur SR Player",
+  "thumbnailError": "Échec du chargement de l'image"
 }

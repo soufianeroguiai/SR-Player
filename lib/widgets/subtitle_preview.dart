@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 import '../models/subtitle_settings.dart';
 import '../screens/player/subtitle_style_builder.dart';
+import '../l10n/app_localizations.dart';
 
 class SubtitlePreview extends StatelessWidget {
   final SubtitleSettings settings;
-  final String text;
+  final String? text;
 
   const SubtitlePreview({
     super.key,
     required this.settings,
-    this.text = 'مرحباً بك في SR Player',
+    this.text,
   });
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final displayText = text ?? t.subtitlePreviewText;
     final textStyle = buildSubtitleTextStyle(settings);
     final textAlign = buildSubtitleTextAlign(settings);
 
     Widget textWidget = Text(
-      text,
+      displayText,
       style: textStyle,
       textAlign: textAlign,
       maxLines: settings.autoWrap ? settings.maxLines : 1,

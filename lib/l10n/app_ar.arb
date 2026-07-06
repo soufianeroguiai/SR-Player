@@ -399,7 +399,6 @@
   "subtitleDelayHelp": "القيمة السالبة تُقدم الترجمة، والموجبة تؤخرها",
   "saveAsDefault": "حفظ الإعدادات كافتراضية",
   "saveAsDefaultDesc": "تنطبق على جميع الفيديوهات",
-  "playlistEditor": "قوائم التشغيل",
   "removeFromFavorites": "إزالة من المفضلة",
   "addToFavorites": "إضافة للمفضلة",
   "addToPlaylist": "إضافة إلى قائمة التشغيل",
@@ -418,7 +417,6 @@
   "stretch": "تمديد",
   "free": "حر (سحب/تكبير بإصبعين)",
   "pip": "نافذة عائمة (PiP)",
-  "sleepTimer": "مؤقت النوم",
   "videoInfo": "معلومات الفيديو",
   "repeatAB": "تكرار مقطع A-B",
   "repeatABDisabled": "غير مفعّل",
@@ -484,5 +482,12 @@
   "durationLabel": "المدة",
   "pathLabel": "المسار",
   "playlistTitle": "قائمة التشغيل",
-  "emptyPlaylist": "قائمة التشغيل فارغة"
+  "emptyPlaylist": "قائمة التشغيل فارغة",
+  "colorAdjustmentTitle": "تنسيق الألوان",
+  "brightness": "السطوع",
+  "contrast": "التباين",
+  "saturation": "التشبع",
+  "hue": "درجة اللون",
+  "subtitlePreviewText": "مرحباً بك في SR Player",
+  "thumbnailError": "فشل تحميل الصورة"
 }

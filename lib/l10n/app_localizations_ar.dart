@@ -1513,4 +1513,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get emptyPlaylist => 'قائمة التشغيل فارغة';
+
+  @override
+  String get colorAdjustmentTitle => 'تنسيق الألوان';
+
+  @override
+  String get brightness => 'السطوع';
+
+  @override
+  String get contrast => 'التباين';
+
+  @override
+  String get saturation => 'التشبع';
+
+  @override
+  String get hue => 'درجة اللون';
+
+  @override
+  String get subtitlePreviewText => 'مرحباً بك في SR Player';
+
+  @override
+  String get thumbnailError => 'فشل تحميل الصورة';
 }

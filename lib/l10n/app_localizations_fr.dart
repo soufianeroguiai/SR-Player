@@ -1522,4 +1522,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get emptyPlaylist => 'Liste de lecture vide';
+
+  @override
+  String get colorAdjustmentTitle => 'Réglage des couleurs';
+
+  @override
+  String get brightness => 'Luminosité';
+
+  @override
+  String get contrast => 'Contraste';
+
+  @override
+  String get saturation => 'Saturation';
+
+  @override
+  String get hue => 'Teinte';
+
+  @override
+  String get subtitlePreviewText => 'Bienvenue sur SR Player';
+
+  @override
+  String get thumbnailError => 'Échec du chargement de l\'image';
 }

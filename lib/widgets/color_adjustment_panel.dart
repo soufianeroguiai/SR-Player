@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class ColorAdjustmentPanel extends StatefulWidget {
   final double brightness, contrast, saturation, hue, gamma;
@@ -23,7 +24,6 @@ class ColorAdjustmentPanel extends StatefulWidget {
 }
 
 class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
-  // ✅ State محلية — تُحدَّث فوراً عند تحريك السلايدر
   late double _brightness;
   late double _contrast;
   late double _saturation;
@@ -67,6 +67,7 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context)!;
 
     return Directionality(
       textDirection: Directionality.of(context),
@@ -85,7 +86,6 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ─── Header ──────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -95,9 +95,9 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  const Text(
-                    'تنسيق الألوان',
-                    style: TextStyle(
+                  Text(
+                    t.colorAdjustmentTitle,
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.bold),
@@ -111,13 +111,11 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
                 ],
               ),
               const SizedBox(height: 10),
-
-              // ─── Sliders ─────────────────────────────────────
-              _Slider('السطوع',    _brightness, cs.primary, (v) => _onChange('brightness', v)),
-              _Slider('التباين',   _contrast,   cs.primary, (v) => _onChange('contrast',   v)),
-              _Slider('التشبع',    _saturation, cs.primary, (v) => _onChange('saturation', v)),
-              _Slider('درجة اللون', _hue,       cs.primary, (v) => _onChange('hue',        v)),
-              _Slider('Gamma',     _gamma,      cs.primary, (v) => _onChange('gamma',      v)),
+              _Slider(t.brightness, _brightness, cs.primary, (v) => _onChange('brightness', v)),
+              _Slider(t.contrast,   _contrast,   cs.primary, (v) => _onChange('contrast',   v)),
+              _Slider(t.saturation, _saturation, cs.primary, (v) => _onChange('saturation', v)),
+              _Slider(t.hue,        _hue,        cs.primary, (v) => _onChange('hue',        v)),
+              _Slider('Gamma',      _gamma,      cs.primary, (v) => _onChange('gamma',      v)),
             ],
           ),
         ),

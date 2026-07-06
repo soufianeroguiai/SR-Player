@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/video_item.dart';
 import '../services/thumbnail_service.dart';
+import '../l10n/app_localizations.dart';
 
 class VideoThumbnailLoader extends StatelessWidget {
   final VideoItem video;
@@ -17,8 +18,9 @@ class VideoThumbnailLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final thumbnailService = ThumbnailService();
-    thumbnailService.prioritize(video);          // ✅ إعطاء أولوية عالية لهذه الصورة
+    thumbnailService.prioritize(video);
     final thumbnailNotifier = thumbnailService.getNotifier(video);
     final errorNotifier = thumbnailService.getErrorNotifier(video);
 
@@ -36,13 +38,13 @@ class VideoThumbnailLoader extends StatelessWidget {
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, __, ___) =>
-                    _buildPlaceholder('فشل تحميل الصورة'),
+                    _buildPlaceholder(t.thumbnailError),
               );
             }
             return ValueListenableBuilder<String?>(
               valueListenable: errorNotifier,
               builder: (context, errorText, _) =>
-                  _buildPlaceholder(errorText),
+                  _buildPlaceholder(errorText ?? t.thumbnailError),
             );
           },
         ),
@@ -50,8 +52,8 @@ class VideoThumbnailLoader extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder(String? errorText) {
-    if (errorText != null && errorText.isNotEmpty) {
+  Widget _buildPlaceholder(String errorText) {
+    if (errorText.isNotEmpty) {
       return Container(
         color: const Color(0xFF1A1A1A),
         padding: const EdgeInsets.all(4),

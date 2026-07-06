@@ -2955,6 +2955,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'قائمة التشغيل فارغة'**
   String get emptyPlaylist;
+
+  /// No description provided for @colorAdjustmentTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنسيق الألوان'**
+  String get colorAdjustmentTitle;
+
+  /// No description provided for @brightness.
+  ///
+  /// In ar, this message translates to:
+  /// **'السطوع'**
+  String get brightness;
+
+  /// No description provided for @contrast.
+  ///
+  /// In ar, this message translates to:
+  /// **'التباين'**
+  String get contrast;
+
+  /// No description provided for @saturation.
+  ///
+  /// In ar, this message translates to:
+  /// **'التشبع'**
+  String get saturation;
+
+  /// No description provided for @hue.
+  ///
+  /// In ar, this message translates to:
+  /// **'درجة اللون'**
+  String get hue;
+
+  /// No description provided for @subtitlePreviewText.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرحباً بك في SR Player'**
+  String get subtitlePreviewText;
+
+  /// No description provided for @thumbnailError.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل تحميل الصورة'**
+  String get thumbnailError;
 }
 
 class _AppLocalizationsDelegate

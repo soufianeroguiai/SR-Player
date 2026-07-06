@@ -1515,4 +1515,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyPlaylist => 'Playlist is empty';
+
+  @override
+  String get colorAdjustmentTitle => 'Color Adjustment';
+
+  @override
+  String get brightness => 'Brightness';
+
+  @override
+  String get contrast => 'Contrast';
+
+  @override
+  String get saturation => 'Saturation';
+
+  @override
+  String get hue => 'Hue';
+
+  @override
+  String get subtitlePreviewText => 'Welcome to SR Player';
+
+  @override
+  String get thumbnailError => 'Failed to load image';
 }

@@ -1,0 +1,2072 @@
+===== lib/screens/player/player_controls.dart =====
+// FILE: lib/screens/player/player_controls.dart
+
+import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'dart:async';
+
+class PlayerTopBar extends StatelessWidget {
+  final String videoName;
+  final VoidCallback onBack;
+  final VoidCallback onAudioMenu;
+  final VoidCallback onSubtitleMenu;
+  final VoidCallback onQuickActions;
+  final VoidCallback onSettingsMenu;
+  final bool isAudioActive;
+  final bool isSubtitleActive;
+  final bool isQuickActionsActive;
+  final List<Widget> quickActionWidgets;
+
+  const PlayerTopBar({
+    super.key,
+    required this.videoName,
+    required this.onBack,
+    required this.onAudioMenu,
+    required this.onSubtitleMenu,
+    required this.onQuickActions,
+    required this.onSettingsMenu,
+    this.isAudioActive = false,
+    this.isSubtitleActive = false,
+    this.isQuickActionsActive = false,
+    this.quickActionWidgets = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black.withOpacity(0.75), Colors.transparent],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(children: [
+          IconButton(
+            icon: const Icon(Symbols.arrow_back_rounded, color: Colors.white),
+            onPressed: onBack,
+          ),
+
+          _VideoTitleWidget(
+            videoName: videoName,
+            screenWidth: screenWidth,
+          ),
+
+          const Spacer(),
+
+          _AnimatedIconBtn(
+            icon: isQuickActionsActive 
+                ? Symbols.keyboard_arrow_right_rounded 
+                : Symbols.keyboard_arrow_left_rounded,
+            color: isQuickActionsActive ? Colors.amberAccent : Colors.white70,
+            onTap: onQuickActions,
+          ),
+
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.centerLeft,
+            child: isQuickActionsActive
+                ? Container(
+                    constraints: BoxConstraints(maxWidth: screenWidth * 0.45),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min, 
+                        children: quickActionWidgets,
+                      ),
+                    ),
+                  )
+                : const SizedBox(height: 48, width: 0),
+          ),
+
+          _AnimatedIconBtn(
+            icon: Symbols.graphic_eq_rounded,
+            color: isAudioActive ? Colors.amberAccent : Colors.white70,
+            onTap: onAudioMenu,
+          ),
+
+          _AnimatedIconBtn(
+            icon: isSubtitleActive ? Symbols.closed_caption_rounded : Symbols.closed_caption_off_rounded,
+            color: isSubtitleActive ? Colors.amberAccent : Colors.white60,
+            onTap: onSubtitleMenu,
+          ),
+
+          _AnimatedIconBtn(
+            icon: Symbols.more_vert_rounded,
+            color: Colors.white70,
+            onTap: onSettingsMenu,
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _VideoTitleWidget extends StatefulWidget {
+  final String videoName;
+  final double screenWidth;
+
+  const _VideoTitleWidget({required this.videoName, required this.screenWidth});
+
+  @override
+  State<_VideoTitleWidget> createState() => _VideoTitleWidgetState();
+}
+
+class _VideoTitleWidgetState extends State<_VideoTitleWidget> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: Stack(
+        clipBehavior: Clip.none, 
+        alignment: Alignment.centerLeft,
+        children: [
+          Opacity(
+            opacity: _isPressed ? 0.0 : 1.0,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: widget.screenWidth * 0.25),
+              child: _MarqueeText(
+                text: widget.videoName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  shadows: [Shadow(color: Colors.black87, blurRadius: 6)],
+                ),
+              ),
+            ),
+          ),
+          
+          if (_isPressed)
+            Positioned(
+              left: -8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white24, width: 1),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 4))
+                  ],
+                ),
+                constraints: BoxConstraints(maxWidth: widget.screenWidth * 0.75),
+                child: Text(
+                  widget.videoName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  const _MarqueeText({required this.text, required this.style});
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+  double _textWidth = 0;
+  bool _needsMarquee = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback(_measure);
+  }
+
+  void _measure(_) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: widget.text, style: widget.style),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: double.infinity);
+    _textWidth = textPainter.width;
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null && _textWidth > renderBox.size.width) {
+      setState(() => _needsMarquee = true);
+      _startScroll();
+    }
+  }
+
+  void _startScroll() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      if (!_scrollController.hasClients) return;
+      final maxScroll = _textWidth;
+      if (_scrollController.offset >= maxScroll) {
+        _scrollController.jumpTo(0.0);
+      } else {
+        _scrollController.animateTo(
+          _scrollController.offset + 1.2,
+          duration: const Duration(milliseconds: 30),
+          curve: Curves.linear,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_needsMarquee) {
+      return Text(widget.text, style: widget.style, maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    return SizedBox(
+      height: 20,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        controller: _scrollController,
+        physics: const NeverScrollableScrollPhysics(),
+        child: Row(
+          children: [
+            Text(widget.text, style: widget.style, maxLines: 1, softWrap: false),
+            const SizedBox(width: 40),
+            Text(widget.text, style: widget.style, maxLines: 1, softWrap: false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedIconBtn extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AnimatedIconBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  State<_AnimatedIconBtn> createState() => _AnimatedIconBtnState();
+}
+
+class _AnimatedIconBtnState extends State<_AnimatedIconBtn>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _controller.forward();
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    _controller.reverse();
+    widget.onTap();
+  }
+
+  void _onTapCancel() {
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: IconButton(
+          icon: Icon(widget.icon, color: widget.color, size: 24),
+          onPressed: null,
+        ),
+      ),
+    );
+  }
+}
+
+class PlayerBottomBar extends StatefulWidget {
+  final Duration position;
+  final Duration duration;
+  final ValueChanged<double> onSeek;
+  final Color primaryColor;
+  final bool isPlaying;
+  final VoidCallback onPlayPause;
+  final VoidCallback onSkipBack;
+  final VoidCallback onSkipForward;
+  final VoidCallback onToggleFit;
+  final VoidCallback onToggleLock;
+  final VoidCallback onPip;
+  final List<({String title, Duration start})> chapters;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  final bool hasPrevious;
+  final bool hasNext;
+  final bool showRemainingTime;
+  final bool showElapsedTime;
+  final bool showVideoTitle;
+
+  const PlayerBottomBar({
+    super.key,
+    required this.position,
+    required this.duration,
+    required this.onSeek,
+    required this.primaryColor,
+    required this.isPlaying,
+    required this.onPlayPause,
+    required this.onSkipBack,
+    required this.onSkipForward,
+    required this.onToggleFit,
+    required this.onToggleLock,
+    required this.onPip,
+    this.chapters = const [],
+    this.onPrevious,
+    this.onNext,
+    this.hasPrevious = true,
+    this.hasNext = true,
+    this.showRemainingTime = true,
+    this.showElapsedTime = true,
+    this.showVideoTitle = true,
+  });
+
+  @override
+  State<PlayerBottomBar> createState() => _PlayerBottomBarState();
+}
+
+class _PlayerBottomBarState extends State<PlayerBottomBar> {
+  bool _isSliding = false;
+  double? _tempSliderValue;
+
+  String? get _currentChapter {
+    if (widget.chapters.isEmpty || widget.duration.inMilliseconds == 0) return null;
+    String? name;
+    for (final ch in widget.chapters) {
+      if (widget.position >= ch.start) {
+        name = ch.title;
+      } else {
+        break;
+      }
+    }
+    return name;
+  }
+
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = widget.duration.inMilliseconds > 0
+        ? (widget.position.inMilliseconds / widget.duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (_currentChapter != null && widget.showVideoTitle)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  _currentChapter!,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Row(children: [
+                if (widget.showElapsedTime)
+                  Text(_fmt(widget.position),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const double sliderPadding = 24.0;
+                      final double trackWidth = constraints.maxWidth - (sliderPadding * 2);
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: _isSliding ? 6 : 3,
+                              thumbShape: RoundSliderThumbShape(
+                                  enabledThumbRadius: _isSliding ? 10 : 6),
+                              overlayShape:
+                                  const RoundSliderOverlayShape(overlayRadius: 14),
+                              activeTrackColor: widget.primaryColor,
+                              inactiveTrackColor: Colors.white24,
+                              thumbColor: widget.primaryColor,
+                              overlayColor: widget.primaryColor.withOpacity(0.25),
+                            ),
+                            child: Slider(
+                              value: _tempSliderValue ?? progress,
+                              onChangeStart: (v) {
+                                setState(() {
+                                  _isSliding = true;
+                                  _tempSliderValue = v;
+                                });
+                              },
+                              onChanged: (v) {
+                                setState(() => _tempSliderValue = v);
+                              },
+                              onChangeEnd: (v) async {
+                                widget.onSeek(v);
+                                await Future.delayed(
+                                    const Duration(milliseconds: 400));
+                                if (mounted) {
+                                  setState(() {
+                                    _isSliding = false;
+                                    _tempSliderValue = null;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+
+                          if (widget.chapters.isNotEmpty && widget.duration.inMilliseconds > 0)
+                            Positioned.fill(
+                              child: Stack(
+                                alignment: Alignment.centerLeft,
+                                children: widget.chapters.map((ch) {
+                                  final ratio = ch.start.inMilliseconds /
+                                      widget.duration.inMilliseconds;
+                                  
+                                  final x = sliderPadding + (ratio * trackWidth);
+                                  final isCurrent = _currentChapter == ch.title;
+                                  final double dotSize = isCurrent ? 10 : 7;
+
+                                  return Positioned(
+                                    left: x - (dotSize / 2),
+                                    child: GestureDetector(
+                                      onTap: () => widget.onSeek(ratio),
+                                      child: Tooltip(
+                                        message: ch.title,
+                                        preferBelow: false,
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          width: dotSize,
+                                          height: dotSize,
+                                          decoration: BoxDecoration(
+                                            color: isCurrent
+                                                ? widget.primaryColor
+                                                : Colors.white.withOpacity(0.85),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: isCurrent
+                                                  ? widget.primaryColor
+                                                      .withOpacity(0.4)
+                                                  : Colors.black38,
+                                              width: 1.5,
+                                            ),
+                                            boxShadow: isCurrent
+                                                ? [
+                                                    BoxShadow(
+                                                      color: widget.primaryColor
+                                                          .withOpacity(0.6),
+                                                      blurRadius: 6,
+                                                    )
+                                                  ]
+                                                : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                
+                if (widget.showRemainingTime)
+                  Text(_fmt(widget.duration),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ]),
+            ),
+
+            SizedBox(
+              height: 52,
+              child: Row(children: [
+                // زر القفل فأقصى اليسار
+                _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),
+                const Spacer(),
+                if (widget.onPrevious != null)
+                  _BottomBtn(icon: Symbols.skip_previous_rounded, onTap: widget.onPrevious!, size: 28),
+                const SizedBox(width: 12),
+                _BottomBtn(icon: Symbols.replay_10_rounded, onTap: widget.onSkipBack, size: 28),
+                const SizedBox(width: 8),
+                _PlayBtn(
+                  isPlaying: widget.isPlaying,
+                  onTap: widget.onPlayPause,
+                  color: widget.primaryColor,
+                ),
+                const SizedBox(width: 8),
+                _BottomBtn(icon: Symbols.forward_10_rounded, onTap: widget.onSkipForward, size: 28),
+                const SizedBox(width: 12),
+                if (widget.onNext != null)
+                  _BottomBtn(icon: Symbols.skip_next_rounded, onTap: widget.onNext!, size: 28),
+                const Spacer(),
+                // زر الفيت والبيب فأقصى اليمين
+                _BottomBtn(icon: Symbols.picture_in_picture_rounded, onTap: widget.onPip, size: 22),
+                _BottomBtn(icon: Symbols.aspect_ratio_rounded, onTap: widget.onToggleFit, size: 22),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayBtn extends StatelessWidget {
+  final bool isPlaying;
+  final VoidCallback onTap;
+  final Color color;
+  
+  const _PlayBtn({
+    required this.isPlaying,
+    required this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white70, width: 2),
+          color: Colors.transparent,
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) => 
+              ScaleTransition(scale: animation, child: child),
+          child: Icon(
+            isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
+            key: ValueKey<bool>(isPlaying),
+            color: Colors.white70,
+            size: 32,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final double size;
+  const _BottomBtn({required this.icon, required this.onTap, this.size = 24});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        child: Icon(icon, color: Colors.white70, size: size),
+      ),
+    );
+  }
+}
+===== lib/screens/player/player_indicators.dart =====
+import 'package:flutter/material.dart';
+
+/// مؤشرات بتصميم عمودي بسيط وهادئ مع أيقونة متغيرة.
+class PlayerIndicators {
+  static Widget buildFloatingIndicator({
+    required IconData icon,
+    required double displayValue, // 0.0 → 1.0
+    required String labelText,
+    required Color color,
+  }) {
+    return _VerticalPill(
+      icon: icon,
+      value: displayValue.clamp(0.0, 1.0),
+      label: labelText,
+      barColor: color,
+    );
+  }
+}
+
+/// شريط عمودي بسيط (Vertical Pill) مع أيقونة تتغير حسب القيمة.
+class _VerticalPill extends StatelessWidget {
+  final IconData icon;
+  final double value;
+  final String label;
+  final Color barColor;
+
+  const _VerticalPill({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.barColor,
+  });
+
+  // أيقونات الصوت حسب المستوى
+  IconData _volumeIcon(double vol) {
+    if (vol == 0) return Icons.volume_off_rounded;
+    if (vol < 0.33) return Icons.volume_mute_rounded;
+    if (vol < 0.66) return Icons.volume_down_rounded;
+    return Icons.volume_up_rounded;
+  }
+
+  // أيقونات السطوع حسب المستوى
+  IconData _brightnessIcon(double bright) {
+    if (bright < 0.25) return Icons.brightness_low_rounded;
+    if (bright < 0.6) return Icons.brightness_medium_rounded;
+    return Icons.brightness_high_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // معرفة هل المؤشر للصوت أم للسطوع
+    final bool isVolume = icon == Icons.volume_off_rounded ||
+        icon == Icons.volume_up_rounded ||
+        icon == Icons.volume_down_rounded ||
+        icon == Icons.volume_mute_rounded;
+
+    final bool isBrightness = icon == Icons.brightness_2_rounded ||
+        icon == Icons.brightness_5_rounded ||
+        icon == Icons.brightness_7_rounded;
+
+    IconData currentIcon = icon;
+    if (isVolume) {
+      currentIcon = _volumeIcon(value);
+    } else if (isBrightness) {
+      currentIcon = _brightnessIcon(value);
+    }
+
+    return Container(
+      width: 40,
+      height: 160,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // أيقونة متغيرة مع حركة سلسة
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return ScaleTransition(scale: animation, child: child);
+            },
+            child: Icon(
+              currentIcon,
+              color: Colors.white70,
+              size: 18,
+              key: ValueKey(currentIcon),
+            ),
+          ),
+          // شريط التقدم العمودي
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LayoutBuilder(
+                  builder: (ctx, constraints) {
+                    final barHeight = constraints.maxHeight;
+                    return Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        // الخلفية
+                        Container(
+                          width: 4,
+                          height: barHeight,
+                          color: Colors.white24,
+                        ),
+                        // الممتلئ
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          width: 4,
+                          height: barHeight * value,
+                          decoration: BoxDecoration(
+                            color: barColor.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          // النسبة
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+===== lib/screens/player/player_gesture_layer.dart =====
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:screen_brightness/screen_brightness.dart';
+import 'package:provider/provider.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import '../../providers/settings_provider.dart';
+import 'player_fit_mode.dart';
+import 'player_indicators.dart';
+
+enum GestureType { none, seek, volume, brightness, subtitle, zoomPan }
+
+class PlayerGestureLayer extends StatefulWidget {
+  final Player player;
+  final bool isLocked;
+  final double volumeLevel;
+  final ValueNotifier<double> brightnessNotifier;
+  final ValueNotifier<double> seekMsNotifier;
+  final Duration position;
+  final Duration duration;
+  final bool isPlaying;
+  final bool isSpeedBoosted;
+  final VideoFitMode fitMode;
+  final double zoomScale;
+  final Offset panOffset;
+  final VoidCallback onToggleControls;
+  final void Function(double newVolume) onVolumeChanged;
+  final VoidCallback onPlayPause;
+  final VoidCallback? onLongPressSpeedStart;
+  final VoidCallback? onLongPressSpeedEnd;
+  final void Function(double scale, Offset offset)? onZoomPanChanged;
+  final Widget child;
+
+  const PlayerGestureLayer({
+    super.key,
+    required this.player,
+    required this.isLocked,
+    required this.volumeLevel,
+    required this.brightnessNotifier,
+    required this.seekMsNotifier,
+    required this.position,
+    required this.duration,
+    required this.isPlaying,
+    this.isSpeedBoosted = false,
+    this.fitMode = VideoFitMode.contain,
+    this.zoomScale = 1.0,
+    this.panOffset = Offset.zero,
+    required this.onToggleControls,
+    required this.onVolumeChanged,
+    required this.onPlayPause,
+    this.onLongPressSpeedStart,
+    this.onLongPressSpeedEnd,
+    this.onZoomPanChanged,
+    required this.child,
+  });
+
+  @override
+  State<PlayerGestureLayer> createState() => _PlayerGestureLayerState();
+}
+
+class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
+  double _startSubtitleSize = 24.0;
+  double _startSubtitleScale = 1.0;
+  double _startBottomPadding = 0.0;
+  Offset _startFocalPoint = Offset.zero;
+  bool _subtitleGestureActive = false;
+
+  final ValueNotifier<bool> _showVolNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _showBrightNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _showSeekNotifier = ValueNotifier(false);
+  Timer? _indicatorTimer;
+
+  int? _hintSeconds;
+  Timer? _seekHintTimer;
+
+  GestureType _activeGesture = GestureType.none;
+  Offset _startPanOffset = Offset.zero;
+  bool _isPanLocked = false;
+
+  double _startZoomScale = 1.0;
+  Offset _startZoomPanOffset = Offset.zero;
+
+  @override
+  void dispose() {
+    _showVolNotifier.dispose();
+    _showBrightNotifier.dispose();
+    _showSeekNotifier.dispose();
+    _indicatorTimer?.cancel();
+    _seekHintTimer?.cancel();
+    super.dispose();
+  }
+
+  void _resetIndicatorTimer() {
+    _indicatorTimer?.cancel();
+    _indicatorTimer = Timer(const Duration(seconds: 1), () {
+      _showVolNotifier.value = false;
+      _showBrightNotifier.value = false;
+    });
+  }
+
+  void _showSeekHint(int seconds) {
+    if (!context.read<SettingsProvider>().showSeekTime) return;
+    setState(() => _hintSeconds = seconds);
+    _seekHintTimer?.cancel();
+    _seekHintTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _hintSeconds = null);
+    });
+  }
+
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final s = context.watch<SettingsProvider>();
+    final cs = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: s.tapToPause && !widget.isLocked ? widget.onToggleControls : null,
+          onDoubleTapDown: widget.isLocked || !s.doubleTapSeek
+              ? null
+              : (details) {
+                  final seekSeconds = s.doubleTapSeekSeconds;
+                  final x = details.localPosition.dx;
+                  if (x < screenWidth / 3) {
+                    final target = widget.position - Duration(seconds: seekSeconds);
+                    widget.player.seek(target.isNegative ? Duration.zero : target);
+                    _showSeekHint(-seekSeconds);
+                  } else if (x > screenWidth * 2 / 3) {
+                    final target = widget.position + Duration(seconds: seekSeconds);
+                    widget.player.seek(target > widget.duration ? widget.duration : target);
+                    _showSeekHint(seekSeconds);
+                  } else {
+                    widget.onPlayPause();
+                  }
+                },
+          onLongPressStart: widget.isLocked || !s.longPressSpeed
+              ? null
+              : (_) => widget.onLongPressSpeedStart?.call(),
+          onLongPressEnd: widget.isLocked || !s.longPressSpeed
+              ? null
+              : (_) => widget.onLongPressSpeedEnd?.call(),
+          onLongPressCancel: widget.isLocked || !s.longPressSpeed
+              ? null
+              : () => widget.onLongPressSpeedEnd?.call(),
+          onScaleStart: (details) {
+            if (widget.isLocked) return;
+            final sub = s.subtitleSettings;
+
+            _activeGesture = GestureType.none;
+            _isPanLocked = false;
+            _startPanOffset = details.focalPoint;
+
+            if (details.pointerCount == 3) {
+              _startSubtitleScale = sub.subtitleScale;
+              _activeGesture = GestureType.subtitle;
+              return;
+            }
+            if (details.pointerCount == 2 && widget.fitMode == VideoFitMode.free) {
+              _startZoomScale = widget.zoomScale;
+              _startZoomPanOffset = widget.panOffset;
+              _activeGesture = GestureType.zoomPan;
+              return;
+            }
+            if (details.pointerCount == 2 && !widget.isPlaying) {
+              _startSubtitleSize = sub.fontSize;
+              _startBottomPadding = sub.bottomMargin;
+              _startFocalPoint = details.focalPoint;
+              _activeGesture = GestureType.subtitle;
+              _subtitleGestureActive = true;
+            } else {
+              widget.seekMsNotifier.value = widget.position.inMilliseconds.toDouble();
+              _subtitleGestureActive = false;
+            }
+          },
+          onScaleUpdate: (details) {
+            if (widget.isLocked) return;
+            final sub = s.subtitleSettings;
+
+            if (details.pointerCount == 3 && _activeGesture == GestureType.subtitle) {
+              final newScale = (_startSubtitleScale * details.scale).clamp(0.5, 3.0);
+              s.updateSubtitleSettings(sub.copyWith(subtitleScale: newScale));
+              return;
+            }
+
+            if (details.pointerCount == 2 && _activeGesture == GestureType.zoomPan) {
+              final newScale = (_startZoomScale * details.scale).clamp(1.0, 6.0);
+              final panDelta = details.focalPoint - _startPanOffset;
+              final newOffset = _startZoomPanOffset + panDelta;
+              widget.onZoomPanChanged?.call(newScale, newOffset);
+              return;
+            }
+
+            if (details.pointerCount == 2 && _activeGesture == GestureType.subtitle && !widget.isPlaying) {
+              final newSize = (_startSubtitleSize * details.scale).clamp(10.0, 150.0);
+              final dy = details.focalPoint.dy - _startFocalPoint.dy;
+              final newPadding = (_startBottomPadding - dy).clamp(0.0, screenHeight * 0.85);
+              s.updateSubtitleSettings(sub.copyWith(fontSize: newSize, bottomMargin: newPadding));
+              return;
+            }
+
+            if (details.pointerCount != 1 || _activeGesture == GestureType.subtitle || _activeGesture == GestureType.zoomPan) return;
+            if (details.focalPointDelta.distance < 0.5) return;
+
+            if (!_isPanLocked) {
+              final totalDx = (details.focalPoint.dx - _startPanOffset.dx).abs();
+              final totalDy = (details.focalPoint.dy - _startPanOffset.dy).abs();
+
+              if (totalDx > 10 || totalDy > 10) {
+                _isPanLocked = true;
+                if (totalDx > totalDy && s.gestureSeek) {
+                  _activeGesture = GestureType.seek;
+                } else if (totalDx <= totalDy) {
+                  _activeGesture = details.focalPoint.dx > screenWidth / 2
+                      ? (s.gestureVolume ? GestureType.volume : GestureType.none)
+                      : (s.gestureBrightness ? GestureType.brightness : GestureType.none);
+                }
+              }
+            }
+
+            if (_isPanLocked) {
+              if (_activeGesture == GestureType.seek) {
+                final seekFactor = (widget.duration.inMilliseconds * 0.25).clamp(30000.0, 600000.0);
+                final change = (details.focalPointDelta.dx / screenWidth) * seekFactor;
+                widget.seekMsNotifier.value = (widget.seekMsNotifier.value + change)
+                    .clamp(0.0, widget.duration.inMilliseconds.toDouble());
+                _showSeekNotifier.value = true;
+                _showVolNotifier.value = false;
+                _showBrightNotifier.value = false;
+              } else if (_activeGesture == GestureType.volume) {
+                final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
+                widget.onVolumeChanged(widget.volumeLevel + delta);
+                _showVolNotifier.value = true;
+                _showBrightNotifier.value = false;
+                _showSeekNotifier.value = false;
+                _resetIndicatorTimer();
+              } else if (_activeGesture == GestureType.brightness) {
+                final delta = -details.focalPointDelta.dy / 180.0 * s.gestureSensitivity;
+                final newBright = (widget.brightnessNotifier.value + delta).clamp(0.05, 1.0);
+                widget.brightnessNotifier.value = newBright;
+                ScreenBrightness.instance.setApplicationScreenBrightness(newBright);
+                _showBrightNotifier.value = true;
+                _showVolNotifier.value = false;
+                _showSeekNotifier.value = false;
+                _resetIndicatorTimer();
+              }
+            }
+          },
+          onScaleEnd: (details) {
+            if (widget.isLocked) return;
+
+            if (_showSeekNotifier.value) {
+              widget.player.seek(Duration(milliseconds: widget.seekMsNotifier.value.toInt()));
+              _showSeekNotifier.value = false;
+            }
+
+            _subtitleGestureActive = false;
+            _activeGesture = GestureType.none;
+            _isPanLocked = false;
+          },
+          child: widget.child,
+        ),
+
+        ValueListenableBuilder<bool>(
+          valueListenable: _showSeekNotifier,
+          builder: (context, show, _) {
+            if (!show) return const SizedBox.shrink();
+            return ValueListenableBuilder<double>(
+              valueListenable: widget.seekMsNotifier,
+              builder: (context, seekMs, _) {
+                final isForward = widget.seekMsNotifier.value > widget.position.inMilliseconds;
+                return Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: cs.primary.withValues(alpha: 0.4), width: 1.5),
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(
+                        isForward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
+                        color: cs.primary,
+                        size: 34,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _fmt(Duration(milliseconds: seekMs.toInt())),
+                        style: TextStyle(color: cs.primary, fontSize: 26, fontWeight: FontWeight.bold),
+                      ),
+                    ]),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+
+        ValueListenableBuilder<bool>(
+          valueListenable: _showVolNotifier,
+          builder: (context, show, _) {
+            if (!show) return const SizedBox.shrink();
+            final isBoosted = widget.volumeLevel > 1.0;
+            return Positioned(
+              left: 20,
+              top: screenHeight * 0.22,
+              child: PlayerIndicators.buildFloatingIndicator(
+                icon: widget.volumeLevel == 0
+                    ? Icons.volume_off_rounded
+                    : isBoosted
+                        ? Icons.volume_up_rounded
+                        : Icons.volume_down_rounded,
+                displayValue: (widget.volumeLevel / 2.0).clamp(0.0, 1.0),
+                labelText: '${(widget.volumeLevel * 100).round()}%',
+                color: isBoosted ? const Color(0xFFFF8A65) : const Color(0xFF64B5F6),
+              ),
+            );
+          },
+        ),
+
+        ValueListenableBuilder<bool>(
+          valueListenable: _showBrightNotifier,
+          builder: (context, show, _) {
+            if (!show) return const SizedBox.shrink();
+            return ValueListenableBuilder<double>(
+              valueListenable: widget.brightnessNotifier,
+              builder: (context, brightness, _) {
+                return Positioned(
+                  right: 20,
+                  top: screenHeight * 0.22,
+                  child: PlayerIndicators.buildFloatingIndicator(
+                    icon: brightness < 0.15
+                        ? Icons.brightness_2_rounded
+                        : brightness < 0.5
+                            ? Icons.brightness_5_rounded
+                            : Icons.brightness_7_rounded,
+                    displayValue: brightness,
+                    labelText: '${(brightness * 100).round()}%',
+                    color: const Color(0xFFFFF176),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+
+        if (_hintSeconds != null)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _hintSeconds! > 0 ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
+                    color: cs.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_hintSeconds! > 0 ? "+" : ""}${_hintSeconds}s',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        if (widget.isSpeedBoosted)
+          Positioned(
+            top: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Symbols.fast_forward_rounded, color: cs.primary, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${s.longPressSpeedValue.toStringAsFixed(1)}x',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+===== lib/screens/player/player_state.dart =====
+import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
+import '../../models/video_item.dart';
+import '../../services/video_info_service.dart';
+import 'player_fit_mode.dart';
+
+class PlayerUIState extends ChangeNotifier {
+  bool initialized = false;
+  bool showControls = true;
+  bool isLocked = false;
+  bool showQuickActions = false;
+  ActiveMenu currentMenu = ActiveMenu.none;
+
+  double volumeLevel = 1.0;
+  double audioDelay = 0.0;
+  double speed = 1.0;
+  double subtitleSync = 0.0;
+
+  Duration position = Duration.zero;
+  Duration duration = Duration.zero;
+  bool isPlaying = false;
+
+  bool showSubtitles = true;
+  List<SubtitleTrack> subtitleTracks = [];
+  List<AudioTrack> audioTracks = [];
+  List<({String title, Duration start})> chapters = [];
+
+  VideoFitMode fitMode = VideoFitMode.contain;
+  String? fitOverlayText;
+
+  bool showLockHint = false;
+  double lockIconOffset = 0.0;
+
+  bool showScreenshotFlash = false;
+  bool isNightMode = false;
+  PlaylistMode playlistMode = PlaylistMode.none;
+  bool isShuffle = false;
+
+  bool smartEnhance = false;
+  bool hdrEnabled = false;
+  bool hwEnabled = true;
+
+  bool showResumeDialog = false;
+  Duration? savedPosition;
+
+  bool isSpeedBoosted = false;
+
+  double brightness = 0;
+  double contrast = 0;
+  double saturation = 0;
+  double hue = 0;
+  double gamma = 0;
+
+  bool autoSubtitleSelected = false;
+  bool autoAudioSelected = false;
+  List<dynamic>? lastSubtitleEntries;
+  bool hasExternalSubtitle = false;
+
+  double preNightBrightness = 0.7;
+  double preMuteVolume = 1.0;
+
+  List<VideoItem> playlistVideos = [];
+  int currentPlaylistIndex = -1;
+
+  final ValueNotifier<String?> currentSubtitleText = ValueNotifier<String?>(null);
+
+  double zoomScale = 1.0;
+  Offset panOffset = Offset.zero;
+
+  Duration? repeatPointA;
+  Duration? repeatPointB;
+
+  bool showStatsOverlay = false;
+  VideoInfo? videoInfo;
+  VideoParams? videoParams;
+
+  void resetZoomPan() {
+    zoomScale = 1.0;
+    panOffset = Offset.zero;
+    notifyListeners();
+  }
+
+  void clearRepeatPoints() {
+    repeatPointA = null;
+    repeatPointB = null;
+    notifyListeners();
+  }
+
+  void resetMenu() {
+    currentMenu = ActiveMenu.none;
+    showQuickActions = false;
+    notifyListeners();
+  }
+
+  void updatePlaylistIndex(int index) {
+    currentPlaylistIndex = index;
+    notifyListeners();
+  }
+
+  void updateSubtitleText(String? text) {
+    currentSubtitleText.value = text;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    currentSubtitleText.dispose();
+    super.dispose();
+  }
+}
+
+enum ActiveMenu { none, subtitles, audio, settings }
+===== lib/widgets/video_card.dart =====
+import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
+import '../models/video_item.dart';
+import '../providers/library_provider.dart';
+import 'video_thumbnail_loader.dart';
+
+class VideoCard extends StatelessWidget {
+  final VideoItem video;
+  final VoidCallback onTap;
+  final VoidCallback? onMoreTap;
+  final VoidCallback? onLongPress;
+  final bool isSelected;
+
+  const VideoCard({
+    super.key,
+    required this.video,
+    required this.onTap,
+    this.onMoreTap,
+    this.onLongPress,
+    this.isSelected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress ?? onMoreTap,
+      child: Container(
+        color: isSelected ? cs.primary.withOpacity(0.15) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 90, height: 64,
+                child: Stack(fit: StackFit.expand, children: [
+                  VideoThumbnailLoader(video: video, width: 90, height: 64),
+                  Positioned(
+                    bottom: 4, right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.72),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(video.formattedDuration,
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0, left: 0, right: 0,
+                    child: _ResumeProgressBar(video: video),
+                  ),
+                  if (isSelected)
+                    Positioned(
+                      top: 4, right: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Symbols.check_rounded, color: Colors.white, size: 18),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: _Info(video: video)),
+            if (onMoreTap != null)
+              IconButton(
+                icon: Icon(Symbols.more_vert_rounded, color: cs.onSurfaceVariant, size: 22),
+                onPressed: onMoreTap,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class VideoGridCard extends StatelessWidget {
+  final VideoItem video;
+  final VoidCallback onTap;
+  final VoidCallback? onMoreTap;
+  final VoidCallback? onLongPress;
+  final bool isSelected;
+
+  const VideoGridCard({
+    super.key,
+    required this.video,
+    required this.onTap,
+    this.onMoreTap,
+    this.onLongPress,
+    this.isSelected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: isSelected ? cs.primary.withOpacity(0.15) : null,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress ?? onMoreTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(fit: StackFit.expand, children: [
+                VideoThumbnailLoader(video: video, width: double.infinity, height: double.infinity),
+                Positioned(
+                  bottom: 6, right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(video.formattedDuration,
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  child: _ResumeProgressBar(video: video),
+                ),
+                if (isSelected)
+                  Positioned(
+                    top: 6, right: 6,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Symbols.check_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(video.name,
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: cs.onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 3),
+                  Text(video.formattedSize, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10)),
+                ])),
+                if (onMoreTap != null)
+                  IconButton(
+                    icon: Icon(Symbols.more_vert_rounded, color: cs.onSurfaceVariant, size: 18),
+                    onPressed: onMoreTap,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResumeProgressBar extends StatelessWidget {
+  final VideoItem video;
+  const _ResumeProgressBar({required this.video});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LibraryProvider>(
+      builder: (context, lib, _) {
+        final position = lib.getCachedPosition(video.path);
+        if (position == null || position.inMilliseconds <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final totalDuration = video.duration;
+        if (totalDuration.inMilliseconds <= 0) return const SizedBox.shrink();
+
+        final progress = (position.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0);
+        final cs = Theme.of(context).colorScheme;
+
+        return Container(
+          height: 4,
+          color: cs.surfaceContainerHighest.withOpacity(0.3),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            minHeight: 4,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Info extends StatelessWidget {
+  final VideoItem video;
+  const _Info({required this.video});
+
+  String get displayName {
+    final name = video.name;
+    final dotIndex = name.lastIndexOf('.');
+    if (dotIndex != -1 && dotIndex < name.length - 1) {
+      return name.substring(0, dotIndex);
+    }
+    return name;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(displayName,
+          maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: cs.onSurface, fontSize: 13.5, fontWeight: FontWeight.w500, height: 1.3)),
+      const SizedBox(height: 6),
+      Row(children: [
+        _Tag(video.formattedSize, cs),
+        const SizedBox(width: 6),
+        _Tag(video.extension.toUpperCase(), cs, primary: true),
+        ValueListenableBuilder<List<String>>(
+          valueListenable: video.subtitlesNotifier,
+          builder: (context, subtitles, _) {
+            if (subtitles.isEmpty) return const SizedBox.shrink();
+            return Row(
+              children: subtitles.map((sub) => Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.green.withOpacity(0.35)),
+                  ),
+                  child: Text(sub, style: const TextStyle(
+                    color: Colors.green, fontSize: 8.5, fontWeight: FontWeight.w900
+                  )),
+                ),
+              )).toList(),
+            );
+          },
+        ),
+      ]),
+      const SizedBox(height: 4),
+      Row(children: [
+        Icon(Symbols.folder_rounded, size: 12, color: cs.onSurfaceVariant.withOpacity(0.6)),
+        const SizedBox(width: 4),
+        Expanded(child: Text(video.folder,
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6), fontSize: 11))),
+      ]),
+    ]);
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  final ColorScheme cs;
+  final bool primary;
+  const _Tag(this.label, this.cs, {this.primary = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: primary ? cs.primaryContainer.withOpacity(0.4) : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label, style: TextStyle(
+        color: primary ? cs.primary : cs.onSurfaceVariant,
+        fontSize: 10, fontWeight: FontWeight.w600,
+      )),
+    );
+  }
+}
+===== lib/widgets/color_adjustment_panel.dart =====
+import 'package:flutter/material.dart';
+
+class ColorAdjustmentPanel extends StatefulWidget {
+  final double brightness, contrast, saturation, hue, gamma;
+  final Function(String type, double value) onChanged;
+  final VoidCallback onReset;
+  final VoidCallback onClose;
+
+  const ColorAdjustmentPanel({
+    super.key,
+    required this.brightness,
+    required this.contrast,
+    required this.saturation,
+    required this.hue,
+    required this.gamma,
+    required this.onChanged,
+    required this.onReset,
+    required this.onClose,
+  });
+
+  @override
+  State<ColorAdjustmentPanel> createState() => _ColorAdjustmentPanelState();
+}
+
+class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
+  // ✅ State محلية — تُحدَّث فوراً عند تحريك السلايدر
+  late double _brightness;
+  late double _contrast;
+  late double _saturation;
+  late double _hue;
+  late double _gamma;
+
+  @override
+  void initState() {
+    super.initState();
+    _brightness = widget.brightness;
+    _contrast   = widget.contrast;
+    _saturation = widget.saturation;
+    _hue        = widget.hue;
+    _gamma      = widget.gamma;
+  }
+
+  void _onChange(String type, double value) {
+    setState(() {
+      switch (type) {
+        case 'brightness': _brightness = value; break;
+        case 'contrast':   _contrast   = value; break;
+        case 'saturation': _saturation = value; break;
+        case 'hue':        _hue        = value; break;
+        case 'gamma':      _gamma      = value; break;
+      }
+    });
+    widget.onChanged(type, value);
+  }
+
+  void _onReset() {
+    setState(() {
+      _brightness = 0;
+      _contrast   = 0;
+      _saturation = 0;
+      _hue        = 0;
+      _gamma      = 0;
+    });
+    widget.onReset();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Directionality(
+      textDirection: Directionality.of(context),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: cs.primary.withOpacity(0.4), width: 1),
+            boxShadow: const [
+              BoxShadow(color: Colors.black54, blurRadius: 16, spreadRadius: 2)
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ─── Header ──────────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: widget.onClose,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const Text(
+                    'تنسيق الألوان',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
+                    onPressed: _onReset,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // ─── Sliders ─────────────────────────────────────
+              _Slider('السطوع',    _brightness, cs.primary, (v) => _onChange('brightness', v)),
+              _Slider('التباين',   _contrast,   cs.primary, (v) => _onChange('contrast',   v)),
+              _Slider('التشبع',    _saturation, cs.primary, (v) => _onChange('saturation', v)),
+              _Slider('درجة اللون', _hue,       cs.primary, (v) => _onChange('hue',        v)),
+              _Slider('Gamma',     _gamma,      cs.primary, (v) => _onChange('gamma',      v)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Slider extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+  final ValueChanged<double> onChanged;
+
+  const _Slider(this.label, this.value, this.color, this.onChanged);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(label,
+                style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 3,
+                thumbShape:
+                    const RoundSliderThumbShape(enabledThumbRadius: 7),
+                overlayShape:
+                    const RoundSliderOverlayShape(overlayRadius: 16),
+                activeTrackColor: color,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: color,
+                overlayColor: color.withOpacity(0.2),
+              ),
+              child: Slider(
+                value: value.clamp(-100.0, 100.0),
+                min: -100,
+                max: 100,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 34,
+            child: Text(
+              value.toInt().toString(),
+              style: TextStyle(
+                  color: value != 0 ? color : Colors.white38,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.left,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+===== lib/widgets/subtitle_preview.dart =====
+import 'package:flutter/material.dart';
+import '../models/subtitle_settings.dart';
+import '../screens/player/subtitle_style_builder.dart';
+
+class SubtitlePreview extends StatelessWidget {
+  final SubtitleSettings settings;
+  final String text;
+
+  const SubtitlePreview({
+    super.key,
+    required this.settings,
+    this.text = 'مرحباً بك في SR Player',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = buildSubtitleTextStyle(settings);
+    final textAlign = buildSubtitleTextAlign(settings);
+
+    Widget textWidget = Text(
+      text,
+      style: textStyle,
+      textAlign: textAlign,
+      maxLines: settings.autoWrap ? settings.maxLines : 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    if (settings.bgOpacity > 0) {
+      double radius;
+      switch (settings.bgShape) {
+        case SubtitleBgShape.rectangle:
+          radius = 0;
+          break;
+        case SubtitleBgShape.capsule:
+          radius = 100;
+          break;
+        case SubtitleBgShape.rounded:
+        default:
+          radius = settings.bgBorderRadius;
+      }
+
+      textWidget = Container(
+        padding: EdgeInsets.all(settings.bgPadding),
+        decoration: BoxDecoration(
+          color: settings.bgColor.withOpacity(settings.bgOpacity),
+          borderRadius: BorderRadius.circular(radius),
+          border: settings.bgBorderWidth > 0
+              ? Border.all(color: settings.bgBorderColor, width: settings.bgBorderWidth)
+              : null,
+        ),
+        child: textWidget,
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+      ),
+      child: Center(child: textWidget),
+    );
+  }
+}
+===== lib/widgets/subtitle_renderer.dart =====
+import 'package:flutter/material.dart';
+import '../models/subtitle_settings.dart';
+import '../services/subtitle_service.dart';
+import '../screens/player/subtitle_style_builder.dart';
+import '../services/subtitle_layout_engine.dart';
+
+class SubtitleRenderer extends StatefulWidget {
+  final SubtitleEntry? currentEntry;
+  final SubtitleSettings settings;
+  final Rect videoRect;
+  final Size videoSize;
+  final Size screenSize;
+  final EdgeInsets safeArea;
+  final bool visible;
+
+  const SubtitleRenderer({
+    super.key,
+    required this.currentEntry,
+    required this.settings,
+    required this.videoRect,
+    required this.videoSize,
+    required this.screenSize,
+    required this.safeArea,
+    this.visible = true,
+  });
+
+  @override
+  State<SubtitleRenderer> createState() => _SubtitleRendererState();
+}
+
+class _SubtitleRendererState extends State<SubtitleRenderer> {
+  late SubtitleSettings _cachedSettings;
+  late TextStyle _cachedTextStyle;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedSettings = widget.settings;
+    _cachedTextStyle = buildSubtitleTextStyle(_cachedSettings);
+  }
+
+  @override
+  void didUpdateWidget(covariant SubtitleRenderer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.settings != widget.settings) {
+      _cachedSettings = widget.settings;
+      _cachedTextStyle = buildSubtitleTextStyle(_cachedSettings);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = widget.currentEntry?.text ?? '';
+
+    if (!widget.visible || !widget.settings.autoShow || displayText.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final layout = SubtitleLayoutEngine.calculate(
+      settings: widget.settings,
+      videoSize: widget.videoSize,
+      videoRect: widget.videoRect,
+      screenSize: widget.screenSize,
+      safeArea: widget.safeArea,
+    );
+
+    final textStyle = _cachedTextStyle.copyWith(fontSize: layout.fontSize);
+
+    final textSpan = TextSpan(
+      text: displayText,
+      style: textStyle,
+    );
+
+    Widget textWidget = Directionality(
+      textDirection: Directionality.of(context),
+      child: RichText(
+        text: textSpan,
+        textAlign: layout.textAlign,
+        maxLines: widget.settings.autoWrap ? widget.settings.maxLines : 1,
+        overflow: TextOverflow.ellipsis,
+        textWidthBasis: TextWidthBasis.longestLine,
+      ),
+    );
+
+    if (widget.settings.bgOpacity > 0) {
+      double radius;
+      switch (widget.settings.bgShape) {
+        case SubtitleBgShape.rectangle:
+          radius = 0;
+          break;
+        case SubtitleBgShape.capsule:
+          radius = 100;
+          break;
+        case SubtitleBgShape.rounded:
+        default:
+          radius = widget.settings.bgBorderRadius;
+      }
+      textWidget = Container(
+        padding: EdgeInsets.all(widget.settings.bgPadding),
+        decoration: BoxDecoration(
+          color: widget.settings.bgColor.withValues(alpha: widget.settings.bgOpacity),
+          borderRadius: BorderRadius.circular(radius),
+          border: widget.settings.bgBorderWidth > 0
+              ? Border.all(color: widget.settings.bgBorderColor, width: widget.settings.bgBorderWidth)
+              : null,
+        ),
+        child: textWidget,
+      );
+    }
+
+    return Positioned(
+      left: widget.videoRect.left,
+      top: widget.videoRect.top,
+      width: widget.videoRect.width,
+      height: widget.videoRect.height,
+      child: ClipRect(
+        child: Align(
+          alignment: layout.alignment,
+          child: Padding(
+            padding: layout.padding,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: layout.maxWidth),
+              // ✅ RepaintBoundary هنا فقط، حول الصندوق الصغير الذي يحتوي فعليًا
+              // على النص — وليس حول الـ Positioned الكبير بحجم الفيديو كامل،
+              // لتجنّب تخصيص طبقة تركيب بحجم الشاشة تظهر رمادية جزئيًا.
+              child: RepaintBoundary(
+                child: textWidget,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+===== lib/widgets/video_thumbnail_loader.dart =====
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import '../models/video_item.dart';
+import '../services/thumbnail_service.dart';
+
+class VideoThumbnailLoader extends StatelessWidget {
+  final VideoItem video;
+  final double width;
+  final double height;
+
+  const VideoThumbnailLoader({
+    super.key,
+    required this.video,
+    this.width = 120,
+    this.height = 80,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailService = ThumbnailService();
+    thumbnailService.prioritize(video);          // ✅ إعطاء أولوية عالية لهذه الصورة
+    final thumbnailNotifier = thumbnailService.getNotifier(video);
+    final errorNotifier = thumbnailService.getErrorNotifier(video);
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ValueListenableBuilder<Uint8List?>(
+          valueListenable: thumbnailNotifier,
+          builder: (context, bytes, child) {
+            if (bytes != null) {
+              return Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (_, __, ___) =>
+                    _buildPlaceholder('فشل تحميل الصورة'),
+              );
+            }
+            return ValueListenableBuilder<String?>(
+              valueListenable: errorNotifier,
+              builder: (context, errorText, _) =>
+                  _buildPlaceholder(errorText),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(String? errorText) {
+    if (errorText != null && errorText.isNotEmpty) {
+      return Container(
+        color: const Color(0xFF1A1A1A),
+        padding: const EdgeInsets.all(4),
+        alignment: Alignment.center,
+        child: Text(
+          errorText,
+          style: const TextStyle(
+            color: Colors.redAccent,
+            fontSize: 8,
+            height: 1.2,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+    return Container(
+      color: Colors.grey[900],
+      child: const Center(
+        child: Icon(Icons.video_file_rounded,
+            color: Colors.white30, size: 36),
+      ),
+    );
+  }
+}

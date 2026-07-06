@@ -483,5 +483,12 @@
   "durationLabel": "Duration",
   "pathLabel": "Path",
   "playlistTitle": "Playlist",
-  "emptyPlaylist": "Playlist is empty"
+  "emptyPlaylist": "Playlist is empty",
+  "colorAdjustmentTitle": "Color Adjustment",
+  "brightness": "Brightness",
+  "contrast": "Contrast",
+  "saturation": "Saturation",
+  "hue": "Hue",
+  "subtitlePreviewText": "Welcome to SR Player",
+  "thumbnailError": "Failed to load image"
 }
