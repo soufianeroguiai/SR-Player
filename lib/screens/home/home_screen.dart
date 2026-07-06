@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/video_item.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../localizations/app_localizations.dart';
+import '../../l10n/app_localizations.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../info_screen.dart';

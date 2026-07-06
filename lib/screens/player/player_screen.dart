@@ -21,7 +21,7 @@ import '../../widgets/video_thumbnail_loader.dart';
 import '../../widgets/subtitle_renderer.dart';
 import '../../services/smart_enhance_service.dart';
 import '../../services/video_layout_calculator.dart';
-import '../../localizations/app_localizations.dart';
+import '../../l10n/app_localizations.dart';
 import '../info_screen.dart';
 import 'player_controls.dart';
 import 'player_audio_panel.dart';

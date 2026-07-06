@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../l10n/app_localizations.dart'; // تمت الإضافة
 
 Widget settingsHeader(BuildContext ctx, String title, IconData icon) {
   final cs = Theme.of(ctx).colorScheme;
@@ -87,8 +88,6 @@ String themeName(ThemeMode m) => switch (m) {
       ThemeMode.system => 'تلقائي',
     };
 
-// كنعرضو اسم كل لغة بلغتها هي (مش مترجم)، باش المستخدم يقدر يلقى لغته
-// حتى ولو ما كايفهمش اللغة المعروضة حاليًا فـ التطبيق.
 String languageDisplayName(String code) => switch (code) {
       'ar' => 'العربية',
       'en' => 'English',
@@ -96,11 +95,12 @@ String languageDisplayName(String code) => switch (code) {
       _ => 'لغة النظام / System',
     };
 
-String sortName(String s) => switch (s) {
-      'name' => 'الاسم',
-      'size' => 'الحجم',
-      'duration' => 'المدة',
-      _ => 'التاريخ',
+// تم تعديل الدالة لقبول الترجمة
+String sortName(String s, AppLocalizations t) => switch (s) {
+      'name' => t.sortByName,
+      'size' => t.sortBySize,
+      'duration' => t.sortByDuration,
+      _ => t.sortByDate,
     };
 
 void showBottomPicker<T>(

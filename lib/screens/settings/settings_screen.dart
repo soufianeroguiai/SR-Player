@@ -8,7 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
-import '../../localizations/app_localizations.dart';
+import '../../l10n/app_localizations.dart'; // تم التصحيح: المسار إلى l10n بدلاً من localizations
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
@@ -742,13 +742,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await file.writeAsString(jsonStr);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.exportSuccessMessage.replaceFirst('{path}', file.path))),
+          SnackBar(content: Text(t.exportSuccessMessage(file.path))), // تم التصحيح: استدعاء الدالة مباشرة
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.exportFailMessage.replaceFirst('{error}', e.toString()))),
+          SnackBar(content: Text(t.exportFailMessage(e.toString()))), // تم التصحيح
         );
       }
     }
@@ -770,7 +770,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.importFailMessage.replaceFirst('{error}', e.toString()))),
+          SnackBar(content: Text(t.importFailMessage(e.toString()))), // تم التصحيح
         );
       }
     }
