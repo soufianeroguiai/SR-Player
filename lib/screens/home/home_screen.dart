@@ -555,6 +555,10 @@ class _HomeScreenState extends State<HomeScreen>
     final tabWidth = totalWidth / tabs.length;
     final textDir = Directionality.of(context);
 
+    final double indicatorStart = textDir == TextDirection.rtl
+        ? (tabs.length - 1 - _currentIndex) * tabWidth + 6
+        : _currentIndex * tabWidth + 6;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Container(
@@ -576,11 +580,10 @@ class _HomeScreenState extends State<HomeScreen>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              AnimatedPositioned.directional(
-                textDirection: textDir,
+              AnimatedPositioned(
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
-                start: _currentIndex * tabWidth + 6,
+                left: indicatorStart,
                 top: 8,
                 bottom: 8,
                 child: AnimatedContainer(
@@ -620,7 +623,6 @@ class _HomeScreenState extends State<HomeScreen>
                   children: List.generate(tabs.length, (index) {
                     final tab = tabs[index];
                     final isActive = _currentIndex == index;
-
                     return Expanded(
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,

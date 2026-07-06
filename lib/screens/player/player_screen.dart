@@ -189,8 +189,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _toggleFit() {
+    final t = AppLocalizations.of(context)!;
     _state.fitMode = VideoFitMode.values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
-    _state.fitOverlayText = modeName(_state.fitMode);
+    _state.fitOverlayText = modeName(_state.fitMode, t);
     if (_state.fitMode != VideoFitMode.free) {
       _state.zoomScale = 1.0;
       _state.panOffset = Offset.zero;
@@ -205,8 +206,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _setFitMode(VideoFitMode mode) {
+    final t = AppLocalizations.of(context)!;
     _state.fitMode = mode;
-    _state.fitOverlayText = modeName(mode);
+    _state.fitOverlayText = modeName(mode, t);
     if (mode != VideoFitMode.free) {
       _state.zoomScale = 1.0;
       _state.panOffset = Offset.zero;
@@ -824,7 +826,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 },
                                 rememberPosition: _settingsProvider.rememberPosition,
                                 currentSpeed: _state.speed,
-                                currentFitMode: modeName(_state.fitMode),
+                                currentFitMode: modeName(_state.fitMode, t),
                                 fitMode: _state.fitMode,
                                 onClose: () {
                                   _state.currentMenu = ActiveMenu.none;

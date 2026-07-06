@@ -4,6 +4,7 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../l10n/app_localizations.dart';
+import 'settings_widgets.dart';
 
 void showFontPicker(BuildContext ctx, SettingsProvider s) {
   final t = AppLocalizations.of(ctx)!;
