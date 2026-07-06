@@ -335,7 +335,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       srtContent.writeln(e.text);
       srtContent.writeln();
     }
-    await _player.setSubtitleTrack(SubtitleTrack.data(srtContent.toString(), title: 'ترجمة خارجية'));
+    await _player.setSubtitleTrack(SubtitleTrack.data(srtContent.toString(),
+        title: AppLocalizations.of(context)!.externalSubtitleLabel));
   }
 
   String _formatSrtTime(Duration d) {

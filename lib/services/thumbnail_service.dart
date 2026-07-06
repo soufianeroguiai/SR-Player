@@ -131,10 +131,12 @@ class ThumbnailService {
         _addToMemoryCache(path, bytes);
         _notifiers[path]?.value = bytes;
       } else {
-        _errors[path]?.value ??= 'تعذّر استخراج الصورة';
+        // نخزّن كود خطأ مستقر (بدل نص عربي مباشر) باش الواجهة تترجمو حسب لغة التطبيق
+        _errors[path]?.value ??= 'extract_failed';
       }
     } catch (e) {
-      _errors[path]?.value = 'خطأ: $e';
+      debugPrint('ThumbnailService: $e');
+      _errors[path]?.value = 'exception';
     } finally {
       _pending.remove(path);
     }
@@ -144,7 +146,7 @@ class ThumbnailService {
   Future<Uint8List?> _ffmpegThumb(VideoItem video, String savePath) async {
     final videoPath = video.path;
     if (!await File(videoPath).exists()) {
-      _errors[videoPath]?.value = 'الملف غير موجود';
+      _errors[videoPath]?.value = 'file_not_found';
       return null;
     }
 
@@ -189,14 +191,16 @@ class ThumbnailService {
                   return;
                 }
               }
-              _errors[videoPath]?.value = 'الملف الناتج فارغ';
+              _errors[videoPath]?.value = 'empty_output';
             } else {
               final log = await session.getOutput();
-              _errors[videoPath]?.value = 'FFmpeg فشل: ${log ?? "غير معروف"}';
+              debugPrint('ThumbnailService FFmpeg failed: ${log ?? "unknown"}');
+              _errors[videoPath]?.value = 'ffmpeg_failed';
             }
             completer.complete(null);
           } catch (e) {
-            _errors[videoPath]?.value = 'استثناء: $e';
+            debugPrint('ThumbnailService: $e');
+            _errors[videoPath]?.value = 'exception';
             completer.complete(null);
           }
         },
@@ -205,12 +209,13 @@ class ThumbnailService {
       return completer.future.timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          _errors[videoPath]?.value = 'انتهى الوقت المحدد';
+          _errors[videoPath]?.value = 'timeout';
           return null;
         },
       );
     } catch (e) {
-      _errors[videoPath]?.value = 'استثناء: $e';
+      debugPrint('ThumbnailService: $e');
+      _errors[videoPath]?.value = 'exception';
       return null;
     } finally {
       if (symlink != null) {

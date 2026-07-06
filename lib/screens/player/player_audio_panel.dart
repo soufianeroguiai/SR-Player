@@ -54,7 +54,9 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
                             t.noActiveTrack;
 
     return Directionality(
-      textDirection: Directionality.of(context),
+      // بقيت الواجهة بنفس الجهة دائماً (بلا مرآة) كيفما دار المستخدم فـ باقي
+      // شاشة المشغل — كيتبدل النص المترجم فقط، والتخطيط/الأيقونات ما كيتحركوش.
+      textDirection: TextDirection.ltr,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [

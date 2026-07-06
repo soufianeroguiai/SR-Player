@@ -20,6 +20,7 @@ import 'smart_enhance_service.dart';
 import 'video_info_service.dart';
 import '../screens/player/player_state.dart';
 import '../screens/player/player_fit_mode.dart';
+import '../l10n/app_localizations.dart';
 
 class PlayerControlService {
   final Player player;
@@ -106,7 +107,7 @@ class PlayerControlService {
         player.pause();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم إيقاف التشغيل بواسطة مؤقت النوم')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.sleepTimerStoppedMessage)),
           );
         }
       });
@@ -364,7 +365,7 @@ class PlayerControlService {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تعذر تشغيل الملف: $e')));
+            SnackBar(content: Text(AppLocalizations.of(context)!.playerError('$e'))));
         Navigator.pop(context);
       }
     }
@@ -569,7 +570,7 @@ class PlayerControlService {
         state.notifyListeners();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Smart Enhance: انتظر بدء التشغيل أولاً')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.smartEnhanceWaitMessage)),
           );
         }
       }
@@ -608,7 +609,7 @@ class PlayerControlService {
       state.notifyListeners();
       if (context.mounted && currentHw == 'no' && updatedHw == 'no') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('عتاد الهاتف لا يدعم فك تشفير هذا التنسيق تلقائياً، تم التحويل للسوفتوير.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.hwDecodeFallbackMessage)),
         );
       }
     });
@@ -733,8 +734,9 @@ class PlayerControlService {
     try { await tmpFile.delete(); } catch (_) {}
 
     if (context.mounted) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result != null ? '✅ تم حفظ اللقطة في معرض الصور' : 'فشل الحفظ في المعرض'),
+        content: Text(result != null ? '✅ ${t.snapshotSavedMessage}' : t.snapshotSaveFailedMessage),
       ));
     }
   }
@@ -742,18 +744,20 @@ class PlayerControlService {
   void toggleFavorite() {
     libraryProvider.toggleFavorite(video.path);
     if (context.mounted) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(libraryProvider.isFavorite(video.path)
-            ? 'تمت إضافة للمفضلة'
-            : 'تمت إزالة من المفضلة')));
+            ? t.addedToFavoritesMessage
+            : t.removedFromFavoritesMessage)));
     }
   }
 
   Future<void> addToPlaylist() async {
     final added = await libraryProvider.addToPlaylist(video.path);
     if (context.mounted) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(added ? 'تمت الإضافة إلى قائمة التشغيل' : 'الملف موجود مسبقاً في القائمة')));
+        content: Text(added ? t.addedToPlaylist : t.alreadyInPlaylistToast)));
     }
   }
 

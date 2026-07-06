@@ -1534,4 +1534,56 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get thumbnailError => 'فشل تحميل الصورة';
+
+  @override
+  String get sleepTimerStoppedMessage => 'تم إيقاف التشغيل بواسطة مؤقت النوم';
+
+  @override
+  String get smartEnhanceWaitMessage =>
+      'Smart Enhance: انتظر بدء التشغيل أولاً';
+
+  @override
+  String get hwDecodeFallbackMessage =>
+      'عتاد الهاتف لا يدعم فك تشفير هذا التنسيق تلقائياً، تم التحويل للسوفتوير.';
+
+  @override
+  String get snapshotSavedMessage => 'تم حفظ اللقطة في معرض الصور';
+
+  @override
+  String get snapshotSaveFailedMessage => 'فشل الحفظ في المعرض';
+
+  @override
+  String get addedToFavoritesMessage => 'تمت إضافة للمفضلة';
+
+  @override
+  String get removedFromFavoritesMessage => 'تمت إزالة من المفضلة';
+
+  @override
+  String get thumbnailExtractFailed => 'تعذّر استخراج الصورة';
+
+  @override
+  String get fileNotFoundMessage => 'الملف غير موجود';
+
+  @override
+  String get outputFileEmptyMessage => 'الملف الناتج فارغ';
+
+  @override
+  String get ffmpegFailedMessage => 'فشل معالجة الفيديو';
+
+  @override
+  String get timeoutMessage => 'انتهى الوقت المحدد';
+
+  @override
+  String get externalSubtitleLabel => 'ترجمة خارجية';
+
+  @override
+  String get searchOnlineSubtitles => 'بحث عن ترجمة أونلاين';
+
+  @override
+  String get noSubtitlesFound => 'لم يتم العثور على ترجمة';
+
+  @override
+  String downloadFailed(Object error) {
+    return 'فشل التنزيل: $error';
+  }
 }

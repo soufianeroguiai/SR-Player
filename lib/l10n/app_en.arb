@@ -490,5 +490,22 @@
   "saturation": "Saturation",
   "hue": "Hue",
   "subtitlePreviewText": "Welcome to SR Player",
-  "thumbnailError": "Failed to load image"
+  "thumbnailError": "Failed to load image",
+
+  "sleepTimerStoppedMessage": "Playback stopped by sleep timer",
+  "smartEnhanceWaitMessage": "Smart Enhance: wait for playback to start first",
+  "hwDecodeFallbackMessage": "Your device's hardware doesn't support decoding this format automatically; switched to software decoding.",
+  "snapshotSavedMessage": "Snapshot saved to gallery",
+  "snapshotSaveFailedMessage": "Failed to save to gallery",
+  "addedToFavoritesMessage": "Added to favorites",
+  "removedFromFavoritesMessage": "Removed from favorites",
+  "thumbnailExtractFailed": "Couldn't extract thumbnail",
+  "fileNotFoundMessage": "File not found",
+  "outputFileEmptyMessage": "Output file is empty",
+  "ffmpegFailedMessage": "Failed to process video",
+  "timeoutMessage": "Timed out",
+  "externalSubtitleLabel": "External subtitle",
+  "searchOnlineSubtitles": "Search Online Subtitles",
+  "noSubtitlesFound": "No subtitles found",
+  "downloadFailed": "Download failed: {error}"
 }

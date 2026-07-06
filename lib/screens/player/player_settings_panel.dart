@@ -112,7 +112,8 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
     }
 
     return Directionality(
-      textDirection: Directionality.of(context),
+      // بقيت الواجهة بنفس الجهة دائماً (بلا مرآة)، مطابقة لباقي شاشة المشغل.
+      textDirection: TextDirection.ltr,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [

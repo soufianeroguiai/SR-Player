@@ -489,5 +489,22 @@
   "saturation": "التشبع",
   "hue": "درجة اللون",
   "subtitlePreviewText": "مرحباً بك في SR Player",
-  "thumbnailError": "فشل تحميل الصورة"
+  "thumbnailError": "فشل تحميل الصورة",
+
+  "sleepTimerStoppedMessage": "تم إيقاف التشغيل بواسطة مؤقت النوم",
+  "smartEnhanceWaitMessage": "Smart Enhance: انتظر بدء التشغيل أولاً",
+  "hwDecodeFallbackMessage": "عتاد الهاتف لا يدعم فك تشفير هذا التنسيق تلقائياً، تم التحويل للسوفتوير.",
+  "snapshotSavedMessage": "تم حفظ اللقطة في معرض الصور",
+  "snapshotSaveFailedMessage": "فشل الحفظ في المعرض",
+  "addedToFavoritesMessage": "تمت إضافة للمفضلة",
+  "removedFromFavoritesMessage": "تمت إزالة من المفضلة",
+  "thumbnailExtractFailed": "تعذّر استخراج الصورة",
+  "fileNotFoundMessage": "الملف غير موجود",
+  "outputFileEmptyMessage": "الملف الناتج فارغ",
+  "ffmpegFailedMessage": "فشل معالجة الفيديو",
+  "timeoutMessage": "انتهى الوقت المحدد",
+  "externalSubtitleLabel": "ترجمة خارجية",
+  "searchOnlineSubtitles": "بحث عن ترجمة أونلاين",
+  "noSubtitlesFound": "لم يتم العثور على ترجمة",
+  "downloadFailed": "فشل التنزيل: {error}"
 }

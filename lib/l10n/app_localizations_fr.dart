@@ -1543,4 +1543,58 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get thumbnailError => 'Échec du chargement de l\'image';
+
+  @override
+  String get sleepTimerStoppedMessage =>
+      'Lecture arrêtée par la minuterie de veille';
+
+  @override
+  String get smartEnhanceWaitMessage =>
+      'Smart Enhance : attendez d\'abord le début de la lecture';
+
+  @override
+  String get hwDecodeFallbackMessage =>
+      'Le matériel de l\'appareil ne prend pas en charge le décodage automatique de ce format ; basculé sur le décodage logiciel.';
+
+  @override
+  String get snapshotSavedMessage => 'Capture enregistrée dans la galerie';
+
+  @override
+  String get snapshotSaveFailedMessage =>
+      'Échec de l\'enregistrement dans la galerie';
+
+  @override
+  String get addedToFavoritesMessage => 'Ajouté aux favoris';
+
+  @override
+  String get removedFromFavoritesMessage => 'Retiré des favoris';
+
+  @override
+  String get thumbnailExtractFailed => 'Impossible d\'extraire la miniature';
+
+  @override
+  String get fileNotFoundMessage => 'Fichier introuvable';
+
+  @override
+  String get outputFileEmptyMessage => 'Le fichier de sortie est vide';
+
+  @override
+  String get ffmpegFailedMessage => 'Échec du traitement de la vidéo';
+
+  @override
+  String get timeoutMessage => 'Délai dépassé';
+
+  @override
+  String get externalSubtitleLabel => 'Sous-titre externe';
+
+  @override
+  String get searchOnlineSubtitles => 'Rechercher des sous-titres en ligne';
+
+  @override
+  String get noSubtitlesFound => 'Aucun sous-titre trouvé';
+
+  @override
+  String downloadFailed(Object error) {
+    return 'Échec du téléchargement : $error';
+  }
 }

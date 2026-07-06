@@ -488,5 +488,22 @@
   "saturation": "Saturation",
   "hue": "Teinte",
   "subtitlePreviewText": "Bienvenue sur SR Player",
-  "thumbnailError": "Échec du chargement de l'image"
+  "thumbnailError": "Échec du chargement de l'image",
+
+  "sleepTimerStoppedMessage": "Lecture arrêtée par la minuterie de veille",
+  "smartEnhanceWaitMessage": "Smart Enhance : attendez d'abord le début de la lecture",
+  "hwDecodeFallbackMessage": "Le matériel de l'appareil ne prend pas en charge le décodage automatique de ce format ; basculé sur le décodage logiciel.",
+  "snapshotSavedMessage": "Capture enregistrée dans la galerie",
+  "snapshotSaveFailedMessage": "Échec de l'enregistrement dans la galerie",
+  "addedToFavoritesMessage": "Ajouté aux favoris",
+  "removedFromFavoritesMessage": "Retiré des favoris",
+  "thumbnailExtractFailed": "Impossible d'extraire la miniature",
+  "fileNotFoundMessage": "Fichier introuvable",
+  "outputFileEmptyMessage": "Le fichier de sortie est vide",
+  "ffmpegFailedMessage": "Échec du traitement de la vidéo",
+  "timeoutMessage": "Délai dépassé",
+  "externalSubtitleLabel": "Sous-titre externe",
+  "searchOnlineSubtitles": "Rechercher des sous-titres en ligne",
+  "noSubtitlesFound": "Aucun sous-titre trouvé",
+  "downloadFailed": "Échec du téléchargement : {error}"
 }

@@ -1536,4 +1536,56 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get thumbnailError => 'Failed to load image';
+
+  @override
+  String get sleepTimerStoppedMessage => 'Playback stopped by sleep timer';
+
+  @override
+  String get smartEnhanceWaitMessage =>
+      'Smart Enhance: wait for playback to start first';
+
+  @override
+  String get hwDecodeFallbackMessage =>
+      'Your device\'s hardware doesn\'t support decoding this format automatically; switched to software decoding.';
+
+  @override
+  String get snapshotSavedMessage => 'Snapshot saved to gallery';
+
+  @override
+  String get snapshotSaveFailedMessage => 'Failed to save to gallery';
+
+  @override
+  String get addedToFavoritesMessage => 'Added to favorites';
+
+  @override
+  String get removedFromFavoritesMessage => 'Removed from favorites';
+
+  @override
+  String get thumbnailExtractFailed => 'Couldn\'t extract thumbnail';
+
+  @override
+  String get fileNotFoundMessage => 'File not found';
+
+  @override
+  String get outputFileEmptyMessage => 'Output file is empty';
+
+  @override
+  String get ffmpegFailedMessage => 'Failed to process video';
+
+  @override
+  String get timeoutMessage => 'Timed out';
+
+  @override
+  String get externalSubtitleLabel => 'External subtitle';
+
+  @override
+  String get searchOnlineSubtitles => 'Search Online Subtitles';
+
+  @override
+  String get noSubtitlesFound => 'No subtitles found';
+
+  @override
+  String downloadFailed(Object error) {
+    return 'Download failed: $error';
+  }
 }

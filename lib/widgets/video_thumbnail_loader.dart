@@ -43,13 +43,33 @@ class VideoThumbnailLoader extends StatelessWidget {
             }
             return ValueListenableBuilder<String?>(
               valueListenable: errorNotifier,
-              builder: (context, errorText, _) =>
-                  _buildPlaceholder(errorText ?? t.thumbnailError),
+              builder: (context, errorCode, _) =>
+                  _buildPlaceholder(_localizedThumbnailError(t, errorCode)),
             );
           },
         ),
       ),
     );
+  }
+
+  // ThumbnailService كيخزّن كود خطأ ثابت (بلا لغة) بدل نص جاهز، حتى
+  // الواجهة هي اللي تقرر الترجمة المناسبة حسب لغة التطبيق الحالية.
+  String _localizedThumbnailError(AppLocalizations t, String? code) {
+    switch (code) {
+      case 'extract_failed':
+        return t.thumbnailExtractFailed;
+      case 'file_not_found':
+        return t.fileNotFoundMessage;
+      case 'empty_output':
+        return t.outputFileEmptyMessage;
+      case 'ffmpeg_failed':
+        return t.ffmpegFailedMessage;
+      case 'timeout':
+        return t.timeoutMessage;
+      case 'exception':
+      default:
+        return t.thumbnailError;
+    }
   }
 
   Widget _buildPlaceholder(String errorText) {

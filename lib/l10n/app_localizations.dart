@@ -2997,6 +2997,102 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'فشل تحميل الصورة'**
   String get thumbnailError;
+
+  /// No description provided for @sleepTimerStoppedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إيقاف التشغيل بواسطة مؤقت النوم'**
+  String get sleepTimerStoppedMessage;
+
+  /// No description provided for @smartEnhanceWaitMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'Smart Enhance: انتظر بدء التشغيل أولاً'**
+  String get smartEnhanceWaitMessage;
+
+  /// No description provided for @hwDecodeFallbackMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'عتاد الهاتف لا يدعم فك تشفير هذا التنسيق تلقائياً، تم التحويل للسوفتوير.'**
+  String get hwDecodeFallbackMessage;
+
+  /// No description provided for @snapshotSavedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ اللقطة في معرض الصور'**
+  String get snapshotSavedMessage;
+
+  /// No description provided for @snapshotSaveFailedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل الحفظ في المعرض'**
+  String get snapshotSaveFailedMessage;
+
+  /// No description provided for @addedToFavoritesMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت إضافة للمفضلة'**
+  String get addedToFavoritesMessage;
+
+  /// No description provided for @removedFromFavoritesMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت إزالة من المفضلة'**
+  String get removedFromFavoritesMessage;
+
+  /// No description provided for @thumbnailExtractFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر استخراج الصورة'**
+  String get thumbnailExtractFailed;
+
+  /// No description provided for @fileNotFoundMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف غير موجود'**
+  String get fileNotFoundMessage;
+
+  /// No description provided for @outputFileEmptyMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف الناتج فارغ'**
+  String get outputFileEmptyMessage;
+
+  /// No description provided for @ffmpegFailedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل معالجة الفيديو'**
+  String get ffmpegFailedMessage;
+
+  /// No description provided for @timeoutMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهى الوقت المحدد'**
+  String get timeoutMessage;
+
+  /// No description provided for @externalSubtitleLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترجمة خارجية'**
+  String get externalSubtitleLabel;
+
+  /// No description provided for @searchOnlineSubtitles.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحث عن ترجمة أونلاين'**
+  String get searchOnlineSubtitles;
+
+  /// No description provided for @noSubtitlesFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يتم العثور على ترجمة'**
+  String get noSubtitlesFound;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل التنزيل: {error}'**
+  String downloadFailed(Object error);
 }
 
 class _AppLocalizationsDelegate

@@ -70,7 +70,8 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
     final t = AppLocalizations.of(context)!;
 
     return Directionality(
-      textDirection: Directionality.of(context),
+      // بقيت الواجهة بنفس الجهة دائماً (بلا مرآة)، مطابقة لباقي شاشة المشغل.
+      textDirection: TextDirection.ltr,
       child: Material(
         color: Colors.transparent,
         child: Container(

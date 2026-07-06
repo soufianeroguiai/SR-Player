@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/online_subtitle_service.dart';
 
 class SubtitleAppearancePanel extends StatefulWidget {
   final List<SubtitleTrack> subtitleTracks;
@@ -18,6 +19,8 @@ class SubtitleAppearancePanel extends StatefulWidget {
   final ValueChanged<bool> onToggleSubtitles;
   final double subtitleSync;
   final ValueChanged<double> onSyncChanged;
+  final String videoName;
+  final void Function(String path, String encoding) onLoadSrt;
 
   const SubtitleAppearancePanel({
     super.key,
@@ -31,6 +34,8 @@ class SubtitleAppearancePanel extends StatefulWidget {
     required this.onToggleSubtitles,
     required this.subtitleSync,
     required this.onSyncChanged,
+    required this.videoName,
+    required this.onLoadSrt,
   });
 
   @override
@@ -57,6 +62,53 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     setState(() {
       _openSection = _openSection == index ? -1 : index;
     });
+  }
+
+  Future<void> _showOnlineSearch(BuildContext context) async {
+    final t = AppLocalizations.of(context)!;
+    final service = OpenSubtitlesService();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: FutureBuilder<List<SubtitleResult>>(
+          future: service.search(query: widget.videoName),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text(t.noSubtitlesFound));
+            }
+            final results = snapshot.data!;
+            return ListView.builder(
+              itemCount: results.length,
+              itemBuilder: (_, i) {
+                final item = results[i];
+                return ListTile(
+                  title: Text(item.fileName),
+                  subtitle: Text('${item.language}  ★ ${item.rating}'),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      final file = await service.download(item.downloadUrl, '${item.id}.srt');
+                      widget.onLoadSrt(file.path, 'UTF-8');
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(t.downloadFailed(e.toString()))),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -208,6 +260,12 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
         leading: const Icon(Symbols.folder_open_rounded, color: Colors.white70, size: 18),
         title: Text(t.pickSubtitleFile, style: const TextStyle(color: Colors.white, fontSize: 13)),
         onTap: widget.onPickSubtitle,
+      ),
+      ListTile(
+        dense: true,
+        leading: const Icon(Icons.cloud_download_rounded, color: Colors.white70, size: 18),
+        title: Text(t.searchOnlineSubtitles, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        onTap: () => _showOnlineSearch(context),
       ),
       if (widget.hasExternalSubtitle)
         ListTile(
