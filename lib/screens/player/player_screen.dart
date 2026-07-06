@@ -710,7 +710,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       child: RepaintBoundary(
         child: SafeArea(
           child: Directionality(
-            textDirection: TextDirection.rtl,
+            // كنورّثو اتجاه النص الفعلي للتطبيق (يتبع اللغة المختارة) بدل ما نفرضو RTL دائماً
+            textDirection: Directionality.of(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1481,7 +1482,7 @@ class _StatsForNerdsPanel extends StatelessWidget {
     ];
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: Directionality.of(context),
       child: Container(
         padding: const EdgeInsets.all(10),
         constraints: const BoxConstraints(maxWidth: 260),

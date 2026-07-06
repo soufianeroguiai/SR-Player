@@ -90,7 +90,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
     final s = context.watch<SettingsProvider>();
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: Directionality.of(context),
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [

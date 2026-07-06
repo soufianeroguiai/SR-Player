@@ -158,6 +158,23 @@ void showThemePicker(BuildContext ctx, SettingsProvider s) {
   );
 }
 
+void showLanguagePicker(BuildContext ctx, SettingsProvider s) {
+  // أسماء اللغات معروضة بلغتها الأصلية عمدًا (مش مترجمة) حتى تكون مقروءة
+  // لأي مستخدم بغض النظر عن اللغة الحالية للتطبيق.
+  showBottomPicker<String>(
+    ctx,
+    title: 'اختر اللغة / Choose language',
+    currentValue: s.appLanguageCode,
+    items: const [
+      ('system', 'لغة النظام / System', Symbols.smartphone_rounded),
+      ('ar', 'العربية', Symbols.language_rounded),
+      ('en', 'English', Symbols.language_rounded),
+      ('fr', 'Français', Symbols.language_rounded),
+    ],
+    onSelected: s.setAppLanguageCode,
+  );
+}
+
 void showSpeedPicker(BuildContext ctx, SettingsProvider s) {
   final cs = Theme.of(ctx).colorScheme;
   showModalBottomSheet(

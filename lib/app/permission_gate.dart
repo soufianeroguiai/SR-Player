@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../l10n/app_localizations.dart';
 
 /// شاشة تطلب الصلاحيات الضرورية (الوصول لمكتبة الفيديوهات) قبل
 /// الدخول للتطبيق.
@@ -22,11 +23,14 @@ class _PermissionGateState extends State<PermissionGate> {
   }
 
   Future<void> _requestPermissions() async {
-    setState(() => _checking = true);
+    if (mounted) setState(() => _checking = true);
 
     final mediaStatus = await Permission.videos.request();
     final storageStatus = await Permission.storage.request();
 
+    // الودجت يمكن يكون تفك (unmounted) خلال انتظار طلب الصلاحية
+    // (مثلاً المستخدم خرج من التطبيق قبل ما يجاوب على الطلب).
+    if (!mounted) return;
     setState(() {
       _allGranted = mediaStatus.isGranted || storageStatus.isGranted;
       _checking = false;
@@ -35,14 +39,16 @@ class _PermissionGateState extends State<PermissionGate> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     if (_checking) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 20),
-            Text('جاري طلب الصلاحيات...', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 20),
+            Text(t.requestingPermissions, style: const TextStyle(color: Colors.white70, fontSize: 16)),
           ]),
         ),
       );
@@ -57,22 +63,22 @@ class _PermissionGateState extends State<PermissionGate> {
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.folder_off_rounded, color: Colors.white38, size: 80),
               const SizedBox(height: 24),
-              const Text(
-                'الصلاحيات مطلوبة',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              Text(
+                t.permissionsRequiredTitle,
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'يحتاج التطبيق إلى إذن الوصول إلى الوسائط لعرض الفيديوهات.',
-                style: TextStyle(color: Colors.white60, fontSize: 15),
+              Text(
+                t.permissionsRequiredBody,
+                style: const TextStyle(color: Colors.white60, fontSize: 15),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: _requestPermissions,
                 icon: const Icon(Icons.security_rounded),
-                label: const Text('منح الصلاحيات'),
+                label: Text(t.grantPermissionsButton),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
@@ -83,7 +89,7 @@ class _PermissionGateState extends State<PermissionGate> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => setState(() => _allGranted = true),
-                child: const Text('تخطي', style: TextStyle(color: Colors.white38)),
+                child: Text(t.skipButton, style: const TextStyle(color: Colors.white38)),
               ),
             ]),
           ),

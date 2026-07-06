@@ -69,7 +69,7 @@ class _ColorAdjustmentPanelState extends State<ColorAdjustmentPanel> {
     final cs = Theme.of(context).colorScheme;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: Directionality.of(context),
       child: Material(
         color: Colors.transparent,
         child: Container(

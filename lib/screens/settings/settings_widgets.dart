@@ -87,6 +87,15 @@ String themeName(ThemeMode m) => switch (m) {
       ThemeMode.system => 'تلقائي',
     };
 
+// كنعرضو اسم كل لغة بلغتها هي (مش مترجم)، باش المستخدم يقدر يلقى لغته
+// حتى ولو ما كايفهمش اللغة المعروضة حاليًا فـ التطبيق.
+String languageDisplayName(String code) => switch (code) {
+      'ar' => 'العربية',
+      'en' => 'English',
+      'fr' => 'Français',
+      _ => 'لغة النظام / System',
+    };
+
 String sortName(String s) => switch (s) {
       'name' => 'الاسم',
       'size' => 'الحجم',

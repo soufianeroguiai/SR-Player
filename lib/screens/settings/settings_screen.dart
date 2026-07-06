@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
@@ -34,10 +35,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String _formatBytes(int bytes) {
-    if (bytes <= 0) return '0 ميغابايت';
+    if (bytes <= 0) return '0 MB';
     final mb = bytes / (1024 * 1024);
-    if (mb < 1) return '${(bytes / 1024).toStringAsFixed(0)} كيلوبايت';
-    return '${mb.toStringAsFixed(1)} ميغابايت';
+    if (mb < 1) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${mb.toStringAsFixed(1)} MB';
   }
 
   @override
@@ -45,16 +46,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.watch<SettingsProvider>();
     final sub = s.subtitleSettings;
     final cs = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الإعدادات'),
+        title: Text(t.settingsTitle),
         leading: IconButton(icon: const Icon(Symbols.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        _sectionHeader(context, 'عام', Symbols.settings_rounded),
+        _sectionHeader(context, t.generalSection, Symbols.settings_rounded),
         _card(context, [
-          _choiceTile(context, Symbols.dark_mode_rounded, 'المظهر', themeName(s.themeMode), () => showThemePicker(context, s)),
+          _choiceTile(context, Symbols.dark_mode_rounded, t.appearanceOption, themeName(s.themeMode), () => showThemePicker(context, s)),
+          _divider(),
+          _choiceTile(context, Symbols.language_rounded, t.languageOption, languageDisplayName(s.appLanguageCode),
+              () => showLanguagePicker(context, s)),
           _divider(),
           ListTile(
             leading: Container(
@@ -62,8 +67,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
               child: Icon(Symbols.palette_rounded, color: cs.onSurfaceVariant, size: 22),
             ),
-            title: const Text('لون التطبيق'),
-            subtitle: const Text('لون الواجهة الأساسي (Material You)'),
+            title: Text(t.themeColorOption),
+            subtitle: Text(t.themeColorSubtitle),
             trailing: GestureDetector(
               onTap: () => showThemeColorPicker(context, s),
               child: Container(
@@ -81,248 +86,250 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
 
         // ==========================================
-        //         المشغل (قسم موسع بالكامل)
+        //         المشغل (Player)
         // ==========================================
-        _sectionHeader(context, 'المشغل', Symbols.play_circle_rounded),
+        _sectionHeader(context, t.playerSection, Symbols.play_circle_rounded),
 
-        // --- التشغيل ---
+        // --- التشغيل (Playback) ---
         _card(context, [
-          _sectionFoldHeader(context, 'التشغيل', Symbols.play_arrow_rounded, _openSection == 100, () => setState(() => _openSection = _openSection == 100 ? -1 : 100)),
+          _sectionFoldHeader(context, t.playbackSection, Symbols.play_arrow_rounded, _openSection == 100, () => setState(() => _openSection = _openSection == 100 ? -1 : 100)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 100
                 ? Column(children: [
-                    _switchTile(context, Symbols.play_arrow_rounded, 'التشغيل التلقائي', '', s.autoPlay, s.setAutoPlay),
+                    _switchTile(context, Symbols.play_arrow_rounded, t.autoPlayOption, '', s.autoPlay, s.setAutoPlay),
                     _divider(),
-                    _switchTile(context, Symbols.resume_rounded, 'استئناف آخر موضع', '', s.rememberPosition, s.setRememberPosition),
+                    _switchTile(context, Symbols.resume_rounded, t.resumePositionOption, '', s.rememberPosition, s.setRememberPosition),
                     _divider(),
-                    _switchTile(context, Symbols.speed_rounded, 'تذكر سرعة التشغيل', '', s.rememberPlaybackSpeed, s.setRememberPlaybackSpeed),
+                    _switchTile(context, Symbols.speed_rounded, t.rememberSpeedOption, '', s.rememberPlaybackSpeed, s.setRememberPlaybackSpeed),
                     _divider(),
-                    _choiceTile(context, Symbols.repeat_rounded, 'التشغيل المتكرر', loopModeName(s.loopMode), () => _showLoopModePicker(context, s)),
+                    _choiceTile(context, Symbols.repeat_rounded, t.repeatModeOption, loopModeName(s.loopMode, t), () => _showLoopModePicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.skip_next_rounded, 'الانتقال للفيديو التالي تلقائياً', '', s.autoNextVideo, s.setAutoNextVideo),
+                    _switchTile(context, Symbols.skip_next_rounded, t.autoNextOption, '', s.autoNextVideo, s.setAutoNextVideo),
                     _divider(),
-                    _switchTile(context, Symbols.picture_in_picture_rounded, 'الانتقال للوضع المصغر عند الخروج', '', s.autoPipOnBackground, s.setAutoPipOnBackground),
+                    _switchTile(context, Symbols.picture_in_picture_rounded, t.autoPipOption, '', s.autoPipOnBackground, s.setAutoPipOnBackground),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- سرعة التشغيل ---
+        // --- سرعة التشغيل (Speed) ---
         _card(context, [
-          _sectionFoldHeader(context, 'سرعة التشغيل', Symbols.speed_rounded, _openSection == 101, () => setState(() => _openSection = _openSection == 101 ? -1 : 101)),
+          _sectionFoldHeader(context, t.speedSection, Symbols.speed_rounded, _openSection == 101, () => setState(() => _openSection = _openSection == 101 ? -1 : 101)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 101
                 ? Column(children: [
-                    _choiceTile(context, Symbols.speed_rounded, 'سرعة التشغيل الافتراضية', '${s.defaultSpeed}x', () => showSpeedPicker(context, s)),
+                    _choiceTile(context, Symbols.speed_rounded, t.defaultSpeedOption, '${s.defaultSpeed}x', () => showSpeedPicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.history_rounded, 'تذكر آخر سرعة', '', s.rememberSpeed, s.setRememberSpeed),
+                    _switchTile(context, Symbols.history_rounded, t.rememberLastSpeedOption, '', s.rememberSpeed, s.setRememberSpeed),
                     _divider(),
-                    _switchTile(context, Symbols.fast_forward_rounded, 'السماح بسرعة حتى 4×', '', s.allowSpeedUpTo4x, s.setAllowSpeedUpTo4x),
+                    _switchTile(context, Symbols.fast_forward_rounded, t.allow4xOption, '', s.allowSpeedUpTo4x, s.setAllowSpeedUpTo4x),
                     _divider(),
-                    _switchTile(context, Symbols.music_note_rounded, 'تصحيح طبقة الصوت (Pitch Correction)', '', s.pitchCorrection, s.setPitchCorrection),
+                    _switchTile(context, Symbols.music_note_rounded, t.pitchCorrectionOption, '', s.pitchCorrection, s.setPitchCorrection),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- عرض الفيديو ---
+        // --- عرض الفيديو (Video display) ---
         _card(context, [
-          _sectionFoldHeader(context, 'عرض الفيديو', Symbols.aspect_ratio_rounded, _openSection == 102, () => setState(() => _openSection = _openSection == 102 ? -1 : 102)),
+          _sectionFoldHeader(context, t.videoDisplaySection, Symbols.aspect_ratio_rounded, _openSection == 102, () => setState(() => _openSection = _openSection == 102 ? -1 : 102)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 102
                 ? Column(children: [
-                    _choiceTile(context, Symbols.aspect_ratio_rounded, 'الوضع الافتراضي', videoModeName(s.defaultVideoMode), () => _showVideoModePicker(context, s)),
+                    _choiceTile(context, Symbols.aspect_ratio_rounded, t.defaultVideoModeOption, videoModeName(s.defaultVideoMode), () => _showVideoModePicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.history_rounded, 'تذكر آخر وضع', '', s.rememberVideoMode, s.setRememberVideoMode),
+                    _switchTile(context, Symbols.history_rounded, t.rememberVideoModeOption, '', s.rememberVideoMode, s.setRememberVideoMode),
                     _divider(),
-                    _switchTile(context, Symbols.screen_rotation_rounded, 'تدوير تلقائي', '', s.autoRotate, s.setAutoRotate),
+                    _switchTile(context, Symbols.screen_rotation_rounded, t.autoRotateOption, '', s.autoRotate, s.setAutoRotate),
                     _divider(),
-                    _switchTile(context, Symbols.fullscreen_rounded, 'ملء الشاشة تلقائياً', '', s.autoFullscreen, s.setAutoFullscreen),
+                    _switchTile(context, Symbols.fullscreen_rounded, t.autoFullscreenOption, '', s.autoFullscreen, s.setAutoFullscreen),
                     _divider(),
-                    _switchTile(context, Symbols.screen_lock_landscape_rounded, 'إبقاء الشاشة مضاءة', '', s.keepScreenOn, s.setKeepScreenOn),
+                    _switchTile(context, Symbols.screen_lock_landscape_rounded, t.keepScreenOnOption, '', s.keepScreenOn, s.setKeepScreenOn),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- التحكم بالإيماءات ---
+        // --- التحكم بالإيماءات (Gestures) ---
         _card(context, [
-          _sectionFoldHeader(context, 'التحكم بالإيماءات', Symbols.touch_app_rounded, _openSection == 103, () => setState(() => _openSection = _openSection == 103 ? -1 : 103)),
+          _sectionFoldHeader(context, t.gesturesSection, Symbols.touch_app_rounded, _openSection == 103, () => setState(() => _openSection = _openSection == 103 ? -1 : 103)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 103
                 ? Column(children: [
-                    _switchTile(context, Symbols.volume_up_rounded, 'السحب للصوت', '', s.gestureVolume, s.setGestureVolume),
+                    _switchTile(context, Symbols.volume_up_rounded, t.gestureVolumeOption, '', s.gestureVolume, s.setGestureVolume),
                     _divider(),
-                    _switchTile(context, Symbols.brightness_6_rounded, 'السحب للسطوع', '', s.gestureBrightness, s.setGestureBrightness),
+                    _switchTile(context, Symbols.brightness_6_rounded, t.gestureBrightnessOption, '', s.gestureBrightness, s.setGestureBrightness),
                     _divider(),
-                    _switchTile(context, Symbols.fast_forward_rounded, 'السحب للتقديم والترجيع', '', s.gestureSeek, s.setGestureSeek),
+                    _switchTile(context, Symbols.fast_forward_rounded, t.gestureSeekOption, '', s.gestureSeek, s.setGestureSeek),
                     _divider(),
-                    _switchTile(context, Symbols.touch_app_rounded, 'النقر للإيقاف', '', s.tapToPause, s.setTapToPause),
+                    _switchTile(context, Symbols.touch_app_rounded, t.tapToPauseOption, '', s.tapToPause, s.setTapToPause),
                     _divider(),
-                    _switchTile(context, Symbols.double_arrow_rounded, 'النقر المزدوج', '', s.doubleTapSeek, s.setDoubleTapSeek),
+                    _switchTile(context, Symbols.double_arrow_rounded, t.doubleTapOption, '', s.doubleTapSeek, s.setDoubleTapSeek),
                     _divider(),
-                    _switchTile(context, Symbols.speed_rounded, 'الضغط المطول = سرعة مؤقتة ×2', '', s.longPressSpeed, s.setLongPressSpeed),
+                    _switchTile(context, Symbols.speed_rounded, t.longPressSpeedOption, '', s.longPressSpeed, s.setLongPressSpeed),
                     _divider(),
-                    _switchTile(context, Symbols.vibration_rounded, 'اهتزاز عند الوصول للنهاية', '', s.vibrateOnEnd, s.setVibrateOnEnd),
+                    _switchTile(context, Symbols.vibration_rounded, t.vibrateOnEndOption, '', s.vibrateOnEnd, s.setVibrateOnEnd),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- التقديم والترجيع ---
+        // --- التقديم والترجيع (Seeking) ---
         _card(context, [
-          _sectionFoldHeader(context, 'التقديم والترجيع', Symbols.fast_rewind_rounded, _openSection == 104, () => setState(() => _openSection = _openSection == 104 ? -1 : 104)),
+          _sectionFoldHeader(context, t.seekSection, Symbols.fast_rewind_rounded, _openSection == 104, () => setState(() => _openSection = _openSection == 104 ? -1 : 104)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 104
                 ? Column(children: [
-                    _choiceTile(context, Symbols.timeline_rounded, 'مدة التخطي', '${s.doubleTapSeekSeconds} ثوانٍ', () => showSeekSecondsPicker(context, s)),
+                    _choiceTile(context, Symbols.timeline_rounded, t.seekDurationOption, '${s.doubleTapSeekSeconds} s', () => showSeekSecondsPicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.image_rounded, 'إظهار معاينة أثناء السحب', '', s.showSeekPreview, s.setShowSeekPreview),
+                    _switchTile(context, Symbols.image_rounded, t.seekPreviewOption, '', s.showSeekPreview, s.setShowSeekPreview),
                     _divider(),
-                    _switchTile(context, Symbols.timer_rounded, 'إظهار الوقت أثناء السحب', '', s.showSeekTime, s.setShowSeekTime),
+                    _switchTile(context, Symbols.timer_rounded, t.seekTimeOption, '', s.showSeekTime, s.setShowSeekTime),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- واجهة المشغل ---
+        // --- واجهة المشغل (Player UI) ---
         _card(context, [
-          _sectionFoldHeader(context, 'واجهة المشغل', Symbols.layers_rounded, _openSection == 105, () => setState(() => _openSection = _openSection == 105 ? -1 : 105)),
+          _sectionFoldHeader(context, t.uiSection, Symbols.layers_rounded, _openSection == 105, () => setState(() => _openSection = _openSection == 105 ? -1 : 105)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 105
                 ? Column(children: [
-                    _switchTile(context, Symbols.visibility_off_rounded, 'إخفاء الأزرار تلقائياً', '', s.autoHideControls, s.setAutoHideControls),
+                    _switchTile(context, Symbols.visibility_off_rounded, t.autoHideControlsOption, '', s.autoHideControls, s.setAutoHideControls),
                     if (s.autoHideControls) ...[
                       _divider(),
-                      _choiceTile(context, Symbols.timer_rounded, 'مدة الإخفاء', '${s.controlsHideSeconds} ثوانٍ', () => showHideDelayPicker(context, s)),
+                      _choiceTile(context, Symbols.timer_rounded, t.hideDelayOption, '${s.controlsHideSeconds} s', () => showHideDelayPicker(context, s)),
                     ],
                     _divider(),
-                    _switchTile(context, Symbols.timer_off_rounded, 'إظهار الوقت المتبقي', '', s.showRemainingTime, s.setShowRemainingTime),
+                    _switchTile(context, Symbols.timer_off_rounded, t.showRemainingTimeOption, '', s.showRemainingTime, s.setShowRemainingTime),
                     _divider(),
-                    _switchTile(context, Symbols.timer_rounded, 'إظهار الوقت المنقضي', '', s.showElapsedTime, s.setShowElapsedTime),
+                    _switchTile(context, Symbols.timer_rounded, t.showElapsedTimeOption, '', s.showElapsedTime, s.setShowElapsedTime),
                     _divider(),
-                    _switchTile(context, Symbols.title_rounded, 'إظهار اسم الفيديو', '', s.showVideoTitle, s.setShowVideoTitle),
+                    _switchTile(context, Symbols.title_rounded, t.showVideoTitleOption, '', s.showVideoTitle, s.setShowVideoTitle),
                     _divider(),
-                    _switchTile(context, Symbols.battery_full_rounded, 'إظهار البطارية', '', s.showBattery, s.setShowBattery),
+                    _switchTile(context, Symbols.battery_full_rounded, t.showBatteryOption, '', s.showBattery, s.setShowBattery),
                     _divider(),
-                    _switchTile(context, Symbols.schedule_rounded, 'إظهار الساعة', '', s.showClock, s.setShowClock),
+                    _switchTile(context, Symbols.schedule_rounded, t.showClockOption, '', s.showClock, s.setShowClock),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- القوائم ---
+        // --- القوائم (Playlist) ---
         _card(context, [
-          _sectionFoldHeader(context, 'القوائم', Symbols.queue_music_rounded, _openSection == 106, () => setState(() => _openSection = _openSection == 106 ? -1 : 106)),
+          _sectionFoldHeader(context, t.playlistSection, Symbols.queue_music_rounded, _openSection == 106, () => setState(() => _openSection = _openSection == 106 ? -1 : 106)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 106
                 ? Column(children: [
-                    _switchTile(context, Symbols.auto_mode_rounded, 'التشغيل المتواصل', '', s.continuousPlayback, s.setContinuousPlayback),
+                    _switchTile(context, Symbols.auto_mode_rounded, t.continuousPlaybackOption, '', s.continuousPlayback, s.setContinuousPlayback),
                     _divider(),
-                    _switchTile(context, Symbols.delete_rounded, 'إزالة الفيديو بعد التشغيل', '', s.removeVideoAfterPlayback, s.setRemoveVideoAfterPlayback),
+                    _switchTile(context, Symbols.delete_rounded, t.removeAfterPlaybackOption, '', s.removeVideoAfterPlayback, s.setRemoveVideoAfterPlayback),
                     _divider(),
-                    _switchTile(context, Symbols.history_rounded, 'تذكر القائمة الأخيرة', '', s.rememberLastPlaylist, s.setRememberLastPlaylist),
+                    _switchTile(context, Symbols.history_rounded, t.rememberPlaylistOption, '', s.rememberLastPlaylist, s.setRememberLastPlaylist),
                     _divider(),
-                    _switchTile(context, Symbols.save_rounded, 'حفظ ترتيب التشغيل', '', s.savePlaylistOrder, s.setSavePlaylistOrder),
+                    _switchTile(context, Symbols.save_rounded, t.savePlaylistOrderOption, '', s.savePlaylistOrder, s.setSavePlaylistOrder),
                     _divider(),
-                    _switchTile(context, Symbols.shuffle_rounded, 'تشغيل عشوائي', '', s.shufflePlaylist, s.setShufflePlaylist),
+                    _switchTile(context, Symbols.shuffle_rounded, t.shufflePlaylistOption, '', s.shufflePlaylist, s.setShufflePlaylist),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- الطاقة ---
+        // --- الطاقة (Energy) ---
         _card(context, [
-          _sectionFoldHeader(context, 'الطاقة', Symbols.battery_saver_rounded, _openSection == 107, () => setState(() => _openSection = _openSection == 107 ? -1 : 107)),
+          _sectionFoldHeader(context, t.energySection, Symbols.battery_saver_rounded, _openSection == 107, () => setState(() => _openSection = _openSection == 107 ? -1 : 107)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 107
                 ? Column(children: [
-                    _switchTile(context, Symbols.screen_lock_landscape_rounded, 'منع قفل الشاشة', '', s.preventScreenLock, s.setPreventScreenLock),
+                    _switchTile(context, Symbols.screen_lock_landscape_rounded, t.preventLockOption, '', s.preventScreenLock, s.setPreventScreenLock),
                     _divider(),
-                    _switchTile(context, Symbols.brightness_4_rounded, 'خفض السطوع عند التوقف', '', s.reduceBrightnessOnPause, s.setReduceBrightnessOnPause),
+                    _switchTile(context, Symbols.brightness_4_rounded, t.reduceBrightnessOption, '', s.reduceBrightnessOnPause, s.setReduceBrightnessOnPause),
                     _divider(),
-                    _switchTile(context, Symbols.stop_rounded, 'إيقاف التشغيل بعد انتهاء الفيديو', '', s.stopAfterVideo, s.setStopAfterVideo),
+                    _switchTile(context, Symbols.stop_rounded, t.stopAfterVideoOption, '', s.stopAfterVideo, s.setStopAfterVideo),
                     _divider(),
-                    _choiceTile(context, Symbols.bedtime_rounded, 'مؤقت النوم (Sleep Timer)', s.sleepTimerMinutes == 0 ? 'معطل' : '${s.sleepTimerMinutes} دقيقة', () => _showSleepTimerPicker(context, s)),
+                    _choiceTile(context, Symbols.bedtime_rounded, t.sleepTimerOption,
+                        s.sleepTimerMinutes == 0 ? t.sleepTimerDisabled : t.sleepTimerMinutes(s.sleepTimerMinutes),
+                        () => _showSleepTimerPicker(context, s)),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- التحكم ---
+        // --- التحكم (Control) ---
         _card(context, [
-          _sectionFoldHeader(context, 'التحكم', Symbols.gamepad_rounded, _openSection == 108, () => setState(() => _openSection = _openSection == 108 ? -1 : 108)),
+          _sectionFoldHeader(context, t.controlSection, Symbols.gamepad_rounded, _openSection == 108, () => setState(() => _openSection = _openSection == 108 ? -1 : 108)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 108
                 ? Column(children: [
-                    _switchTile(context, Symbols.volume_up_rounded, 'أزرار الصوت للتقديم', '', s.volumeKeysSeek, s.setVolumeKeysSeek),
+                    _switchTile(context, Symbols.volume_up_rounded, t.volumeKeysSeekOption, '', s.volumeKeysSeek, s.setVolumeKeysSeek),
                     _divider(),
-                    _switchTile(context, Symbols.keyboard_rounded, 'دعم لوحة المفاتيح', '', s.keyboardSupport, s.setKeyboardSupport),
+                    _switchTile(context, Symbols.keyboard_rounded, t.keyboardSupportOption, '', s.keyboardSupport, s.setKeyboardSupport),
                     _divider(),
-                    _switchTile(context, Symbols.gamepad_rounded, 'دعم يد التحكم', '', s.gamepadSupport, s.setGamepadSupport),
+                    _switchTile(context, Symbols.gamepad_rounded, t.gamepadSupportOption, '', s.gamepadSupport, s.setGamepadSupport),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
         ]),
         const SizedBox(height: 12),
 
-        // --- خيارات متقدمة ---
+        // --- خيارات متقدمة (Advanced) ---
         _card(context, [
-          _sectionFoldHeader(context, 'خيارات متقدمة', Symbols.settings_rounded, _openSection == 109, () => setState(() => _openSection = _openSection == 109 ? -1 : 109)),
+          _sectionFoldHeader(context, t.advancedSection, Symbols.settings_rounded, _openSection == 109, () => setState(() => _openSection = _openSection == 109 ? -1 : 109)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 109
                 ? Column(children: [
-                    _choiceTile(context, Symbols.memory_rounded, 'وضع فك التشفير', hwDecoderName(s.hwDecoderMode), () => _showDecoderPicker(context, s)),
+                    _choiceTile(context, Symbols.memory_rounded, t.decoderModeOption, hwDecoderName(s.hwDecoderMode, t), () => _showDecoderPicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.auto_fix_high_rounded, 'الرجوع إلى Software عند الفشل', '', s.fallbackToSoftware, s.setFallbackToSoftware),
+                    _switchTile(context, Symbols.auto_fix_high_rounded, t.fallbackSoftwareOption, '', s.fallbackToSoftware, s.setFallbackToSoftware),
                     _divider(),
-                    _switchTile(context, Symbols.speed_rounded, 'تشغيل منخفض التأخير', '', s.lowLatencyPlayback, s.setLowLatencyPlayback),
+                    _switchTile(context, Symbols.speed_rounded, t.lowLatencyOption, '', s.lowLatencyPlayback, s.setLowLatencyPlayback),
                     _divider(),
-                    _switchTile(context, Symbols.video_stable_rounded, 'Frame Dropping', '', s.frameDropping, s.setFrameDropping),
+                    _switchTile(context, Symbols.video_stable_rounded, t.frameDroppingOption, '', s.frameDropping, s.setFrameDropping),
                     _divider(),
-                    _switchTile(context, Symbols.video_settings_rounded, 'VSync', '', s.vsync, s.setVsync),
+                    _switchTile(context, Symbols.video_settings_rounded, t.vsyncOption, '', s.vsync, s.setVsync),
                     _divider(),
-                    _switchTile(context, Symbols.bug_report_rounded, 'Logging', '', s.loggingEnabled, s.setLoggingEnabled),
+                    _switchTile(context, Symbols.bug_report_rounded, t.loggingOption, '', s.loggingEnabled, s.setLoggingEnabled),
                     _divider(),
-                    _switchTile(context, Symbols.info_rounded, 'إظهار معلومات الفيديو', '', s.showVideoInfo, s.setShowVideoInfo),
+                    _switchTile(context, Symbols.info_rounded, t.showVideoInfoOption, '', s.showVideoInfo, s.setShowVideoInfo),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
@@ -330,25 +337,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
 
         // ==========================================
-        //                الصوت
+        //                الصوت (Audio)
         // ==========================================
-        _sectionHeader(context, 'الصوت', Symbols.graphic_eq_rounded),
+        _sectionHeader(context, t.audioSection, Symbols.graphic_eq_rounded),
 
         _card(context, [
-          _sectionFoldHeader(context, 'الصوت العام', Symbols.volume_up_rounded, _openSection == 4, () => setState(() => _openSection = _openSection == 4 ? -1 : 4)),
+          _sectionFoldHeader(context, t.audioGeneralSection, Symbols.volume_up_rounded, _openSection == 4, () => setState(() => _openSection = _openSection == 4 ? -1 : 4)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 4
                 ? Column(children: [
-                    _choiceTile(context, Symbols.volume_up_rounded, 'تضخيم الصوت الافتراضي', '${s.defaultAudioBoost.round()}%', () => showBoostDialog(context, s)),
+                    _choiceTile(context, Symbols.volume_up_rounded, t.audioBoostOption, '${s.defaultAudioBoost.round()}%', () => showBoostDialog(context, s)),
                     _divider(),
-                    _sliderRow(context, 'موازنة الصوت (Balance)', s.audioBalance, -1.0, 1.0, s.audioBalance.toStringAsFixed(1), (v) => s.setAudioBalance(v)),
+                    _sliderRow(context, t.audioBalanceOption, s.audioBalance, -1.0, 1.0, s.audioBalance.toStringAsFixed(1), (v) => s.setAudioBalance(v)),
                     _divider(),
-                    _switchTile(context, Symbols.volume_up_rounded, 'تذكر مستوى الصوت لكل فيديو', '', s.rememberVolumePerVideo, s.setRememberVolumePerVideo),
+                    _switchTile(context, Symbols.volume_up_rounded, t.rememberVolumeOption, '', s.rememberVolumePerVideo, s.setRememberVolumePerVideo),
                     _divider(),
-                    _switchTile(context, Symbols.restart_alt_rounded, 'إعادة ضبط مستوى الصوت لكل فيديو', '', s.resetVolumePerVideo, s.setResetVolumePerVideo),
+                    _switchTile(context, Symbols.restart_alt_rounded, t.resetVolumeOption, '', s.resetVolumePerVideo, s.setResetVolumePerVideo),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
@@ -356,16 +363,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'إخراج الصوت', Symbols.speaker_rounded, _openSection == 5, () => setState(() => _openSection = _openSection == 5 ? -1 : 5)),
+          _sectionFoldHeader(context, t.audioOutputSection, Symbols.speaker_rounded, _openSection == 5, () => setState(() => _openSection = _openSection == 5 ? -1 : 5)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 5
                 ? Column(children: [
-                    _choiceTile(context, Symbols.speaker_rounded, 'وضع إخراج الصوت', s.audioOutputMode == 'stereo' ? 'ستيريو' : s.audioOutputMode == 'mono' ? 'أحادي' : 'محيطي', () => _showAudioModePicker(context, s)),
+                    _choiceTile(context, Symbols.speaker_rounded, t.audioOutputModeOption, audioModeName(s.audioOutputMode, t), () => _showAudioModePicker(context, s)),
                     _divider(),
-                    _switchTile(context, Symbols.bluetooth_rounded, 'التحويل التلقائي عند توصيل سماعة', '', s.autoSwitchBluetooth, s.setAutoSwitchBluetooth),
+                    _switchTile(context, Symbols.bluetooth_rounded, t.autoBluetoothOption, '', s.autoSwitchBluetooth, s.setAutoSwitchBluetooth),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
@@ -373,14 +380,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'المسارات الصوتية', Symbols.playlist_play_rounded, _openSection == 6, () => setState(() => _openSection = _openSection == 6 ? -1 : 6)),
+          _sectionFoldHeader(context, t.audioTracksSection, Symbols.playlist_play_rounded, _openSection == 6, () => setState(() => _openSection = _openSection == 6 ? -1 : 6)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 6
                 ? Column(children: [
-                    _choiceTile(context, Symbols.language_rounded, 'لغة الصوت المفضلة', langName(s.preferredAudioLanguage), () => showAudioLanguagePicker(context, s)),
+                    _choiceTile(context, Symbols.language_rounded, t.preferredAudioLanguageOption, langName(s.preferredAudioLanguage), () => showAudioLanguagePicker(context, s)),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
@@ -388,17 +395,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'معادل الصوت', Symbols.equalizer_rounded, _openSection == 7, () => setState(() => _openSection = _openSection == 7 ? -1 : 7)),
+          _sectionFoldHeader(context, t.equalizerSection, Symbols.equalizer_rounded, _openSection == 7, () => setState(() => _openSection = _openSection == 7 ? -1 : 7)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 7
                 ? Column(children: [
-                    _switchTile(context, Symbols.equalizer_rounded, 'تشغيل المعادل', '', s.bassBoost, s.setBassBoost),
+                    _switchTile(context, Symbols.equalizer_rounded, t.equalizerEnabledOption, '', s.bassBoost, s.setBassBoost),
                     if (s.bassBoost) ...[
                       _divider(),
-                      _choiceTile(context, Symbols.tune_rounded, 'فتح المعادل الرسومي', '10 نطاقات', () => _showEqualizerDialog(context, s)),
+                      _choiceTile(context, Symbols.tune_rounded, t.openEqualizerOption, t.equalizerBandsSubtitle, () => _showEqualizerDialog(context, s)),
                     ],
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
@@ -407,20 +414,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'مزامنة الصوت', Symbols.timeline_rounded, _openSection == 8, () => setState(() => _openSection = _openSection == 8 ? -1 : 8)),
+          _sectionFoldHeader(context, t.audioSyncSection, Symbols.timeline_rounded, _openSection == 8, () => setState(() => _openSection = _openSection == 8 ? -1 : 8)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 8
                 ? Column(children: [
-                    _sliderRow(context, 'تأخير الصوت (ms)', s.audioDelayMs.toDouble(), -5000, 5000, '${s.audioDelayMs} ms', (v) => s.setAudioDelayMs(v.toInt())),
+                    _sliderRow(context, t.audioDelayOption, s.audioDelayMs.toDouble(), -5000, 5000, '${s.audioDelayMs} ms', (v) => s.setAudioDelayMs(v.toInt())),
                     _divider(),
                     Center(
                       child: TextButton.icon(
                         onPressed: () => s.setAudioDelayMs(0),
                         icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                        label: Text('إعادة ضبط', style: TextStyle(color: cs.primary)),
+                        label: Text(t.resetButton, style: TextStyle(color: cs.primary)),
                       ),
                     ),
                   ])
@@ -430,16 +437,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'معالجة الصوت', Symbols.hearing_rounded, _openSection == 9, () => setState(() => _openSection = _openSection == 9 ? -1 : 9)),
+          _sectionFoldHeader(context, t.audioProcessingSection, Symbols.hearing_rounded, _openSection == 9, () => setState(() => _openSection = _openSection == 9 ? -1 : 9)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: _openSection == 9
                 ? Column(children: [
-                    _switchTile(context, Symbols.surround_sound_rounded, 'صوت محيطي (Surround)', 'محاكاة صوت محيطي', s.surroundSound, s.setSurroundSound),
+                    _switchTile(context, Symbols.surround_sound_rounded, t.surroundSoundOption, t.surroundSoundSubtitle, s.surroundSound, s.setSurroundSound),
                     _divider(),
-                    _switchTile(context, Symbols.equalizer_rounded, 'Bass Boost', 'تضخيم الترددات المنخفضة', s.bassBoost, s.setBassBoost),
+                    _switchTile(context, Symbols.equalizer_rounded, t.bassBoostOption, t.bassBoostSubtitle, s.bassBoost, s.setBassBoost),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),
@@ -447,12 +454,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
 
         // ==========================================
-        //                الترجمة
+        //                الترجمة (Subtitles)
         // ==========================================
-        _sectionHeader(context, 'الترجمة', Symbols.subtitles_rounded),
+        _sectionHeader(context, t.subtitlesSection, Symbols.subtitles_rounded),
 
         _card(context, [
-          _sectionFoldHeader(context, 'المظهر', Symbols.palette_rounded, _openSection == 0, () => setState(() => _openSection = _openSection == 0 ? -1 : 0)),
+          _sectionFoldHeader(context, t.subAppearanceSection, Symbols.palette_rounded, _openSection == 0, () => setState(() => _openSection = _openSection == 0 ? -1 : 0)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -468,7 +475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 12),
                       _bgSection(context, s, sub),
                       const SizedBox(height: 12),
-                      _switchTile(context, Symbols.format_italic_rounded, 'تأثير مائل', 'تفعيل الخط المائل للترجمة', s.subtitleItalic, s.setSubtitleItalic),
+                      _switchTile(context, Symbols.format_italic_rounded, t.italicOption, t.italicSubtitle, s.subtitleItalic, s.setSubtitleItalic),
                       const Divider(height: 1),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
@@ -491,7 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               s.setSubtitleItalic(false);
                             },
                             icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                            label: Text('إعادة ضبط المظهر', style: TextStyle(color: cs.primary)),
+                            label: Text(t.resetAppearanceButton, style: TextStyle(color: cs.primary)),
                           ),
                         ),
                       ),
@@ -503,7 +510,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'الموضع', Symbols.open_with_rounded, _openSection == 1, () => setState(() => _openSection = _openSection == 1 ? -1 : 1)),
+          _sectionFoldHeader(context, t.subPositionSection, Symbols.open_with_rounded, _openSection == 1, () => setState(() => _openSection = _openSection == 1 ? -1 : 1)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -513,8 +520,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _positionSection(context, s, sub),
                       const SizedBox(height: 12),
-                      _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, 'اتجاه النص',
-                          sub.alignment == SubtitleAlignment.right ? 'من اليمين إلى اليسار' : 'من اليسار إلى اليمين',
+                      _switchTile(context, Symbols.format_textdirection_r_to_l_rounded, t.textDirectionOption,
+                          sub.alignment == SubtitleAlignment.right ? t.textDirectionRTL : t.textDirectionLTR,
                           sub.alignment == SubtitleAlignment.right,
                           (v) => s.updateSubtitleSettings(sub.copyWith(alignment: v ? SubtitleAlignment.right : SubtitleAlignment.left))),
                       const Divider(height: 1),
@@ -531,7 +538,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ));
                             },
                             icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                            label: Text('إعادة ضبط الموضع', style: TextStyle(color: cs.primary)),
+                            label: Text(t.resetPositionButton, style: TextStyle(color: cs.primary)),
                           ),
                         ),
                       ),
@@ -543,7 +550,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'السلوك', Symbols.settings_rounded, _openSection == 2, () => setState(() => _openSection = _openSection == 2 ? -1 : 2)),
+          _sectionFoldHeader(context, t.subBehaviorSection, Symbols.settings_rounded, _openSection == 2, () => setState(() => _openSection = _openSection == 2 ? -1 : 2)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -551,18 +558,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: _openSection == 2
                 ? Column(
                     children: [
-                      _switchTile(context, Symbols.subtitles_rounded, 'إظهار الترجمة تلقائياً', 'تفعيل عند بدء التشغيل', s.showSubtitlesByDefault, s.setShowSubtitlesByDefault),
+                      _switchTile(context, Symbols.subtitles_rounded, t.autoShowSubtitlesOption, t.autoShowSubtitlesSubtitle, s.showSubtitlesByDefault, s.setShowSubtitlesByDefault),
                       _divider(),
-                      _choiceTile(context, Symbols.folder_open_rounded, 'مجلد الترجمة', s.subtitleFolder.isEmpty ? 'غير محدد' : s.subtitleFolder, () async {
+                      _choiceTile(context, Symbols.folder_open_rounded, t.subtitleFolderOption, s.subtitleFolder.isEmpty ? '---' : s.subtitleFolder, () async {
                         final result = await FilePicker.getDirectoryPath();
                         if (result != null) s.setSubtitleFolder(result);
                       }),
                       _divider(),
-                      _choiceTile(context, Symbols.text_fields_rounded, 'ترميز الأحرف', s.subtitleEncoding, () => showEncodingPicker(context, s)),
+                      _choiceTile(context, Symbols.text_fields_rounded, t.subtitleEncodingOption, s.subtitleEncoding, () => showEncodingPicker(context, s)),
                       _divider(),
-                      _choiceTile(context, Symbols.language_rounded, 'لغة الترجمة المفضلة', langName(s.preferredSubtitleLanguage), () => showSubtitleLanguagePicker(context, s)),
+                      _choiceTile(context, Symbols.language_rounded, t.preferredSubtitleLanguageOption, langName(s.preferredSubtitleLanguage), () => showSubtitleLanguagePicker(context, s)),
                       _divider(),
-                      _choiceTile(context, Symbols.timeline_rounded, 'مزامنة افتراضية', '${s.defaultSubtitleSync.toStringAsFixed(1)} ثانية', () => showSyncDialog(context, s)),
+                      _choiceTile(context, Symbols.timeline_rounded, t.defaultSyncOption, '${s.defaultSubtitleSync.toStringAsFixed(1)} s', () => showSyncDialog(context, s)),
                       const SizedBox(height: 12),
                       _behaviorSection(context, s, sub),
                       const Divider(height: 1),
@@ -578,7 +585,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ));
                             },
                             icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                            label: Text('إعادة ضبط السلوك', style: TextStyle(color: cs.primary)),
+                            label: Text(t.resetBehaviorButton, style: TextStyle(color: cs.primary)),
                           ),
                         ),
                       ),
@@ -590,7 +597,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
 
         _card(context, [
-          _sectionFoldHeader(context, 'التوافق', Symbols.tune_rounded, _openSection == 3, () => setState(() => _openSection = _openSection == 3 ? -1 : 3)),
+          _sectionFoldHeader(context, t.subCompatibilitySection, Symbols.tune_rounded, _openSection == 3, () => setState(() => _openSection = _openSection == 3 ? -1 : 3)),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -613,7 +620,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ));
                             },
                             icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
-                            label: Text('إعادة ضبط التوافق', style: TextStyle(color: cs.primary)),
+                            label: Text(t.resetCompatibilityButton, style: TextStyle(color: cs.primary)),
                           ),
                         ),
                       ),
@@ -624,23 +631,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
 
         const SizedBox(height: 16),
-        _sectionHeader(context, 'المكتبة', Symbols.video_library_rounded),
+        _sectionHeader(context, t.librarySection, Symbols.video_library_rounded),
         _card(context, [
-          _choiceTile(context, Symbols.sort_rounded, 'الترتيب الافتراضي', sortName(s.sortBy), () => showSortPicker(context, s)),
+          _choiceTile(context, Symbols.sort_rounded, t.sortByOption, sortName(s.sortBy, t), () => showSortPicker(context, s)),
           _divider(),
-          _switchTile(context, Symbols.arrow_downward_rounded, 'ترتيب تنازلي', 'من الأحدث إلى الأقدم', s.sortDesc, s.setSortDesc),
+          _switchTile(context, Symbols.arrow_downward_rounded, t.sortDescOption, '', s.sortDesc, s.setSortDesc),
           _divider(),
-          _switchTile(context, Symbols.grid_view_rounded, 'عرض شبكي للمكتبة', 'عرض فيديوهات المكتبة كبطاقات', s.libraryGridView, s.setLibraryGridView),
+          _switchTile(context, Symbols.grid_view_rounded, t.libraryGridViewOption, '', s.libraryGridView, s.setLibraryGridView),
           _divider(),
-          _switchTile(context, Symbols.grid_view_rounded, 'عرض شبكي للمجلدات', 'عرض المجلدات كبطاقات', s.foldersGridView, s.setFoldersGridView),
+          _switchTile(context, Symbols.grid_view_rounded, t.foldersGridViewOption, '', s.foldersGridView, s.setFoldersGridView),
           _divider(),
-          _switchTile(context, Symbols.grid_view_rounded, 'عرض شبكي للأخيرة', 'عرض قائمة الأخيرة كبطاقات', s.recentGridView, s.setRecentGridView),
+          _switchTile(context, Symbols.grid_view_rounded, t.recentGridViewOption, '', s.recentGridView, s.setRecentGridView),
           _divider(),
-          _choiceTile(context, Symbols.visibility_off_rounded, 'الملفات المخفية', 'عرض وإظهار الملفات المخفية',
+          _choiceTile(context, Symbols.visibility_off_rounded, t.hiddenFilesOption, '',
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HiddenFilesScreen()))),
         ]),
         const SizedBox(height: 16),
-        _sectionHeader(context, 'التخزين', Symbols.storage_rounded),
+        _sectionHeader(context, t.storageSection, Symbols.storage_rounded),
         _card(context, [
           ListTile(
             leading: Container(
@@ -648,27 +655,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
               child: Icon(Symbols.image_rounded, color: cs.onSurfaceVariant, size: 22),
             ),
-            title: const Text('ذاكرة الصور المصغرة'),
-            subtitle: Text(_cacheSizeBytes == null ? 'جارٍ الحساب...' : _formatBytes(_cacheSizeBytes!)),
+            title: Text(t.thumbnailCacheOption),
+            subtitle: Text(_cacheSizeBytes == null ? t.calculatingSize : _formatBytes(_cacheSizeBytes!)),
             trailing: TextButton(
               onPressed: _confirmClearCache,
-              child: const Text('مسح'),
+              child: Text(t.clearCacheButton),
             ),
           ),
         ]),
         const SizedBox(height: 16),
-        _sectionHeader(context, 'النسخ الاحتياطي', Symbols.backup_rounded),
+        _sectionHeader(context, t.backupSection, Symbols.backup_rounded),
         _card(context, [
-          _choiceTile(context, Symbols.upload_rounded, 'تصدير الإعدادات', 'حفظ نسخة من كل الإعدادات كملف', _exportSettings),
+          _choiceTile(context, Symbols.upload_rounded, t.exportSettingsOption, '', _exportSettings),
           _divider(),
-          _choiceTile(context, Symbols.download_rounded, 'استيراد الإعدادات', 'استعادة الإعدادات من ملف محفوظ', _importSettings),
+          _choiceTile(context, Symbols.download_rounded, t.importSettingsOption, '', _importSettings),
         ]),
         const SizedBox(height: 24),
         Center(
           child: TextButton.icon(
             onPressed: () => _confirmReset(context, s),
             icon: Icon(Symbols.restart_alt_rounded, color: cs.error),
-            label: Text('استعادة الإعدادات الافتراضية', style: TextStyle(color: cs.error)),
+            label: Text(t.resetAllButton, style: TextStyle(color: cs.error)),
           ),
         ),
         const SizedBox(height: 32),
@@ -676,22 +683,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال الحفظ والتصدير ---
+  // --- دوال الحفظ والتصدير (مع الترجمة) ---
   void _confirmReset(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('استعادة الإعدادات'),
-        content: const Text('هل تريد إعادة جميع الإعدادات إلى الوضع الافتراضي؟'),
+        title: Text(t.resetAllDialogTitle),
+        content: Text(t.resetAllDialogBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancelButton)),
           TextButton(
             onPressed: () {
               s.resetAll();
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استعادة الإعدادات')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.settingsSavedMessage)));
             },
-            child: Text('استعادة', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(t.confirmResetButton, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -699,23 +707,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _confirmClearCache() {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('مسح ذاكرة الصور المصغرة'),
-        content: const Text('سيتم حذف كل الصور المصغرة المخزَّنة، وستُعاد توليدها تلقائياً عند فتح المكتبة من جديد.'),
+        title: Text(t.clearCacheDialogTitle),
+        content: Text(t.clearCacheDialogBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancelButton)),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await ThumbnailService().clearCache();
               await _loadCacheSize();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم مسح ذاكرة الصور المصغرة')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.cacheClearedMessage)));
               }
             },
-            child: Text('مسح', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(t.clearCacheButton, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -724,6 +733,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _exportSettings() async {
     final s = context.read<SettingsProvider>();
+    final t = AppLocalizations.of(context)!;
     try {
       final dirPath = await FilePicker.getDirectoryPath();
       if (dirPath == null) return;
@@ -732,18 +742,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await file.writeAsString(jsonStr);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم حفظ الإعدادات في: ${file.path}')),
+          SnackBar(content: Text(t.exportSuccessMessage.replaceFirst('{path}', file.path))),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل التصدير: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.exportFailMessage.replaceFirst('{error}', e.toString()))),
+        );
       }
     }
   }
 
   Future<void> _importSettings() async {
     final s = context.read<SettingsProvider>();
+    final t = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
       final path = result?.files.single.path;
@@ -752,29 +765,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final Map<String, dynamic> jsonMap = json.decode(content) as Map<String, dynamic>;
       await s.importFromJson(jsonMap);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استيراد الإعدادات بنجاح')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.importSuccessMessage)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الاستيراد: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.importFailMessage.replaceFirst('{error}', e.toString()))),
+        );
       }
     }
   }
 
   void _showDecoderPicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     final items = [
-      {'value': 'auto', 'label': 'تلقائي (موصى)'},
-      {'value': 'hw', 'label': 'HW+ (عتاد)'},
-      {'value': 'sw', 'label': 'SW (برمجي)'},
+      {'value': 'auto', 'label': t.decoderAuto},
+      {'value': 'hw', 'label': t.decoderHW},
+      {'value': 'sw', 'label': t.decoderSW},
     ];
     _showSimpleMenu(context, items, s.hwDecoderMode, (v) => s.setHwDecoderMode(v));
   }
 
   void _showColorFormatPicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     final items = [
-      {'value': 'yuv', 'label': 'YCbCr (افتراضي)'},
-      {'value': 'rgb_full', 'label': 'RGB Full (ألوان حيوية)'},
-      {'value': 'rgb_limited', 'label': 'RGB Limited'},
+      {'value': 'yuv', 'label': t.colorFormatYCbCr},
+      {'value': 'rgb_full', 'label': t.colorFormatRGBFull},
+      {'value': 'rgb_limited', 'label': t.colorFormatRGBLimited},
     ];
     _showSimpleMenu(context, items, s.colorFormat, (v) => s.setColorFormat(v));
   }
@@ -799,173 +816,178 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String hwDecoderName(String mode) {
+  String hwDecoderName(String mode, AppLocalizations t) {
     switch (mode) {
-      case 'hw': return 'HW+ (عتاد)';
-      case 'sw': return 'SW (برمجي)';
-      default: return 'تلقائي (موصى)';
+      case 'hw': return t.decoderHW;
+      case 'sw': return t.decoderSW;
+      default: return t.decoderAuto;
     }
   }
 
-  String colorFormatName(String format) {
+  String colorFormatName(String format, AppLocalizations t) {
     switch (format) {
-      case 'rgb_full': return 'RGB Full (ألوان حيوية)';
-      case 'rgb_limited': return 'RGB Limited';
-      default: return 'YCbCr (افتراضي)';
+      case 'rgb_full': return t.colorFormatRGBFull;
+      case 'rgb_limited': return t.colorFormatRGBLimited;
+      default: return t.colorFormatYCbCr;
     }
   }
 
-  // --- أقسام الترجمة المتقدمة ---
+  // --- أقسام الترجمة المتقدمة (مع الترجمة) ---
   Widget _fontSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _sliderRow(context, 'حجم الخط', sub.fontSize, 10, 100, '${sub.fontSize.toInt()} px',
+      _sliderRow(context, t.fontSizeOption, sub.fontSize, 10, 100, '${sub.fontSize.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v))),
       const SizedBox(height: 8),
-      _choiceTile(context, Symbols.font_download_rounded, 'نوع الخط', sub.fontFamily,
+      _choiceTile(context, Symbols.font_download_rounded, t.fontFamilyOption, sub.fontFamily,
           () => showFontPicker(context, s)),
       const SizedBox(height: 8),
-      _sliderRow(context, 'مقياس الترجمة', sub.subtitleScale, 0.5, 3.0, '${sub.subtitleScale.toStringAsFixed(1)}x',
+      _sliderRow(context, t.subScaleOption, sub.subtitleScale, 0.5, 3.0, '${sub.subtitleScale.toStringAsFixed(1)}x',
           (v) => s.updateSubtitleSettings(sub.copyWith(subtitleScale: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'تباعد الأسطر', sub.lineSpacing, 0.8, 2.0, '${sub.lineSpacing.toStringAsFixed(1)}x',
+      _sliderRow(context, t.lineSpacingOption, sub.lineSpacing, 0.8, 2.0, '${sub.lineSpacing.toStringAsFixed(1)}x',
           (v) => s.updateSubtitleSettings(sub.copyWith(lineSpacing: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'أقصى عدد للأسطر', sub.maxLines.toDouble(), 1, 6, '${sub.maxLines}',
+      _sliderRow(context, t.maxLinesOption, sub.maxLines.toDouble(), 1, 6, '${sub.maxLines}',
           (v) => s.updateSubtitleSettings(sub.copyWith(maxLines: v.toInt()))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.wrap_text_rounded, 'لف النص', 'لف النص التلقائي للترجمة',
+      _switchTile(context, Symbols.wrap_text_rounded, t.wrapTextOption, t.wrapTextSubtitle,
           sub.autoWrap,
           (v) => s.updateSubtitleSettings(sub.copyWith(autoWrap: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'تباعد الحروف', sub.letterSpacing, -2, 10, '${sub.letterSpacing.toStringAsFixed(1)}',
+      _sliderRow(context, t.letterSpacingOption, sub.letterSpacing, -2, 10, '${sub.letterSpacing.toStringAsFixed(1)}',
           (v) => s.updateSubtitleSettings(sub.copyWith(letterSpacing: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'تباعد الكلمات', sub.wordSpacing, -5, 20, '${sub.wordSpacing.toStringAsFixed(1)}',
+      _sliderRow(context, t.wordSpacingOption, sub.wordSpacing, -5, 20, '${sub.wordSpacing.toStringAsFixed(1)}',
           (v) => s.updateSubtitleSettings(sub.copyWith(wordSpacing: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'سمك الخط', sub.fontWeightIndex.toDouble(), 0, 3, _fontWeightName(sub.fontWeightIndex),
+      _sliderRow(context, t.fontWeightOption, sub.fontWeightIndex.toDouble(), 0, 3, _fontWeightName(sub.fontWeightIndex, t),
           (v) => s.updateSubtitleSettings(sub.copyWith(fontWeightIndex: v.toInt()))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'شفافية النص', sub.textOpacity, 0.1, 1.0, '${(sub.textOpacity * 100).toInt()}%',
+      _sliderRow(context, t.textOpacityOption, sub.textOpacity, 0.1, 1.0, '${(sub.textOpacity * 100).toInt()}%',
           (v) => s.updateSubtitleSettings(sub.copyWith(textOpacity: v))),
     ]);
   }
 
-  String _fontWeightName(int index) {
+  String _fontWeightName(int index, AppLocalizations t) {
     switch (index) {
-      case 0: return 'خفيف';
-      case 1: return 'عادي';
-      case 2: return 'شبه عريض';
-      case 3: return 'عريض جداً';
-      default: return 'عادي';
+      case 0: return t.fontWeightLight;
+      case 1: return t.fontWeightNormal;
+      case 2: return t.fontWeightSemiBold;
+      case 3: return t.fontWeightBold;
+      default: return t.fontWeightNormal;
     }
   }
 
   Widget _colorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _colorRow(context, 'لون النص', sub.textColor,
+      _colorRow(context, t.textColorOption, sub.textColor,
           (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.format_paint_rounded, 'خلفية النص', '',
+      _switchTile(context, Symbols.format_paint_rounded, t.backgroundSwitch, '',
           sub.bgOpacity > 0,
           (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v ? 0.65 : 0.0))),
       if (sub.bgOpacity > 0) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الخلفية', sub.bgColor,
+        _colorRow(context, t.backgroundColorOption, sub.bgColor,
             (c) => s.updateSubtitleSettings(sub.copyWith(bgColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'شفافية الخلفية', sub.bgOpacity, 0.1, 1.0, '${(sub.bgOpacity * 100).toInt()}%',
+        _sliderRow(context, t.backgroundOpacityOption, sub.bgOpacity, 0.1, 1.0, '${(sub.bgOpacity * 100).toInt()}%',
             (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'زوايا الخلفية', sub.bgBorderRadius, 0, 20, '${sub.bgBorderRadius.toInt()}',
+        _sliderRow(context, t.backgroundRadiusOption, sub.bgBorderRadius, 0, 20, '${sub.bgBorderRadius.toInt()}',
             (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderRadius: v))),
       ],
     ]);
   }
 
   Widget _effectsSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _switchTile(context, Symbols.border_color_rounded, 'حدّ خارجي للنص', 'إطار حول كل حرف',
+      _switchTile(context, Symbols.border_color_rounded, t.outlineSwitch, t.outlineSubtitle,
           sub.outlineWidth > 0,
           (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v ? 2.0 : 0.0))),
       if (sub.outlineWidth > 0) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الحدّ', sub.outlineColor,
+        _colorRow(context, t.outlineColorOption, sub.outlineColor,
             (c) => s.updateSubtitleSettings(sub.copyWith(outlineColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'سماكة الحدّ', sub.outlineWidth, 0.5, 6.0, sub.outlineWidth.toStringAsFixed(1),
+        _sliderRow(context, t.outlineWidthOption, sub.outlineWidth, 0.5, 6.0, sub.outlineWidth.toStringAsFixed(1),
             (v) => s.updateSubtitleSettings(sub.copyWith(outlineWidth: v))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'مقياس مستقل للحدود', sub.outlineScale, 0.5, 3.0, '${sub.outlineScale.toStringAsFixed(1)}x',
+        _sliderRow(context, t.outlineScaleOption, sub.outlineScale, 0.5, 3.0, '${sub.outlineScale.toStringAsFixed(1)}x',
             (v) => s.updateSubtitleSettings(sub.copyWith(outlineScale: v))),
       ],
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.blur_on_rounded, 'ظل النص', 'ظل خلف نص الترجمة',
+      _switchTile(context, Symbols.blur_on_rounded, t.shadowSwitch, t.shadowSubtitle,
           sub.shadowEnabled,
           (v) => s.updateSubtitleSettings(sub.copyWith(shadowEnabled: v))),
       if (sub.shadowEnabled) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الظل', sub.shadowColor,
+        _colorRow(context, t.shadowColorOption, sub.shadowColor,
             (c) => s.updateSubtitleSettings(sub.copyWith(shadowColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'شفافية الظل', sub.shadowOpacity, 0.1, 1.0, '${(sub.shadowOpacity * 100).toInt()}%',
+        _sliderRow(context, t.shadowOpacityOption, sub.shadowOpacity, 0.1, 1.0, '${(sub.shadowOpacity * 100).toInt()}%',
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowOpacity: v))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'إزاحة أفقية', sub.shadowOffsetX, -10, 10, '${sub.shadowOffsetX.toInt()}',
+        _sliderRow(context, t.shadowOffsetXOption, sub.shadowOffsetX, -10, 10, '${sub.shadowOffsetX.toInt()}',
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowOffsetX: v))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'إزاحة رأسية', sub.shadowOffsetY, -10, 10, '${sub.shadowOffsetY.toInt()}',
+        _sliderRow(context, t.shadowOffsetYOption, sub.shadowOffsetY, -10, 10, '${sub.shadowOffsetY.toInt()}',
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowOffsetY: v))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'تمويه الظل', sub.shadowBlurRadius, 0, 20, '${sub.shadowBlurRadius.toInt()}',
+        _sliderRow(context, t.shadowBlurOption, sub.shadowBlurRadius, 0, 20, '${sub.shadowBlurRadius.toInt()}',
             (v) => s.updateSubtitleSettings(sub.copyWith(shadowBlurRadius: v))),
       ],
     ]);
   }
 
   Widget _bgSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('الخلفية', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+      Text(t.backgroundSection, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      _choiceTile(context, Symbols.shape_line_rounded, 'شكل الخلفية', _bgShapeName(sub.bgShape),
+      _choiceTile(context, Symbols.shape_line_rounded, t.backgroundShapeOption, _bgShapeName(sub.bgShape, t),
           () => _showBgShapePicker(context, s, sub)),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.border_style_rounded, 'حدود الخلفية', 'تفعيل حدود حول صندوق الترجمة',
+      _switchTile(context, Symbols.border_style_rounded, t.backgroundBorderSwitch, '',
           sub.bgBorderWidth > 0,
           (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderWidth: v ? 2.0 : 0.0))),
       if (sub.bgBorderWidth > 0) ...[
         const SizedBox(height: 8),
-        _colorRow(context, 'لون الحدود', sub.bgBorderColor,
+        _colorRow(context, t.backgroundBorderColorOption, sub.bgBorderColor,
             (c) => s.updateSubtitleSettings(sub.copyWith(bgBorderColor: c))),
         const SizedBox(height: 8),
-        _sliderRow(context, 'سماكة الحدود', sub.bgBorderWidth, 0.5, 6.0, '${sub.bgBorderWidth.toStringAsFixed(1)}',
+        _sliderRow(context, t.backgroundBorderWidthOption, sub.bgBorderWidth, 0.5, 6.0, '${sub.bgBorderWidth.toStringAsFixed(1)}',
             (v) => s.updateSubtitleSettings(sub.copyWith(bgBorderWidth: v))),
       ],
       const SizedBox(height: 8),
-      _sliderRow(context, 'Padding الخلفية', sub.bgPadding, 0, 20, '${sub.bgPadding.toInt()} px',
+      _sliderRow(context, t.backgroundPaddingOption, sub.bgPadding, 0, 20, '${sub.bgPadding.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(bgPadding: v))),
     ]);
   }
 
-  String _bgShapeName(SubtitleBgShape shape) {
+  String _bgShapeName(SubtitleBgShape shape, AppLocalizations t) {
     switch (shape) {
-      case SubtitleBgShape.rectangle: return 'مستطيل';
-      case SubtitleBgShape.rounded: return 'مدور';
-      case SubtitleBgShape.capsule: return 'كبسولة';
+      case SubtitleBgShape.rectangle: return t.backgroundShapeRectangle;
+      case SubtitleBgShape.rounded: return t.backgroundShapeRounded;
+      case SubtitleBgShape.capsule: return t.backgroundShapeCapsule;
     }
   }
 
   void _showBgShapePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('شكل الخلفية', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.backgroundShapeOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('مستطيل'),
+            title: Text(t.backgroundShapeRectangle),
             leading: const Icon(Symbols.rectangle_rounded),
             trailing: sub.bgShape == SubtitleBgShape.rectangle ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -974,7 +996,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('مدور'),
+            title: Text(t.backgroundShapeRounded),
             leading: const Icon(Symbols.rounded_corner_rounded),
             trailing: sub.bgShape == SubtitleBgShape.rounded ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -983,7 +1005,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('كبسولة'),
+            title: Text(t.backgroundShapeCapsule),
             leading: const Icon(Symbols.circle_rounded),
             trailing: sub.bgShape == SubtitleBgShape.capsule ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -997,51 +1019,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _positionSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _choiceTile(context, Symbols.vertical_align_center_rounded, 'موضع الترجمة', _positionName(sub.position),
+      _choiceTile(context, Symbols.vertical_align_center_rounded, t.positionOption, _positionName(sub.position, t),
           () => _showPositionPicker(context, s, sub)),
       const SizedBox(height: 8),
-      _sliderRow(context, 'الارتفاع عن الأسفل', sub.bottomMargin, 0, 300, '${sub.bottomMargin.toInt()} px',
+      _sliderRow(context, t.bottomMarginOption, sub.bottomMargin, 0, 300, '${sub.bottomMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'الهامش الأفقي', sub.horizontalMargin, 0, 120, '${sub.horizontalMargin.toInt()} px',
+      _sliderRow(context, t.horizontalMarginOption, sub.horizontalMargin, 0, 120, '${sub.horizontalMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'الهامش العمودي', sub.verticalMargin, 0, 120, '${sub.verticalMargin.toInt()} px',
+      _sliderRow(context, t.verticalMarginOption, sub.verticalMargin, 0, 120, '${sub.verticalMargin.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(verticalMargin: v))),
       const SizedBox(height: 8),
-      _sliderRow(context, 'هامش الأمان', sub.safeAreaPadding, 0, 60, '${sub.safeAreaPadding.toInt()} px',
+      _sliderRow(context, t.safeAreaPaddingOption, sub.safeAreaPadding, 0, 60, '${sub.safeAreaPadding.toInt()} px',
           (v) => s.updateSubtitleSettings(sub.copyWith(safeAreaPadding: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.videocam_rounded, 'البقاء داخل الفيديو', 'عدم خروج الترجمة خارج حدود الفيديو',
+      _switchTile(context, Symbols.videocam_rounded, t.keepInsideVideoOption, t.keepInsideVideoSubtitle,
           sub.keepInsideVideo,
           (v) => s.updateSubtitleSettings(sub.copyWith(keepInsideVideo: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.smartphone_rounded, 'احترام النوتش', 'تجنب منطقة الثقب أو النوتش',
+      _switchTile(context, Symbols.smartphone_rounded, t.respectNotchOption, t.respectNotchSubtitle,
           sub.respectNotch,
           (v) => s.updateSubtitleSettings(sub.copyWith(respectNotch: v))),
     ]);
   }
 
-  String _positionName(SubtitlePosition pos) {
+  String _positionName(SubtitlePosition pos, AppLocalizations t) {
     switch (pos) {
-      case SubtitlePosition.top: return 'أعلى';
-      case SubtitlePosition.center: return 'وسط';
-      case SubtitlePosition.bottom: return 'أسفل';
+      case SubtitlePosition.top: return t.positionTop;
+      case SubtitlePosition.center: return t.positionCenter;
+      case SubtitlePosition.bottom: return t.positionBottom;
     }
   }
 
   void _showPositionPicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('موضع الترجمة', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.positionOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('أعلى'),
+            title: Text(t.positionTop),
             leading: const Icon(Symbols.vertical_align_top_rounded),
             trailing: sub.position == SubtitlePosition.top ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1050,7 +1074,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('وسط'),
+            title: Text(t.positionCenter),
             leading: const Icon(Symbols.vertical_align_center_rounded),
             trailing: sub.position == SubtitlePosition.center ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1059,7 +1083,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('أسفل'),
+            title: Text(t.positionBottom),
             leading: const Icon(Symbols.vertical_align_bottom_rounded),
             trailing: sub.position == SubtitlePosition.bottom ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1073,41 +1097,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _behaviorSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _choiceTile(context, Symbols.aspect_ratio_rounded, 'طريقة قياس الترجمة', _scaleModeName(sub.scaleMode),
+      _choiceTile(context, Symbols.aspect_ratio_rounded, t.scaleModeOption, _scaleModeName(sub.scaleMode, t),
           () => _showScaleModePicker(context, s, sub)),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.history_rounded, 'تحميل آخر ترجمة مستخدمة', 'استخدام آخر ترجمة تم تحميلها',
+      _switchTile(context, Symbols.history_rounded, t.loadLastUsedOption, '',
           sub.loadLastUsed,
           (v) => s.updateSubtitleSettings(sub.copyWith(loadLastUsed: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.voice_over_off_rounded, 'إخفاء الترجمة عند عدم وجود حوار', 'لترجمات SSA/ASS فقط',
+      _switchTile(context, Symbols.voice_over_off_rounded, t.hideWhenNoDialogOption, '',
           sub.hideWhenNoDialog,
           (v) => s.updateSubtitleSettings(sub.copyWith(hideWhenNoDialog: v))),
     ]);
   }
 
-  String _scaleModeName(SubtitleScaleMode mode) {
+  String _scaleModeName(SubtitleScaleMode mode, AppLocalizations t) {
     switch (mode) {
-      case SubtitleScaleMode.fixed: return 'حجم ثابت';
-      case SubtitleScaleMode.byResolution: return 'حسب دقة الفيديو';
-      case SubtitleScaleMode.byWindow: return 'حسب حجم النافذة';
-      case SubtitleScaleMode.smart: return 'ذكي (موصى به)';
+      case SubtitleScaleMode.fixed: return t.scaleModeFixed;
+      case SubtitleScaleMode.byResolution: return t.scaleModeResolution;
+      case SubtitleScaleMode.byWindow: return t.scaleModeWindow;
+      case SubtitleScaleMode.smart: return t.scaleModeSmart;
     }
   }
 
   void _showScaleModePicker(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('طريقة قياس الترجمة', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.scaleModeOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('حجم ثابت'),
-            subtitle: const Text('نفس الحجم لجميع الفيديوهات'),
+            title: Text(t.scaleModeFixed),
             leading: const Icon(Symbols.lock_rounded),
             trailing: sub.scaleMode == SubtitleScaleMode.fixed ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1116,8 +1141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('حسب دقة الفيديو'),
-            subtitle: const Text('أكبر لدقة أعلى، أصغر لدقة أقل'),
+            title: Text(t.scaleModeResolution),
             leading: const Icon(Symbols.hd_rounded),
             trailing: sub.scaleMode == SubtitleScaleMode.byResolution ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1126,8 +1150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('حسب حجم النافذة'),
-            subtitle: const Text('أكبر لشاشة أكبر، أصغر لشاشة أصغر'),
+            title: Text(t.scaleModeWindow),
             leading: const Icon(Symbols.smartphone_rounded),
             trailing: sub.scaleMode == SubtitleScaleMode.byWindow ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1136,8 +1159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('ذكي (موصى به)'),
-            subtitle: const Text('يجمع بين دقة الفيديو وحجم الشاشة'),
+            title: Text(t.scaleModeSmart),
             leading: const Icon(Symbols.auto_awesome_rounded),
             trailing: sub.scaleMode == SubtitleScaleMode.smart ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () {
@@ -1151,42 +1173,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _renderingSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
+    final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _switchTile(context, Symbols.animation_rounded, 'تحسين حركة الخط', 'حركة أكثر سلاسة',
+      _switchTile(context, Symbols.animation_rounded, t.improveAnimationOption, '',
           sub.improveAnimation,
           (v) => s.updateSubtitleSettings(sub.copyWith(improveAnimation: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.text_fields_rounded, 'تحسين معالجة النصوص المعقدة', 'للنصوص العربية والهندية',
+      _switchTile(context, Symbols.text_fields_rounded, t.complexTextOption, '',
           sub.complexTextRendering,
           (v) => s.updateSubtitleSettings(sub.copyWith(complexTextRendering: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.closed_caption_rounded, 'تحسين عرض SSA/ASS', 'معالجة أفضل لترجمات الأنمي',
+      _switchTile(context, Symbols.closed_caption_rounded, t.improveSsaAssOption, '',
           sub.improveSsaAss,
           (v) => s.updateSubtitleSettings(sub.copyWith(improveSsaAss: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.font_download_off_rounded, 'تجاهل الخط المحدد داخل ASS', 'استخدام خط التطبيق بدلاً من خط الملف',
+      _switchTile(context, Symbols.font_download_off_rounded, t.ignoreAssFontsOption, '',
           sub.ignoreAssFonts,
           (v) => s.updateSubtitleSettings(sub.copyWith(ignoreAssFonts: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.movie_edit_rounded, 'تجاهل بعض تأثيرات ASS', 'إزالة الحركات والتدرجات',
+      _switchTile(context, Symbols.movie_edit_rounded, t.ignoreAssEffectsOption, '',
           sub.ignoreAssEffects,
           (v) => s.updateSubtitleSettings(sub.copyWith(ignoreAssEffects: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.language_rounded, 'دعم Unicode الكامل', 'دعم كل اللغات ورموزها',
+      _switchTile(context, Symbols.language_rounded, t.unicodeSupportOption, '',
           sub.fullUnicodeRtlSupport,
           (v) => s.updateSubtitleSettings(sub.copyWith(fullUnicodeRtlSupport: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.blur_on_rounded, 'تحسين Anti-Aliasing', 'تنعيم حواف النص والحدود',
+      _switchTile(context, Symbols.blur_on_rounded, t.antiAliasingOption, '',
           sub.improveAntiAliasing,
           (v) => s.updateSubtitleSettings(sub.copyWith(improveAntiAliasing: v))),
       const SizedBox(height: 8),
-      _switchTile(context, Symbols.hdr_on_rounded, 'دعم HDR', 'لشاشات HDR إن أمكن',
+      _switchTile(context, Symbols.hdr_on_rounded, t.hdrSupportOption, '',
           sub.hdrSupport,
           (v) => s.updateSubtitleSettings(sub.copyWith(hdrSupport: v))),
     ]);
   }
 
-  // --- دوال واجهة المستخدم المساعدة ---
+  // --- دوال واجهة المستخدم المساعدة (من دون تغيير كبير) ---
   Widget _sectionHeader(BuildContext context, String title, IconData icon) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
@@ -1280,38 +1303,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال إعدادات المشغل الجديدة ---
-  String loopModeName(String mode) {
+  // --- دوال إعدادات المشغل الجديدة (مع الترجمة) ---
+  String loopModeName(String mode, AppLocalizations t) {
     switch (mode) {
-      case 'video': return 'تكرار الفيديو';
-      case 'playlist': return 'تكرار القائمة';
-      default: return 'بدون';
+      case 'video': return t.repeatVideo;
+      case 'playlist': return t.repeatPlaylist;
+      default: return t.repeatNone;
     }
   }
 
   void _showLoopModePicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('التشغيل المتكرر', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.repeatModeOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('بدون'),
+            title: Text(t.repeatNone),
             leading: const Icon(Symbols.block_rounded),
             trailing: s.loopMode == 'none' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setLoopMode('none'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('تكرار الفيديو'),
+            title: Text(t.repeatVideo),
             leading: const Icon(Symbols.repeat_one_rounded),
             trailing: s.loopMode == 'video' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setLoopMode('video'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('تكرار القائمة'),
+            title: Text(t.repeatPlaylist),
             leading: const Icon(Symbols.repeat_rounded),
             trailing: s.loopMode == 'playlist' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setLoopMode('playlist'); Navigator.pop(ctx); },
@@ -1322,6 +1346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String videoModeName(String mode) {
+    // هذه النصوص تبقى كما هي (مصطلحات تقنية)
     switch (mode) {
       case 'cover': return 'Cover';
       case 'fill': return 'Fill';
@@ -1331,34 +1356,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showVideoModePicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('الوضع الافتراضي', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.defaultVideoModeOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('Contain'),
+            title: Text(t.videoModeContain),
             leading: const Icon(Symbols.fit_screen_rounded),
             trailing: s.defaultVideoMode == 'contain' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setDefaultVideoMode('contain'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('Cover'),
+            title: Text(t.videoModeCover),
             leading: const Icon(Symbols.fullscreen_rounded),
             trailing: s.defaultVideoMode == 'cover' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setDefaultVideoMode('cover'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('Fill'),
+            title: Text(t.videoModeFill),
             leading: const Icon(Symbols.aspect_ratio_rounded),
             trailing: s.defaultVideoMode == 'fill' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setDefaultVideoMode('fill'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('Stretch'),
+            title: Text(t.videoModeStretch),
             leading: const Icon(Symbols.zoom_out_map_rounded),
             trailing: s.defaultVideoMode == 'stretch' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setDefaultVideoMode('stretch'); Navigator.pop(ctx); },
@@ -1369,23 +1395,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showSleepTimerPicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('مؤقت النوم', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.sleepTimerOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('معطل'),
+            title: Text(t.sleepTimerDisabled),
             leading: const Icon(Symbols.block_rounded),
             trailing: s.sleepTimerMinutes == 0 ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setSleepTimerMinutes(0); Navigator.pop(ctx); },
           ),
           for (final mins in [15, 30, 60, 90, 120])
             ListTile(
-              title: Text('$mins دقيقة'),
+              title: Text(t.sleepTimerMinutes(mins)),
               leading: const Icon(Symbols.bedtime_rounded),
               trailing: s.sleepTimerMinutes == mins ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
               onTap: () { s.setSleepTimerMinutes(mins); Navigator.pop(ctx); },
@@ -1395,30 +1422,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال إعدادات الصوت (محفوظة) ---
+  String audioModeName(String mode, AppLocalizations t) {
+    switch (mode) {
+      case 'mono': return t.audioModeMono;
+      case 'surround': return t.audioModeSurround;
+      default: return t.audioModeStereo;
+    }
+  }
+
   void _showAudioModePicker(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('وضع إخراج الصوت', style: TextStyle(fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t.audioOutputModeOption, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ListTile(
-            title: const Text('ستيريو'),
+            title: Text(t.audioModeStereo),
             leading: const Icon(Symbols.speaker_rounded),
             trailing: s.audioOutputMode == 'stereo' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setAudioOutputMode('stereo'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('أحادي'),
+            title: Text(t.audioModeMono),
             leading: const Icon(Symbols.speaker_rounded),
             trailing: s.audioOutputMode == 'mono' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setAudioOutputMode('mono'); Navigator.pop(ctx); },
           ),
           ListTile(
-            title: const Text('محيطي'),
+            title: Text(t.audioModeSurround),
             leading: const Icon(Symbols.surround_sound_rounded),
             trailing: s.audioOutputMode == 'surround' ? Icon(Symbols.check_rounded, color: Theme.of(context).colorScheme.primary) : null,
             onTap: () { s.setAudioOutputMode('surround'); Navigator.pop(ctx); },
@@ -1429,6 +1464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
+    final t = AppLocalizations.of(context)!;
     final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
     showDialog(
       context: context,
@@ -1436,7 +1472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (ctx, setDialogState) {
           final bands = List<double>.from(s.equalizerBands);
           return AlertDialog(
-            title: const Text('المعادل الرسومي'),
+            title: Text(t.equalizerDialogTitle),
             content: SizedBox(
               width: 300,
               child: SingleChildScrollView(
@@ -1453,13 +1489,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancelButton)),
               ElevatedButton(
                 onPressed: () {
                   s.setEqualizerBands(bands);
                   Navigator.pop(ctx);
                 },
-                child: const Text('تطبيق'),
+                child: Text(t.applyButton),
               ),
             ],
           );

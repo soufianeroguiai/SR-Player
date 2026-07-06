@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
@@ -8,6 +9,7 @@ import 'providers/settings_provider.dart';
 import 'providers/library_provider.dart';
 import 'app/permission_gate.dart';
 import 'screens/home/home_screen.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,14 +19,14 @@ void main() async {
   try {
     MediaKit.ensureInitialized();
   } catch (e) {
-    runApp(ErrorApp('فشل تهيئة MediaKit:\n$e'));
+    runApp(ErrorApp(kind: _InitErrorKind.mediaKit, rawError: '$e'));
     return;
   }
 
   try {
     await FFmpegKitExtended.initialize();
   } catch (e) {
-    runApp(ErrorApp('فشل تهيئة FFmpeg:\n$e'));
+    runApp(ErrorApp(kind: _InitErrorKind.ffmpeg, rawError: '$e'));
     return;
   }
 
@@ -39,7 +41,7 @@ void main() async {
     settings = SettingsProvider();
     await settings.load();
   } catch (e) {
-    runApp(ErrorApp('فشل تحميل الإعدادات:\n$e'));
+    runApp(ErrorApp(kind: _InitErrorKind.settings, rawError: '$e'));
     return;
   }
 
@@ -66,43 +68,71 @@ class SPlayerApp extends StatelessWidget {
       theme: AppTheme.light(seed: settings.themeSeedColor),
       darkTheme: AppTheme.dark(seed: settings.themeSeedColor),
       themeMode: settings.themeMode,
+      // اتجاه النص (RTL/LTR) كيتضبط تلقائيًا من فلاتر حسب اللغة المختارة هنا،
+      // ماكاينش داعي لأي Directionality مُثبّت يدويًا فـ أي شاشة.
+      locale: settings.appLocale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const PermissionGate(child: HomeScreen()),
     );
   }
 }
 
+enum _InitErrorKind { mediaKit, ffmpeg, settings }
+
 class ErrorApp extends StatelessWidget {
-  final String message;
-  const ErrorApp(this.message, {super.key});
+  final _InitErrorKind kind;
+  final String rawError;
+  const ErrorApp({required this.kind, required this.rawError, super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 24),
-              const Text('عذراً، حدث خطأ',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              Text(message,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.5),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () => main(),
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
-              ),
-            ]),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: Builder(builder: (context) {
+        final t = AppLocalizations.of(context)!;
+        final message = switch (kind) {
+          _InitErrorKind.mediaKit => t.mediaKitInitError(rawError),
+          _InitErrorKind.ffmpeg => t.ffmpegInitError(rawError),
+          _InitErrorKind.settings => t.settingsLoadError(rawError),
+        };
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 24),
+                Text(t.errorOccurredTitle,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                Text(message,
+                    style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.5),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => main(),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(t.retryButton),
+                ),
+              ]),
+            ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

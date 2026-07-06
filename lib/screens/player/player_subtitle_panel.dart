@@ -69,7 +69,7 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
                                'لا يوجد مسار نشط';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: Directionality.of(context),
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [

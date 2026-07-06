@@ -357,6 +357,13 @@ class SettingsProvider extends ChangeNotifier {
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
+  // ---------- اللغة ----------
+  // 'system' يعني اتباع لغة الجهاز (إن كانت مدعومة، وإلا العربية كافتراضي)
+  String _appLanguageCode = 'system';
+  String get appLanguageCode => _appLanguageCode;
+  Locale? get appLocale => _appLanguageCode == 'system' ? null : Locale(_appLanguageCode);
+  void setAppLanguageCode(String v) { _appLanguageCode = v; notifyListeners(); _save(); }
+
   // ---------- load / save ----------
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
@@ -454,6 +461,7 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = p.getDouble('longPressSpeedValue') ?? 2.0;
     _gestureSensitivity = p.getDouble('gestureSensitivity') ?? 1.0;
     _colorFormat = p.getString('colorFormat') ?? 'yuv';
+    _appLanguageCode = p.getString('appLanguageCode') ?? 'system';
 
     notifyListeners();
   }
@@ -543,6 +551,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('longPressSpeedValue', _longPressSpeedValue);
     await p.setDouble('gestureSensitivity', _gestureSensitivity);
     await p.setString('colorFormat', _colorFormat);
+    await p.setString('appLanguageCode', _appLanguageCode);
   }
 
   void resetAll() {
