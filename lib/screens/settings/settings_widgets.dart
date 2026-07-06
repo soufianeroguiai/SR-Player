@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import '../l10n/app_localizations.dart'; // تمت الإضافة
+import '../../l10n/app_localizations.dart';
 
 Widget settingsHeader(BuildContext ctx, String title, IconData icon) {
   final cs = Theme.of(ctx).colorScheme;
