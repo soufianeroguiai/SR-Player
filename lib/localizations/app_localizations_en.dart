@@ -775,4 +775,344 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get applyButton => 'Apply';
+
+  @override
+  String get appTitle => 'SR Player';
+
+  @override
+  String get libraryTab => 'Library';
+
+  @override
+  String get myFilesTab => 'My Files';
+
+  @override
+  String get recentTab => 'Recent';
+
+  @override
+  String get personalTab => 'Personal';
+
+  @override
+  String get collectionsTooltip => 'Collections';
+
+  @override
+  String get viewOptionsTooltip => 'View & Sort Options';
+
+  @override
+  String get searchTooltip => 'Search';
+
+  @override
+  String get favoritesLabel => 'Favorites';
+
+  @override
+  String get playlistLabel => 'Playlist';
+
+  @override
+  String get queueLabel => 'Queue';
+
+  @override
+  String get gridView => 'Grid';
+
+  @override
+  String get listView => 'List';
+
+  @override
+  String get descending => 'Descending';
+
+  @override
+  String get ascending => 'Ascending';
+
+  @override
+  String get noPreviousVideo => 'No previous video';
+
+  @override
+  String selectedCount(Object selected, Object total) {
+    return '$selected / $total selected';
+  }
+
+  @override
+  String get shareFiles => 'Share files';
+
+  @override
+  String hiddenFilesToast(Object count) {
+    return '$count file(s) hidden';
+  }
+
+  @override
+  String get backToFolders => 'Back to folders';
+
+  @override
+  String videosCount(Object count) {
+    return '$count video(s)';
+  }
+
+  @override
+  String get playVideo => 'Play';
+
+  @override
+  String get videoInfo => 'Info';
+
+  @override
+  String get addToFavorites => 'Add to favorites';
+
+  @override
+  String get removeFromFavorites => 'Remove from favorites';
+
+  @override
+  String get addToPlaylist => 'Add to playlist';
+
+  @override
+  String get alreadyInPlaylist => 'Already in playlist';
+
+  @override
+  String get addedToPlaylist => 'Added to playlist';
+
+  @override
+  String get alreadyInPlaylistToast => 'File already in playlist';
+
+  @override
+  String get renameFile => 'Rename';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get copyPath => 'Copy path';
+
+  @override
+  String get openInFileManager => 'Open in file manager';
+
+  @override
+  String get hide => 'Hide';
+
+  @override
+  String get unhide => 'Unhide';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get playAll => 'Play all';
+
+  @override
+  String get shufflePlay => 'Shuffle play';
+
+  @override
+  String get hideAll => 'Hide all';
+
+  @override
+  String get unhideAll => 'Show all';
+
+  @override
+  String get deleteFolder => 'Delete folder';
+
+  @override
+  String get renameDialogTitle => 'Rename';
+
+  @override
+  String get newNameHint => 'New name';
+
+  @override
+  String get okButton => 'OK';
+
+  @override
+  String get deleteFileTitle => 'Delete file';
+
+  @override
+  String deleteFileConfirm(Object name) {
+    return 'Are you sure you want to delete \"$name\"?';
+  }
+
+  @override
+  String get deleteFilesTitle => 'Delete files';
+
+  @override
+  String deleteFilesConfirm(Object count) {
+    return 'Are you sure you want to delete $count video(s)?';
+  }
+
+  @override
+  String get deleteFolderTitle => 'Delete folder';
+
+  @override
+  String deleteFolderConfirm(Object count) {
+    return 'Are you sure you want to delete $count video(s)?';
+  }
+
+  @override
+  String fileDeletedToast(Object name) {
+    return '\"$name\" deleted';
+  }
+
+  @override
+  String filesDeletedToast(Object count) {
+    return '$count video(s) deleted';
+  }
+
+  @override
+  String get renameSuccess => 'Renamed successfully';
+
+  @override
+  String renameFailed(Object error) {
+    return 'Rename failed: $error';
+  }
+
+  @override
+  String get pathCopiedToast => 'Path copied';
+
+  @override
+  String get fileManagerError => 'Could not open file manager';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String hideFilesToast(Object count) {
+    return '$count file(s) hidden';
+  }
+
+  @override
+  String folderVideosCount(Object count, Object size) {
+    return '$count video(s)  •  $size';
+  }
+
+  @override
+  String get screenLocked => 'Screen locked';
+
+  @override
+  String get colorAdjustment => 'Color adjustment';
+
+  @override
+  String get playbackSpeed => 'Playback speed';
+
+  @override
+  String get speed => 'Speed';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get sleepTimer => 'Sleep timer';
+
+  @override
+  String get selectTimeMinutes => 'Select time (minutes)';
+
+  @override
+  String get customMinute => 'Custom (minute)';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String resumeFrom(Object time) {
+    return 'Resume from $time';
+  }
+
+  @override
+  String get tapToStartFromBeginning => 'Tap to start from beginning';
+
+  @override
+  String get subtitleSettings => 'Subtitle settings';
+
+  @override
+  String get audioSettings => 'Audio settings';
+
+  @override
+  String get more => 'More';
+
+  @override
+  String get playlistEditor => 'Playlist editor';
+
+  @override
+  String get releaseToOpen => 'Release to open';
+
+  @override
+  String get slideToUnlock => 'Slide to unlock →';
+
+  @override
+  String get subtitleLoaded => '✅ Subtitle loaded';
+
+  @override
+  String subtitleLoadFailed(Object error) {
+    return 'Failed to load subtitle: $error';
+  }
+
+  @override
+  String get externalSubtitleRemoved => 'External subtitle removed';
+
+  @override
+  String playerError(Object error) {
+    return 'Unable to play file: $error';
+  }
+
+  @override
+  String statsResolution(Object height, Object res, Object width) {
+    return 'Resolution: $width×$height ($res)';
+  }
+
+  @override
+  String statsCodec(Object codec) {
+    return 'Codec: $codec';
+  }
+
+  @override
+  String statsFps(Object fps) {
+    return 'Frame rate: $fps fps';
+  }
+
+  @override
+  String statsHdr(Object status) {
+    return 'HDR: $status';
+  }
+
+  @override
+  String statsHw(Object status) {
+    return 'Hardware acceleration: $status';
+  }
+
+  @override
+  String statsPosition(Object dur, Object pos) {
+    return 'Position: $pos / $dur';
+  }
+
+  @override
+  String statsSpeed(Object speed) {
+    return 'Speed: ${speed}x';
+  }
+
+  @override
+  String statsAudioDelay(Object delay) {
+    return 'Audio delay: ${delay}s';
+  }
+
+  @override
+  String statsSubSync(Object sync) {
+    return 'Subtitle sync: ${sync}s';
+  }
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get enabled => 'Enabled';
+
+  @override
+  String get disabled => 'Disabled';
+
+  @override
+  String get nightModeOn => 'Night mode enabled';
+
+  @override
+  String get nightModeOff => 'Night mode disabled';
+
+  @override
+  String get sleepTimerStopped => 'Playback stopped by sleep timer';
 }

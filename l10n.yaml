@@ -2,6 +2,5 @@ arb-dir: lib/l10n
 template-arb-file: app_ar.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
-output-dir: lib/localizations   # تم تغييره هنا
-synthetic-package: false
+output-dir: lib/localizations
 preferred-supported-locales: ["ar", "en", "fr"]

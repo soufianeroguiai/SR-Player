@@ -21,6 +21,7 @@ import '../../widgets/video_thumbnail_loader.dart';
 import '../../widgets/subtitle_renderer.dart';
 import '../../services/smart_enhance_service.dart';
 import '../../services/video_layout_calculator.dart';
+import '../../localizations/app_localizations.dart';
 import '../info_screen.dart';
 import 'player_controls.dart';
 import 'player_audio_panel.dart';
@@ -145,6 +146,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void _setOrientations() {}
 
   void _showLockMessage() {
+    final t = AppLocalizations.of(context)!;
     if (!mounted) return;
     OverlayEntry? overlayEntry;
     overlayEntry = OverlayEntry(
@@ -161,7 +163,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 color: Colors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('تم قفل الشاشة', style: TextStyle(color: Colors.white, fontSize: 16)),
+              child: Text(t.screenLocked, style: const TextStyle(color: Colors.white, fontSize: 16)),
             ),
           ),
         ),
@@ -273,6 +275,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _loadSrtFile(String path, String encoding, {bool silent = false}) async {
+    final t = AppLocalizations.of(context)!;
     try {
       await _player.setSubtitleTrack(SubtitleTrack.no());
       final settings = _settingsProvider.subtitleSettings;
@@ -285,12 +288,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _state.showSubtitles = true;
       _state.notifyListeners();
       if (!silent) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم تحميل الترجمة')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.subtitleLoaded)));
       }
     } catch (e) {
       if (!mounted) return;
       if (!silent) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل تحميل الترجمة: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.subtitleLoadFailed(e.toString()))));
       }
     }
   }
@@ -304,6 +307,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _removeExternalSubtitle() {
+    final t = AppLocalizations.of(context)!;
     _state.hasExternalSubtitle = false;
     _state.lastSubtitleEntries = null;
     _player.setSubtitleTrack(SubtitleTrack.no());
@@ -311,7 +315,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _player.setSubtitleTrack(_state.subtitleTracks.first);
     }
     _state.notifyListeners();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت إزالة الترجمة الخارجية')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.externalSubtitleRemoved)));
   }
 
   Future<void> _applySubtitleSyncOffset() async {
@@ -357,10 +361,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _showColorAdjustment() {
+    final t = AppLocalizations.of(context)!;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'تنسيق الألوان',
+      barrierLabel: t.colorAdjustment,
       barrierColor: Colors.transparent,
       pageBuilder: (context, anim1, anim2) => Align(
         alignment: Alignment.bottomRight,
@@ -395,11 +400,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _showSpeedPicker() {
+    final t = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: _state.speed.toStringAsFixed(2));
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'سرعة التشغيل',
+      barrierLabel: t.playbackSpeed,
       barrierColor: Colors.transparent,
       pageBuilder: (context, anim1, anim2) => Align(
         alignment: Alignment.bottomRight,
@@ -425,7 +431,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 20), onPressed: () => Navigator.pop(context)),
-                            const Text('سرعة التشغيل', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(t.playbackSpeed, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             IconButton(
                               icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
                               onPressed: () {
@@ -439,7 +445,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            const Text('السرعة', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.speed, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: SliderTheme(
@@ -472,7 +478,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            const Text('مخصص', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.custom, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             SizedBox(
                               width: 80,
@@ -505,7 +511,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 }
                               },
                               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
-                              child: const Text('تطبيق'),
+                              child: Text(t.apply),
                             ),
                           ],
                         ),
@@ -522,10 +528,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _showTimerPicker() {
+    final t = AppLocalizations.of(context)!;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'مؤقت النوم',
+      barrierLabel: t.sleepTimer,
       barrierColor: Colors.transparent,
       pageBuilder: (context, anim1, anim2) => Align(
         alignment: Alignment.bottomRight,
@@ -552,7 +559,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 20), onPressed: () => Navigator.pop(context)),
-                            const Text('مؤقت النوم', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(t.sleepTimer, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             IconButton(
                               icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
                               onPressed: () {
@@ -565,7 +572,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           ],
                         ),
                         const SizedBox(height: 12),
-                        const Text('اختر الوقت (دقائق)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(t.selectTimeMinutes, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -579,7 +586,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               _sleepTimer = Timer(Duration(minutes: mins), () {
                                 _player.pause();
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إيقاف التشغيل بواسطة المؤقت')));
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.sleepTimerStopped)));
                                 }
                               });
                               Navigator.pop(context);
@@ -592,7 +599,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            const Text('مخصص (دقيقة)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.customMinute, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             SizedBox(
                               width: 60,
@@ -617,13 +624,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                   _sleepMinutes = mins;
                                   _sleepTimer = Timer(Duration(minutes: mins), () {
                                     _player.pause();
-                                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إيقاف التشغيل بواسطة المؤقت')));
+                                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.sleepTimerStopped)));
                                   });
                                   Navigator.pop(context);
                                 }
                               },
                               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
-                              child: const Text('بدء'),
+                              child: Text(t.start),
                             ),
                           ],
                         ),
@@ -650,6 +657,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Widget _buildResumeDialog() {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final pos = _state.savedPosition;
     if (pos == null || !_state.showResumeDialog) return const SizedBox.shrink();
@@ -675,12 +683,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 Icon(Symbols.history_rounded, color: cs.primary, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  'استئناف ${_fmt(pos)}',
+                  t.resumeFrom(_fmt(pos)),
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'اضغط للبداية',
+                  t.tapToStartFromBeginning,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10),
                 ),
               ],
@@ -699,6 +707,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Widget _buildSidePanel() {
+    final t = AppLocalizations.of(context)!;
     const double panelWidth = 340.0;
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
@@ -710,7 +719,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       child: RepaintBoundary(
         child: SafeArea(
           child: Directionality(
-            // كنورّثو اتجاه النص الفعلي للتطبيق (يتبع اللغة المختارة) بدل ما نفرضو RTL دائماً
             textDirection: Directionality.of(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,10 +736,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   children: [
                     Text(
                       _state.currentMenu == ActiveMenu.subtitles
-                          ? 'إعدادات الترجمة'
+                          ? t.subtitleSettings
                           : _state.currentMenu == ActiveMenu.audio
-                              ? 'إعدادات الصوت'
-                              : 'المزيد',
+                              ? t.audioSettings
+                              : t.more,
                       style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     GestureDetector(
@@ -850,6 +858,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Widget _buildPlaylistEditor() {
+    final t = AppLocalizations.of(context)!;
     final isCustom = _libraryProvider.playlistPaths.isNotEmpty;
 
     final videos = isCustom
@@ -878,7 +887,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            title: const Text('قوائم التشغيل', style: TextStyle(fontSize: 16)),
+            title: Text(t.playlistEditor, style: const TextStyle(fontSize: 16)),
             leading: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () => setState(() => _showPlaylistEditor = false),
@@ -958,6 +967,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
     final subtitleSettings = s.subtitleSettings;
@@ -990,7 +1000,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         body: !_state.initialized
             ? Center(child: CircularProgressIndicator(color: cs.primary))
             : Stack(children: [
-                // الفيديو
                 PlayerGestureLayer(
                   player: _player,
                   isLocked: _state.isLocked,
@@ -1021,7 +1030,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                // الترجمة
                 ValueListenableBuilder<String?>(
                   valueListenable: _state.currentSubtitleText,
                   builder: (context, text, _) {
@@ -1140,8 +1148,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                   Center(
                                     child: Text(
                                       progress > 0.6
-                                          ? 'أطلق للفتح'
-                                          : 'اسحب لفتح القفل ←',
+                                          ? t.releaseToOpen
+                                          : t.slideToUnlock,
                                       style: TextStyle(
                                           color: Colors.white.withValues(alpha: 0.8),
                                           fontSize: 13),
@@ -1285,7 +1293,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                   });
                                   ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text(_state.isNightMode ? 'تم تفعيل الوضع الليلي' : 'تم إيقاف الوضع الليلي'),
+                                    content: Text(_state.isNightMode ? t.nightModeOn : t.nightModeOff),
                                   ));
                                 },
                               ),
@@ -1461,6 +1469,7 @@ class _StatsForNerdsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final pState = player.state;
     final width = pState.width;
     final height = pState.height;
@@ -1470,15 +1479,15 @@ class _StatsForNerdsPanel extends StatelessWidget {
     final isHDR = state.hdrEnabled;
 
     final rows = <String>[
-      'الدقة: ${width ?? "---"}×${height ?? "---"} (${_resolutionText(width, height)})',
-      'الترميز: ${codec.toUpperCase()}',
-      if (fps > 0) 'معدل الإطارات: ${fps.toStringAsFixed(2)} fps',
-      'HDR: ${isHDR ? "نعم" : "لا"}',
-      'تسريع العتاد (HW): ${state.hwEnabled ? "مفعّل" : "معطّل"}',
-      'الموضع: ${_fmt(state.position)} / ${_fmt(state.duration)}',
-      'السرعة: ${state.speed.toStringAsFixed(2)}x',
-      if (state.audioDelay != 0) 'تأخير الصوت: ${state.audioDelay.toStringAsFixed(2)}s',
-      if (state.subtitleSync != 0) 'مزامنة الترجمة: ${state.subtitleSync.toStringAsFixed(2)}s',
+      t.statsResolution('${width ?? "---"}', '${height ?? "---"}', _resolutionText(width, height)),
+      t.statsCodec(codec.toUpperCase()),
+      if (fps > 0) t.statsFps(fps.toStringAsFixed(2)),
+      t.statsHdr(isHDR ? t.yes : t.no),
+      t.statsHw(state.hwEnabled ? t.enabled : t.disabled),
+      t.statsPosition(_fmt(state.position), _fmt(state.duration)),
+      t.statsSpeed(state.speed.toStringAsFixed(2)),
+      if (state.audioDelay != 0) t.statsAudioDelay(state.audioDelay.toStringAsFixed(2)),
+      if (state.subtitleSync != 0) t.statsSubSync(state.subtitleSync.toStringAsFixed(2)),
     ];
 
     return Directionality(

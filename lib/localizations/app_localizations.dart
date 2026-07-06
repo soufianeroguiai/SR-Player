@@ -1599,6 +1599,594 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تطبيق'**
   String get applyButton;
+
+  /// No description provided for @appTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'SR Player'**
+  String get appTitle;
+
+  /// No description provided for @libraryTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتبة'**
+  String get libraryTab;
+
+  /// No description provided for @myFilesTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملفاتي'**
+  String get myFilesTab;
+
+  /// No description provided for @recentTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأخيرة'**
+  String get recentTab;
+
+  /// No description provided for @personalTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشخصي'**
+  String get personalTab;
+
+  /// No description provided for @collectionsTooltip.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجموعات'**
+  String get collectionsTooltip;
+
+  /// No description provided for @viewOptionsTooltip.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات العرض والفرز'**
+  String get viewOptionsTooltip;
+
+  /// No description provided for @searchTooltip.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحث'**
+  String get searchTooltip;
+
+  /// No description provided for @favoritesLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفضلة'**
+  String get favoritesLabel;
+
+  /// No description provided for @playlistLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة التشغيل'**
+  String get playlistLabel;
+
+  /// No description provided for @queueLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة الانتظار'**
+  String get queueLabel;
+
+  /// No description provided for @gridView.
+  ///
+  /// In ar, this message translates to:
+  /// **'شبكة'**
+  String get gridView;
+
+  /// No description provided for @listView.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة'**
+  String get listView;
+
+  /// No description provided for @descending.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنازلي'**
+  String get descending;
+
+  /// No description provided for @ascending.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصاعدي'**
+  String get ascending;
+
+  /// No description provided for @noPreviousVideo.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد فيديو سابق'**
+  String get noPreviousVideo;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{selected} / {total} محدد'**
+  String selectedCount(Object selected, Object total);
+
+  /// No description provided for @shareFiles.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة ملفات'**
+  String get shareFiles;
+
+  /// No description provided for @hiddenFilesToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إخفاء {count} ملف'**
+  String hiddenFilesToast(Object count);
+
+  /// No description provided for @backToFolders.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجوع إلى المجلدات'**
+  String get backToFolders;
+
+  /// No description provided for @videosCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} فيديو'**
+  String videosCount(Object count);
+
+  /// No description provided for @playVideo.
+  ///
+  /// In ar, this message translates to:
+  /// **'تشغيل'**
+  String get playVideo;
+
+  /// No description provided for @videoInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات'**
+  String get videoInfo;
+
+  /// No description provided for @addToFavorites.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة للمفضلة'**
+  String get addToFavorites;
+
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة من المفضلة'**
+  String get removeFromFavorites;
+
+  /// No description provided for @addToPlaylist.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة إلى قائمة التشغيل'**
+  String get addToPlaylist;
+
+  /// No description provided for @alreadyInPlaylist.
+  ///
+  /// In ar, this message translates to:
+  /// **'موجود في قائمة التشغيل'**
+  String get alreadyInPlaylist;
+
+  /// No description provided for @addedToPlaylist.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت الإضافة إلى قائمة التشغيل'**
+  String get addedToPlaylist;
+
+  /// No description provided for @alreadyInPlaylistToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف موجود مسبقاً في القائمة'**
+  String get alreadyInPlaylistToast;
+
+  /// No description provided for @renameFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير الاسم'**
+  String get renameFile;
+
+  /// No description provided for @share.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة'**
+  String get share;
+
+  /// No description provided for @copyPath.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ المسار'**
+  String get copyPath;
+
+  /// No description provided for @openInFileManager.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح في مدير الملفات'**
+  String get openInFileManager;
+
+  /// No description provided for @hide.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء'**
+  String get hide;
+
+  /// No description provided for @unhide.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الإخفاء'**
+  String get unhide;
+
+  /// No description provided for @delete.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get delete;
+
+  /// No description provided for @playAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'تشغيل الكل'**
+  String get playAll;
+
+  /// No description provided for @shufflePlay.
+  ///
+  /// In ar, this message translates to:
+  /// **'تشغيل عشوائي'**
+  String get shufflePlay;
+
+  /// No description provided for @hideAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء الكل'**
+  String get hideAll;
+
+  /// No description provided for @unhideAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار الكل'**
+  String get unhideAll;
+
+  /// No description provided for @deleteFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المجلد'**
+  String get deleteFolder;
+
+  /// No description provided for @renameDialogTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير الاسم'**
+  String get renameDialogTitle;
+
+  /// No description provided for @newNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الجديد'**
+  String get newNameHint;
+
+  /// No description provided for @okButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'موافق'**
+  String get okButton;
+
+  /// No description provided for @deleteFileTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الملف'**
+  String get deleteFileTitle;
+
+  /// No description provided for @deleteFileConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من حذف \"{name}\"؟'**
+  String deleteFileConfirm(Object name);
+
+  /// No description provided for @deleteFilesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الملفات'**
+  String get deleteFilesTitle;
+
+  /// No description provided for @deleteFilesConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من حذف {count} فيديو؟'**
+  String deleteFilesConfirm(Object count);
+
+  /// No description provided for @deleteFolderTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المجلد'**
+  String get deleteFolderTitle;
+
+  /// No description provided for @deleteFolderConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من حذف {count} فيديو؟'**
+  String deleteFolderConfirm(Object count);
+
+  /// No description provided for @fileDeletedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف \"{name}\"'**
+  String fileDeletedToast(Object name);
+
+  /// No description provided for @filesDeletedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف {count} فيديو'**
+  String filesDeletedToast(Object count);
+
+  /// No description provided for @renameSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تغيير الاسم بنجاح'**
+  String get renameSuccess;
+
+  /// No description provided for @renameFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل تغيير الاسم: {error}'**
+  String renameFailed(Object error);
+
+  /// No description provided for @pathCopiedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم نسخ المسار'**
+  String get pathCopiedToast;
+
+  /// No description provided for @fileManagerError.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذر فتح مدير الملفات'**
+  String get fileManagerError;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'قريباً'**
+  String get comingSoon;
+
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
+  /// No description provided for @hideFilesToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إخفاء {count} ملف'**
+  String hideFilesToast(Object count);
+
+  /// No description provided for @folderVideosCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} فيديو  •  {size}'**
+  String folderVideosCount(Object count, Object size);
+
+  /// No description provided for @screenLocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم قفل الشاشة'**
+  String get screenLocked;
+
+  /// No description provided for @colorAdjustment.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنسيق الألوان'**
+  String get colorAdjustment;
+
+  /// No description provided for @playbackSpeed.
+  ///
+  /// In ar, this message translates to:
+  /// **'سرعة التشغيل'**
+  String get playbackSpeed;
+
+  /// No description provided for @speed.
+  ///
+  /// In ar, this message translates to:
+  /// **'السرعة'**
+  String get speed;
+
+  /// No description provided for @custom.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخصص'**
+  String get custom;
+
+  /// No description provided for @apply.
+  ///
+  /// In ar, this message translates to:
+  /// **'تطبيق'**
+  String get apply;
+
+  /// No description provided for @sleepTimer.
+  ///
+  /// In ar, this message translates to:
+  /// **'مؤقت النوم'**
+  String get sleepTimer;
+
+  /// No description provided for @selectTimeMinutes.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الوقت (دقائق)'**
+  String get selectTimeMinutes;
+
+  /// No description provided for @customMinute.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخصص (دقيقة)'**
+  String get customMinute;
+
+  /// No description provided for @start.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدء'**
+  String get start;
+
+  /// No description provided for @resumeFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'استئناف {time}'**
+  String resumeFrom(Object time);
+
+  /// No description provided for @tapToStartFromBeginning.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط للبداية'**
+  String get tapToStartFromBeginning;
+
+  /// No description provided for @subtitleSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات الترجمة'**
+  String get subtitleSettings;
+
+  /// No description provided for @audioSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات الصوت'**
+  String get audioSettings;
+
+  /// No description provided for @more.
+  ///
+  /// In ar, this message translates to:
+  /// **'المزيد'**
+  String get more;
+
+  /// No description provided for @playlistEditor.
+  ///
+  /// In ar, this message translates to:
+  /// **'قوائم التشغيل'**
+  String get playlistEditor;
+
+  /// No description provided for @releaseToOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'أطلق للفتح'**
+  String get releaseToOpen;
+
+  /// No description provided for @slideToUnlock.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسحب لفتح القفل ←'**
+  String get slideToUnlock;
+
+  /// No description provided for @subtitleLoaded.
+  ///
+  /// In ar, this message translates to:
+  /// **'✅ تم تحميل الترجمة'**
+  String get subtitleLoaded;
+
+  /// No description provided for @subtitleLoadFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل تحميل الترجمة: {error}'**
+  String subtitleLoadFailed(Object error);
+
+  /// No description provided for @externalSubtitleRemoved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت إزالة الترجمة الخارجية'**
+  String get externalSubtitleRemoved;
+
+  /// No description provided for @playerError.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذر تشغيل الملف: {error}'**
+  String playerError(Object error);
+
+  /// No description provided for @statsResolution.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدقة: {width}×{height} ({res})'**
+  String statsResolution(Object height, Object res, Object width);
+
+  /// No description provided for @statsCodec.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترميز: {codec}'**
+  String statsCodec(Object codec);
+
+  /// No description provided for @statsFps.
+  ///
+  /// In ar, this message translates to:
+  /// **'معدل الإطارات: {fps} fps'**
+  String statsFps(Object fps);
+
+  /// No description provided for @statsHdr.
+  ///
+  /// In ar, this message translates to:
+  /// **'HDR: {status}'**
+  String statsHdr(Object status);
+
+  /// No description provided for @statsHw.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسريع العتاد (HW): {status}'**
+  String statsHw(Object status);
+
+  /// No description provided for @statsPosition.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموضع: {pos} / {dur}'**
+  String statsPosition(Object dur, Object pos);
+
+  /// No description provided for @statsSpeed.
+  ///
+  /// In ar, this message translates to:
+  /// **'السرعة: {speed}x'**
+  String statsSpeed(Object speed);
+
+  /// No description provided for @statsAudioDelay.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأخير الصوت: {delay}s'**
+  String statsAudioDelay(Object delay);
+
+  /// No description provided for @statsSubSync.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزامنة الترجمة: {sync}s'**
+  String statsSubSync(Object sync);
+
+  /// No description provided for @yes.
+  ///
+  /// In ar, this message translates to:
+  /// **'نعم'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا'**
+  String get no;
+
+  /// No description provided for @enabled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفعّل'**
+  String get enabled;
+
+  /// No description provided for @disabled.
+  ///
+  /// In ar, this message translates to:
+  /// **'معطّل'**
+  String get disabled;
+
+  /// No description provided for @nightModeOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تفعيل الوضع الليلي'**
+  String get nightModeOn;
+
+  /// No description provided for @nightModeOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إيقاف الوضع الليلي'**
+  String get nightModeOff;
+
+  /// No description provided for @sleepTimerStopped.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إيقاف التشغيل بواسطة المؤقت'**
+  String get sleepTimerStopped;
 }
 
 class _AppLocalizationsDelegate

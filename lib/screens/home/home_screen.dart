@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/video_item.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../localizations/app_localizations.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../info_screen.dart';
@@ -46,27 +47,11 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _showFabTimer;
   final Set<VideoItem> _selectedVideos = {};
 
-  static const _tabData = [
-    (
-      label: 'مكتبة',
-      active: Icons.video_library_rounded,
-      inactive: Icons.video_library_outlined,
-    ),
-    (
-      label: 'ملفاتي',
-      active: Icons.folder_rounded,
-      inactive: Icons.folder_outlined,
-    ),
-    (
-      label: 'الأخيرة',
-      active: Icons.history_rounded,
-      inactive: Icons.history_rounded,
-    ),
-    (
-      label: 'الشخصي',
-      active: Icons.person_rounded,
-      inactive: Icons.person_outline_rounded,
-    ),
+  List<({String label, IconData active, IconData inactive})> _tabData(AppLocalizations t) => [
+    (label: t.libraryTab, active: Icons.video_library_rounded, inactive: Icons.video_library_outlined),
+    (label: t.myFilesTab, active: Icons.folder_rounded, inactive: Icons.folder_outlined),
+    (label: t.recentTab, active: Icons.history_rounded, inactive: Icons.history_rounded),
+    (label: t.personalTab, active: Icons.person_rounded, inactive: Icons.person_outline_rounded),
   ];
 
   @override
@@ -129,12 +114,13 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _playLastVideo() {
+    final t = AppLocalizations.of(context)!;
     final lib = context.read<LibraryProvider>();
     if (lib.recentPaths.isNotEmpty) {
       _openByPath(lib.recentPaths.first);
     } else {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('لا يوجد فيديو سابق')));
+          .showSnackBar(SnackBar(content: Text(t.noPreviousVideo)));
     }
   }
 
@@ -185,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showCollectionsDropdown() {
+    final t = AppLocalizations.of(context)!;
     final RenderBox? box =
         _collectionsKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
@@ -219,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen>
                       _dropItem(
                         icon: Icons.favorite_rounded,
                         iconOut: Icons.favorite_border_rounded,
-                        label: 'المفضلة',
+                        label: t.favoritesLabel,
                         count: lib.favoritePaths.length,
                         color: Colors.redAccent,
                         cs: cs,
@@ -235,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen>
                       _dropItem(
                         icon: Icons.queue_music_rounded,
                         iconOut: Icons.queue_music_rounded,
-                        label: 'قائمة التشغيل',
+                        label: t.playlistLabel,
                         count: lib.playlistPaths.length,
                         color: cs.primary,
                         cs: cs,
@@ -252,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen>
                       _dropItem(
                         icon: Icons.playlist_play_rounded,
                         iconOut: Icons.playlist_play_rounded,
-                        label: 'قائمة الانتظار',
+                        label: t.queueLabel,
                         count: lib.recentPaths.length,
                         color: Colors.orange,
                         cs: cs,
@@ -323,6 +310,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showViewOptionsPopup() {
+    final t = AppLocalizations.of(context)!;
     final settings = context.read<SettingsProvider>();
     final cs = Theme.of(context).colorScheme;
 
@@ -344,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.grid_view_rounded,
                 color: currentGrid ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('شبكة',
+            Text(t.gridView,
                 style: TextStyle(
                     fontWeight: currentGrid ? FontWeight.bold : FontWeight.normal)),
           ]),
@@ -355,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.view_list_rounded,
                 color: !currentGrid ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('قائمة',
+            Text(t.listView,
                 style: TextStyle(
                     fontWeight: !currentGrid ? FontWeight.bold : FontWeight.normal)),
           ]),
@@ -367,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.calendar_today_rounded,
                 color: settings.sortBy == 'date' ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('التاريخ',
+            Text(t.sortByDate,
                 style: TextStyle(
                     fontWeight: settings.sortBy == 'date'
                         ? FontWeight.bold
@@ -380,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.sort_by_alpha_rounded,
                 color: settings.sortBy == 'name' ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('الاسم',
+            Text(t.sortByName,
                 style: TextStyle(
                     fontWeight: settings.sortBy == 'name'
                         ? FontWeight.bold
@@ -393,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.data_usage_rounded,
                 color: settings.sortBy == 'size' ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('الحجم',
+            Text(t.sortBySize,
                 style: TextStyle(
                     fontWeight: settings.sortBy == 'size'
                         ? FontWeight.bold
@@ -406,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icon(Icons.timer_rounded,
                 color: settings.sortBy == 'duration' ? cs.primary : null),
             const SizedBox(width: 12),
-            Text('المدة',
+            Text(t.sortByDuration,
                 style: TextStyle(
                     fontWeight: settings.sortBy == 'duration'
                         ? FontWeight.bold
@@ -421,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ? Icons.arrow_downward_rounded
                 : Icons.arrow_upward_rounded),
             const SizedBox(width: 12),
-            Text(settings.sortDesc ? 'تنازلي' : 'تصاعدي'),
+            Text(settings.sortDesc ? t.descending : t.ascending),
           ]),
         ),
       ],
@@ -455,6 +443,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   PreferredSizeWidget _buildSelectionAppBar() {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final lib = context.read<LibraryProvider>();
     final totalCount = lib.videos.length;
@@ -468,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen>
         icon: Icon(Icons.close_rounded, color: cs.onPrimaryContainer),
         onPressed: () => setState(() => _selectedVideos.clear()),
       ),
-      title: Text('$selectedCount / $totalCount محدد',
+      title: Text(t.selectedCount(selectedCount, totalCount),
           style: TextStyle(
               color: cs.onPrimaryContainer,
               fontSize: 18,
@@ -488,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen>
           onPressed: () {
             Share.shareXFiles(
                 _selectedVideos.map((v) => XFile(v.path)).toList(),
-                subject: 'مشاركة ملفات');
+                subject: t.shareFiles);
             setState(() => _selectedVideos.clear());
           },
         ),
@@ -518,13 +507,13 @@ class _HomeScreenState extends State<HomeScreen>
                 context.read<LibraryProvider>().hideVideo(v.path);
               }
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم إخفاء ${_selectedVideos.length} ملف')));
+                  SnackBar(content: Text(t.hideFilesToast(_selectedVideos.length))));
             }
             setState(() => _selectedVideos.clear());
           },
           itemBuilder: (context) => [
-            if (isSingle) const PopupMenuItem(value: 'rename', child: Text('إعادة تسمية')),
-            const PopupMenuItem(value: 'hide', child: Text('إخفاء')),
+            if (isSingle) PopupMenuItem(value: 'rename', child: Text(t.renameFile)),
+            PopupMenuItem(value: 'hide', child: Text(t.hide)),
           ],
         ),
       ],
@@ -532,13 +521,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _confirmDeleteMultiple(List<VideoItem> videos) {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف الملفات'),
-        content: Text('هل أنت متأكد من حذف ${videos.length} فيديو؟'),
+        title: Text(t.deleteFilesTitle),
+        content: Text(t.deleteFilesConfirm(videos.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -547,21 +537,22 @@ class _HomeScreenState extends State<HomeScreen>
               }
               context.read<LibraryProvider>().scan();
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم حذف ${videos.length} فيديو')));
+                  SnackBar(content: Text(t.filesDeletedToast(videos.length))));
             },
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+            child: Text(t.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  // ✅ تمت إعادة السحب الأفقي بين التبويبات
   Widget _buildFloatingNavBar() {
+    final t = AppLocalizations.of(context)!;
+    final tabs = _tabData(t);
     final cs = Theme.of(context).colorScheme;
     final width = MediaQuery.of(context).size.width;
     final totalWidth = width - 32;
-    final tabWidth = totalWidth / _tabData.length;
+    final tabWidth = totalWidth / tabs.length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -584,7 +575,6 @@ class _HomeScreenState extends State<HomeScreen>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // ─── حاوية متحركة (pill) ─────────────────────
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
@@ -601,14 +591,12 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
               ),
-
-              // ─── التبويبات مع السحب الأفقي ──────────────
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onHorizontalDragUpdate: (details) {
                   final newIndex = (details.localPosition.dx / tabWidth)
                       .floor()
-                      .clamp(0, _tabData.length - 1);
+                      .clamp(0, tabs.length - 1);
                   if (newIndex != _currentIndex && newIndex != 3) {
                     setState(() => _currentIndex = newIndex);
                   }
@@ -616,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen>
                 onHorizontalDragEnd: (details) {
                   final finalIndex = (details.localPosition.dx / tabWidth)
                       .floor()
-                      .clamp(0, _tabData.length - 1);
+                      .clamp(0, tabs.length - 1);
                   if (finalIndex == 3) {
                     Navigator.push(
                         context,
@@ -625,8 +613,8 @@ class _HomeScreenState extends State<HomeScreen>
                   }
                 },
                 child: Row(
-                  children: List.generate(_tabData.length, (index) {
-                    final tab = _tabData[index];
+                  children: List.generate(tabs.length, (index) {
+                    final tab = tabs[index];
                     final isActive = _currentIndex == index;
 
                     return Expanded(
@@ -695,6 +683,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
     final lib = context.watch<LibraryProvider>();
@@ -705,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen>
       appBar: isSelectionMode
           ? _buildSelectionAppBar()
           : AppBar(
-              title: const Text('SR Player'),
+              title: Text(t.appTitle),
               centerTitle: false,
               titleTextStyle: TextStyle(
                   color: cs.onSurface,
@@ -726,7 +715,7 @@ class _HomeScreenState extends State<HomeScreen>
                           color: _collectionsOpen ? cs.primary : null,
                         ),
                         onPressed: _onCollectionsPressed,
-                        tooltip: 'المجموعات',
+                        tooltip: t.collectionsTooltip,
                       ),
                     );
                   },
@@ -738,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: IconButton(
                       icon: const Icon(Icons.tune_rounded),
                       onPressed: _onTunePressed,
-                      tooltip: 'خيارات العرض والفرز',
+                      tooltip: t.viewOptionsTooltip,
                     ),
                   ),
                 ),
@@ -758,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen>
                           context: context,
                           delegate: VideoSearchDelegate(lib.videos, _openPlayer));
                     },
-                    tooltip: 'بحث',
+                    tooltip: t.searchTooltip,
                   ),
                 ),
               ],
@@ -831,6 +820,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildFoldersTab(LibraryProvider lib, SettingsProvider settings) {
+    final t = AppLocalizations.of(context)!;
     if (_browsingFolder != null) {
       final folderVideos = _sorted(
           lib.videos.where((v) => v.folder == _browsingFolder).toList());
@@ -842,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen>
             IconButton(
                 icon: const Icon(Icons.arrow_back_rounded),
                 onPressed: () => setState(() => _browsingFolder = null),
-                tooltip: 'رجوع إلى المجلدات'),
+                tooltip: t.backToFolders),
             const SizedBox(width: 4),
             Text(_browsingFolder!,
                 style: TextStyle(
@@ -850,7 +840,7 @@ class _HomeScreenState extends State<HomeScreen>
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface)),
             const Spacer(),
-            Text('${folderVideos.length} فيديو',
+            Text(t.videosCount(folderVideos.length),
                 style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 13)),
@@ -880,6 +870,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _buildVideoOptionsSheet(VideoItem video) {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final lib = context.read<LibraryProvider>();
     final isHidden = lib.hiddenPaths.contains(video.path);
@@ -906,13 +897,13 @@ class _HomeScreenState extends State<HomeScreen>
               const Divider(height: 1),
               _sheetTile(
                   icon: Icons.play_arrow_rounded,
-                  title: 'تشغيل',
+                  title: t.playVideo,
                   iconBg: cs.primaryContainer,
                   iconColor: cs.onPrimaryContainer,
                   onTap: () { Navigator.pop(context); _openPlayer(video); }),
               _sheetTile(
                   icon: Icons.info_rounded,
-                  title: 'معلومات',
+                  title: t.videoInfo,
                   iconBg: cs.secondaryContainer,
                   iconColor: cs.onSecondaryContainer,
                   onTap: () {
@@ -923,7 +914,7 @@ class _HomeScreenState extends State<HomeScreen>
               const Divider(height: 1),
               _sheetTile(
                   icon: isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  title: isFav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                  title: isFav ? t.removeFromFavorites : t.addToFavorites,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
                   onTap: () { Navigator.pop(context); lib.toggleFavorite(video.path); }),
@@ -931,9 +922,7 @@ class _HomeScreenState extends State<HomeScreen>
                   icon: lib.isInPlaylist(video.path)
                       ? Icons.playlist_add_check_rounded
                       : Icons.playlist_add_rounded,
-                  title: lib.isInPlaylist(video.path)
-                      ? 'موجود في قائمة التشغيل'
-                      : 'إضافة إلى قائمة التشغيل',
+                  title: lib.isInPlaylist(video.path) ? t.alreadyInPlaylist : t.addToPlaylist,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
                   onTap: () async {
@@ -941,21 +930,19 @@ class _HomeScreenState extends State<HomeScreen>
                     final added = await lib.addToPlaylist(video.path);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(added
-                              ? 'تمت الإضافة إلى قائمة التشغيل'
-                              : 'الملف موجود مسبقاً في القائمة')));
+                          content: Text(added ? t.addedToPlaylist : t.alreadyInPlaylistToast)));
                     }
                   }),
               _sheetTile(
                   icon: Icons.drive_file_rename_outline_rounded,
-                  title: 'تغيير الاسم',
+                  title: t.renameFile,
                   iconBg: cs.surfaceContainerHighest,
                   iconColor: cs.onSurfaceVariant,
                   onTap: () { Navigator.pop(context); _renameFile(video); }),
               const Divider(height: 1),
               _sheetTile(
                   icon: Icons.share_rounded,
-                  title: 'مشاركة',
+                  title: t.share,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
                   onTap: () {
@@ -964,25 +951,25 @@ class _HomeScreenState extends State<HomeScreen>
                   }),
               _sheetTile(
                   icon: Icons.content_copy_rounded,
-                  title: 'نسخ المسار',
+                  title: t.copyPath,
                   iconBg: cs.surfaceContainerHighest,
                   iconColor: cs.onSurfaceVariant,
                   onTap: () {
                     Navigator.pop(context);
                     Clipboard.setData(ClipboardData(text: video.path));
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تم نسخ المسار')));
+                        SnackBar(content: Text(t.pathCopiedToast)));
                   }),
               _sheetTile(
                   icon: Icons.folder_open_rounded,
-                  title: 'فتح في مدير الملفات',
+                  title: t.openInFileManager,
                   iconBg: cs.surfaceContainerHighest,
                   iconColor: cs.onSurfaceVariant,
                   onTap: () { Navigator.pop(context); _openInFileManager(video); }),
               const Divider(height: 1),
               _sheetTile(
                   icon: isHidden ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                  title: isHidden ? 'إلغاء الإخفاء' : 'إخفاء',
+                  title: isHidden ? t.unhide : t.hide,
                   iconBg: isHidden ? cs.secondaryContainer : cs.errorContainer,
                   iconColor: isHidden ? cs.onSecondaryContainer : cs.onErrorContainer,
                   onTap: () {
@@ -991,7 +978,7 @@ class _HomeScreenState extends State<HomeScreen>
                   }),
               _sheetTile(
                   icon: Icons.delete_rounded,
-                  title: 'حذف',
+                  title: t.delete,
                   iconBg: cs.errorContainer,
                   iconColor: cs.onErrorContainer,
                   onTap: () { Navigator.pop(context); _confirmDeleteFile(video); }),
@@ -1003,6 +990,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _buildFolderOptionsSheet(String folderName, List<VideoItem> folderVideos) {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final lib = context.read<LibraryProvider>();
     final totalSize = folderVideos.fold<int>(0, (s, v) => s + v.size);
@@ -1031,14 +1019,14 @@ class _HomeScreenState extends State<HomeScreen>
                           fontWeight: FontWeight.w500,
                           fontSize: 14)),
                   const SizedBox(height: 4),
-                  Text('${folderVideos.length} فيديو  •  $sizeStr',
+                  Text(t.folderVideosCount(folderVideos.length, sizeStr),
                       style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
                 ]),
               ),
               const Divider(height: 1),
               _sheetTile(
                   icon: Icons.play_arrow_rounded,
-                  title: 'تشغيل الكل',
+                  title: t.playAll,
                   iconBg: cs.primaryContainer,
                   iconColor: cs.onPrimaryContainer,
                   onTap: () {
@@ -1047,7 +1035,7 @@ class _HomeScreenState extends State<HomeScreen>
                   }),
               _sheetTile(
                   icon: Icons.shuffle_rounded,
-                  title: 'تشغيل عشوائي',
+                  title: t.shufflePlay,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
                   onTap: () {
@@ -1060,14 +1048,14 @@ class _HomeScreenState extends State<HomeScreen>
               const Divider(height: 1),
               _sheetTile(
                   icon: isFolderFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  title: isFolderFav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                  title: isFolderFav ? t.removeFromFavorites : t.addToFavorites,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
                   onTap: () { Navigator.pop(context); lib.toggleFavorite(folderName); }),
               const Divider(height: 1),
               _sheetTile(
                   icon: allHidden ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                  title: allHidden ? 'إظهار الكل' : 'إخفاء الكل',
+                  title: allHidden ? t.unhideAll : t.hideAll,
                   iconBg: cs.errorContainer,
                   iconColor: cs.onErrorContainer,
                   onTap: () {
@@ -1078,7 +1066,7 @@ class _HomeScreenState extends State<HomeScreen>
                   }),
               _sheetTile(
                   icon: Icons.delete_rounded,
-                  title: 'حذف المجلد',
+                  title: t.deleteFolder,
                   iconBg: cs.errorContainer,
                   iconColor: cs.onErrorContainer,
                   onTap: () { Navigator.pop(context); _confirmDeleteFolder(folderVideos); }),
@@ -1097,6 +1085,7 @@ class _HomeScreenState extends State<HomeScreen>
     VoidCallback? onTap,
     bool enabled = true,
   }) {
+    final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     return Opacity(
       opacity: enabled ? 1.0 : 0.5,
@@ -1116,23 +1105,24 @@ class _HomeScreenState extends State<HomeScreen>
         onTap: enabled
             ? onTap
             : () => ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('قريباً'))),
+                .showSnackBar(SnackBar(content: Text(t.comingSoon))),
       ),
     );
   }
 
   void _renameFile(VideoItem video) {
+    final t = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: video.name);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تغيير الاسم'),
+        title: Text(t.renameDialogTitle),
         content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: 'الاسم الجديد'),
+            decoration: InputDecoration(hintText: t.newNameHint),
             autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           TextButton(
             onPressed: () {
               final newName = controller.text.trim();
@@ -1142,15 +1132,15 @@ class _HomeScreenState extends State<HomeScreen>
                       '${File(video.path).parent.path}/$newName.${video.extension}');
                   context.read<LibraryProvider>().scan();
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم تغيير الاسم بنجاح')));
+                      SnackBar(content: Text(t.renameSuccess)));
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('فشل تغيير الاسم: $e')));
+                      SnackBar(content: Text(t.renameFailed(e.toString()))));
                 }
               }
               Navigator.pop(ctx);
             },
-            child: const Text('موافق'),
+            child: Text(t.okButton),
           ),
         ],
       ),
@@ -1158,13 +1148,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _confirmDeleteFile(VideoItem video) {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف الملف'),
-        content: Text('هل أنت متأكد من حذف "${video.name}"؟'),
+        title: Text(t.deleteFileTitle),
+        content: Text(t.deleteFileConfirm(video.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -1172,10 +1163,10 @@ class _HomeScreenState extends State<HomeScreen>
                 File(video.path).deleteSync();
                 context.read<LibraryProvider>().scan();
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('تم حذف "${video.name}"')));
+                    SnackBar(content: Text(t.fileDeletedToast(video.name))));
               }
             },
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+            child: Text(t.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1183,13 +1174,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _confirmDeleteFolder(List<VideoItem> videos) {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف المجلد'),
-        content: Text('هل أنت متأكد من حذف ${videos.length} فيديو؟'),
+        title: Text(t.deleteFolderTitle),
+        content: Text(t.deleteFolderConfirm(videos.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -1198,9 +1190,9 @@ class _HomeScreenState extends State<HomeScreen>
               }
               context.read<LibraryProvider>().scan();
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم حذف ${videos.length} فيديو')));
+                  SnackBar(content: Text(t.filesDeletedToast(videos.length))));
             },
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+            child: Text(t.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1208,13 +1200,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _openInFileManager(VideoItem video) async {
+    final t = AppLocalizations.of(context)!;
     final uri = Uri.parse('file://${File(video.path).parent.path}');
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر فتح مدير الملفات')));
+          SnackBar(content: Text(t.fileManagerError)));
     }
   }
 }

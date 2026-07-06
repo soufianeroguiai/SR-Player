@@ -774,4 +774,344 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get applyButton => 'تطبيق';
+
+  @override
+  String get appTitle => 'SR Player';
+
+  @override
+  String get libraryTab => 'مكتبة';
+
+  @override
+  String get myFilesTab => 'ملفاتي';
+
+  @override
+  String get recentTab => 'الأخيرة';
+
+  @override
+  String get personalTab => 'الشخصي';
+
+  @override
+  String get collectionsTooltip => 'المجموعات';
+
+  @override
+  String get viewOptionsTooltip => 'خيارات العرض والفرز';
+
+  @override
+  String get searchTooltip => 'بحث';
+
+  @override
+  String get favoritesLabel => 'المفضلة';
+
+  @override
+  String get playlistLabel => 'قائمة التشغيل';
+
+  @override
+  String get queueLabel => 'قائمة الانتظار';
+
+  @override
+  String get gridView => 'شبكة';
+
+  @override
+  String get listView => 'قائمة';
+
+  @override
+  String get descending => 'تنازلي';
+
+  @override
+  String get ascending => 'تصاعدي';
+
+  @override
+  String get noPreviousVideo => 'لا يوجد فيديو سابق';
+
+  @override
+  String selectedCount(Object selected, Object total) {
+    return '$selected / $total محدد';
+  }
+
+  @override
+  String get shareFiles => 'مشاركة ملفات';
+
+  @override
+  String hiddenFilesToast(Object count) {
+    return 'تم إخفاء $count ملف';
+  }
+
+  @override
+  String get backToFolders => 'رجوع إلى المجلدات';
+
+  @override
+  String videosCount(Object count) {
+    return '$count فيديو';
+  }
+
+  @override
+  String get playVideo => 'تشغيل';
+
+  @override
+  String get videoInfo => 'معلومات';
+
+  @override
+  String get addToFavorites => 'إضافة للمفضلة';
+
+  @override
+  String get removeFromFavorites => 'إزالة من المفضلة';
+
+  @override
+  String get addToPlaylist => 'إضافة إلى قائمة التشغيل';
+
+  @override
+  String get alreadyInPlaylist => 'موجود في قائمة التشغيل';
+
+  @override
+  String get addedToPlaylist => 'تمت الإضافة إلى قائمة التشغيل';
+
+  @override
+  String get alreadyInPlaylistToast => 'الملف موجود مسبقاً في القائمة';
+
+  @override
+  String get renameFile => 'تغيير الاسم';
+
+  @override
+  String get share => 'مشاركة';
+
+  @override
+  String get copyPath => 'نسخ المسار';
+
+  @override
+  String get openInFileManager => 'فتح في مدير الملفات';
+
+  @override
+  String get hide => 'إخفاء';
+
+  @override
+  String get unhide => 'إلغاء الإخفاء';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get playAll => 'تشغيل الكل';
+
+  @override
+  String get shufflePlay => 'تشغيل عشوائي';
+
+  @override
+  String get hideAll => 'إخفاء الكل';
+
+  @override
+  String get unhideAll => 'إظهار الكل';
+
+  @override
+  String get deleteFolder => 'حذف المجلد';
+
+  @override
+  String get renameDialogTitle => 'تغيير الاسم';
+
+  @override
+  String get newNameHint => 'الاسم الجديد';
+
+  @override
+  String get okButton => 'موافق';
+
+  @override
+  String get deleteFileTitle => 'حذف الملف';
+
+  @override
+  String deleteFileConfirm(Object name) {
+    return 'هل أنت متأكد من حذف \"$name\"؟';
+  }
+
+  @override
+  String get deleteFilesTitle => 'حذف الملفات';
+
+  @override
+  String deleteFilesConfirm(Object count) {
+    return 'هل أنت متأكد من حذف $count فيديو؟';
+  }
+
+  @override
+  String get deleteFolderTitle => 'حذف المجلد';
+
+  @override
+  String deleteFolderConfirm(Object count) {
+    return 'هل أنت متأكد من حذف $count فيديو؟';
+  }
+
+  @override
+  String fileDeletedToast(Object name) {
+    return 'تم حذف \"$name\"';
+  }
+
+  @override
+  String filesDeletedToast(Object count) {
+    return 'تم حذف $count فيديو';
+  }
+
+  @override
+  String get renameSuccess => 'تم تغيير الاسم بنجاح';
+
+  @override
+  String renameFailed(Object error) {
+    return 'فشل تغيير الاسم: $error';
+  }
+
+  @override
+  String get pathCopiedToast => 'تم نسخ المسار';
+
+  @override
+  String get fileManagerError => 'تعذر فتح مدير الملفات';
+
+  @override
+  String get comingSoon => 'قريباً';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String hideFilesToast(Object count) {
+    return 'تم إخفاء $count ملف';
+  }
+
+  @override
+  String folderVideosCount(Object count, Object size) {
+    return '$count فيديو  •  $size';
+  }
+
+  @override
+  String get screenLocked => 'تم قفل الشاشة';
+
+  @override
+  String get colorAdjustment => 'تنسيق الألوان';
+
+  @override
+  String get playbackSpeed => 'سرعة التشغيل';
+
+  @override
+  String get speed => 'السرعة';
+
+  @override
+  String get custom => 'مخصص';
+
+  @override
+  String get apply => 'تطبيق';
+
+  @override
+  String get sleepTimer => 'مؤقت النوم';
+
+  @override
+  String get selectTimeMinutes => 'اختر الوقت (دقائق)';
+
+  @override
+  String get customMinute => 'مخصص (دقيقة)';
+
+  @override
+  String get start => 'بدء';
+
+  @override
+  String resumeFrom(Object time) {
+    return 'استئناف $time';
+  }
+
+  @override
+  String get tapToStartFromBeginning => 'اضغط للبداية';
+
+  @override
+  String get subtitleSettings => 'إعدادات الترجمة';
+
+  @override
+  String get audioSettings => 'إعدادات الصوت';
+
+  @override
+  String get more => 'المزيد';
+
+  @override
+  String get playlistEditor => 'قوائم التشغيل';
+
+  @override
+  String get releaseToOpen => 'أطلق للفتح';
+
+  @override
+  String get slideToUnlock => 'اسحب لفتح القفل ←';
+
+  @override
+  String get subtitleLoaded => '✅ تم تحميل الترجمة';
+
+  @override
+  String subtitleLoadFailed(Object error) {
+    return 'فشل تحميل الترجمة: $error';
+  }
+
+  @override
+  String get externalSubtitleRemoved => 'تمت إزالة الترجمة الخارجية';
+
+  @override
+  String playerError(Object error) {
+    return 'تعذر تشغيل الملف: $error';
+  }
+
+  @override
+  String statsResolution(Object height, Object res, Object width) {
+    return 'الدقة: $width×$height ($res)';
+  }
+
+  @override
+  String statsCodec(Object codec) {
+    return 'الترميز: $codec';
+  }
+
+  @override
+  String statsFps(Object fps) {
+    return 'معدل الإطارات: $fps fps';
+  }
+
+  @override
+  String statsHdr(Object status) {
+    return 'HDR: $status';
+  }
+
+  @override
+  String statsHw(Object status) {
+    return 'تسريع العتاد (HW): $status';
+  }
+
+  @override
+  String statsPosition(Object dur, Object pos) {
+    return 'الموضع: $pos / $dur';
+  }
+
+  @override
+  String statsSpeed(Object speed) {
+    return 'السرعة: ${speed}x';
+  }
+
+  @override
+  String statsAudioDelay(Object delay) {
+    return 'تأخير الصوت: ${delay}s';
+  }
+
+  @override
+  String statsSubSync(Object sync) {
+    return 'مزامنة الترجمة: ${sync}s';
+  }
+
+  @override
+  String get yes => 'نعم';
+
+  @override
+  String get no => 'لا';
+
+  @override
+  String get enabled => 'مفعّل';
+
+  @override
+  String get disabled => 'معطّل';
+
+  @override
+  String get nightModeOn => 'تم تفعيل الوضع الليلي';
+
+  @override
+  String get nightModeOff => 'تم إيقاف الوضع الليلي';
+
+  @override
+  String get sleepTimerStopped => 'تم إيقاف التشغيل بواسطة المؤقت';
 }
