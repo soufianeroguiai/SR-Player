@@ -1442,40 +1442,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
     final t = AppLocalizations.of(context)!;
     final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final bands = List<double>.from(s.equalizerBands);
-          return AlertDialog(
-            title: Text(t.equalizerDialogTitle),
-            content: SizedBox(
-              width: 300,
-              child: SingleChildScrollView(
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final bands = List<double>.from(s.equalizerBands);
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+                      child: Text(t.equalizerDialogTitle,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16)),
+                    ),
+                    const Divider(height: 1),
                     for (int i = 0; i < bands.length; i++)
-                      _sliderRow(ctx, '${bandFrequencies[i]} Hz', bands[i], -20, 20, '${bands[i].toStringAsFixed(1)} dB', (v) {
+                      _sliderRow(ctx, '${bandFrequencies[i]} Hz', bands[i], -20, 20,
+                          '${bands[i].toStringAsFixed(1)} dB', (v) {
                         bands[i] = v;
                         setDialogState(() {});
                       }),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(t.cancelButton)),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                            onPressed: () {
+                              s.setEqualizerBands(bands);
+                              Navigator.pop(ctx);
+                            },
+                            child: Text(t.applyButton)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancelButton)),
-              ElevatedButton(
-                onPressed: () {
-                  s.setEqualizerBands(bands);
-                  Navigator.pop(ctx);
-                },
-                child: Text(t.applyButton),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

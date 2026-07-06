@@ -112,23 +112,24 @@ void showBottomPicker<T>(
   final cs = Theme.of(ctx).colorScheme;
   showModalBottomSheet(
     context: ctx,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-            child: Text(title, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
-        const Divider(height: 1),
-        ...items.map((item) => ListTile(
-              leading: Icon(item.$3),
-              title: Text(item.$2),
-              trailing: currentValue == item.$1 ? Icon(Symbols.check_rounded, color: cs.primary) : null,
-              onTap: () {
-                onSelected(item.$1);
-                Navigator.pop(ctx);
-              },
-            )),
-      ]),
+    builder: (_) => SafeArea(
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+              child: Text(title, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16))),
+          const Divider(height: 1),
+          ...items.map((item) => ListTile(
+                leading: Icon(item.$3),
+                title: Text(item.$2),
+                trailing: currentValue == item.$1 ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+                onTap: () {
+                  onSelected(item.$1);
+                  Navigator.pop(ctx);
+                },
+              )),
+        ]),
+      ),
     ),
   );
 }
