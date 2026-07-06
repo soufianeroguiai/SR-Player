@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../l10n/app_localizations.dart';
+import '../localizations/app_localizations.dart';  // تم التصحيح
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import '../widgets/video_card.dart';
@@ -26,8 +26,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _loadFavorites() async {
     final p = await SharedPreferences.getInstance();
     final favs = p.getStringList('favorite_paths') ?? [];
-    // الودجت يمكن يكون تفك (unmounted) خلال انتظار SharedPreferences
-    // (مثلاً المستخدم رجع للخلف بسرعة).
     if (!mounted) return;
     setState(() => _favorites = favs);
   }

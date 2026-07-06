@@ -8,7 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
-import '../../l10n/app_localizations.dart';
+import '../../localizations/app_localizations.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
