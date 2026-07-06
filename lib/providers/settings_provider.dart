@@ -16,6 +16,7 @@ class SettingsProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
+  // ---------- دوال قديمة يجب أن تبقى ----------
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
@@ -46,6 +47,7 @@ class SettingsProvider extends ChangeNotifier {
   void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
   void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: التشغيل ----------
   bool _autoPlay = true;
   bool get autoPlay => _autoPlay;
 
@@ -64,6 +66,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get autoNextVideo => _autoNextVideo;
   void setAutoNextVideo(bool v) { _autoNextVideo = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: سرعة التشغيل ----------
   double _defaultSpeed = 1.0;
   double get defaultSpeed => _defaultSpeed;
 
@@ -79,6 +82,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get pitchCorrection => _pitchCorrection;
   void setPitchCorrection(bool v) { _pitchCorrection = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: عرض الفيديو ----------
   String _defaultVideoMode = 'contain';
   String get defaultVideoMode => _defaultVideoMode;
   void setDefaultVideoMode(String v) { _defaultVideoMode = v; notifyListeners(); _save(); }
@@ -99,6 +103,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get keepScreenOn => _keepScreenOn;
   void setKeepScreenOn(bool v) { _keepScreenOn = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: الإيماءات ----------
   bool _gestureVolume = true;
   bool get gestureVolume => _gestureVolume;
   void setGestureVolume(bool v) { _gestureVolume = v; notifyListeners(); _save(); }
@@ -127,6 +132,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get vibrateOnEnd => _vibrateOnEnd;
   void setVibrateOnEnd(bool v) { _vibrateOnEnd = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: التقديم والترجيع ----------
   int _doubleTapSeekSeconds = 10;
   int get doubleTapSeekSeconds => _doubleTapSeekSeconds;
 
@@ -138,6 +144,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get showSeekTime => _showSeekTime;
   void setShowSeekTime(bool v) { _showSeekTime = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: واجهة المشغل ----------
   bool _autoHideControls = true;
   bool get autoHideControls => _autoHideControls;
   void setAutoHideControls(bool v) { _autoHideControls = v; notifyListeners(); _save(); }
@@ -165,6 +172,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get showClock => _showClock;
   void setShowClock(bool v) { _showClock = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: القوائم ----------
   bool _continuousPlayback = true;
   bool get continuousPlayback => _continuousPlayback;
   void setContinuousPlayback(bool v) { _continuousPlayback = v; notifyListeners(); _save(); }
@@ -185,6 +193,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get shufflePlaylist => _shufflePlaylist;
   void setShufflePlaylist(bool v) { _shufflePlaylist = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: الطاقة ----------
   bool _preventScreenLock = true;
   bool get preventScreenLock => _preventScreenLock;
   void setPreventScreenLock(bool v) { _preventScreenLock = v; notifyListeners(); _save(); }
@@ -201,6 +210,7 @@ class SettingsProvider extends ChangeNotifier {
   int get sleepTimerMinutes => _sleepTimerMinutes;
   void setSleepTimerMinutes(int v) { _sleepTimerMinutes = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: التحكم ----------
   bool _volumeKeysSeek = false;
   bool get volumeKeysSeek => _volumeKeysSeek;
   void setVolumeKeysSeek(bool v) { _volumeKeysSeek = v; notifyListeners(); _save(); }
@@ -213,6 +223,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get gamepadSupport => _gamepadSupport;
   void setGamepadSupport(bool v) { _gamepadSupport = v; notifyListeners(); _save(); }
 
+  // ---------- المشغل: خيارات متقدمة ----------
   String _hwDecoderMode = 'auto';
   String get hwDecoderMode => _hwDecoderMode;
 
@@ -240,6 +251,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get showVideoInfo => _showVideoInfo;
   void setShowVideoInfo(bool v) { _showVideoInfo = v; notifyListeners(); _save(); }
 
+  // ---------- الصوت ----------
   double _defaultAudioBoost = 100.0;
   double get defaultAudioBoost => _defaultAudioBoost;
 
@@ -282,6 +294,7 @@ class SettingsProvider extends ChangeNotifier {
   List<double> get equalizerBands => _equalizerBands;
   void setEqualizerBands(List<double> bands) { _equalizerBands = bands; notifyListeners(); _save(); }
 
+  // ---------- الترجمة ----------
   bool _showSubtitlesByDefault = true;
   bool get showSubtitlesByDefault => _showSubtitlesByDefault;
 
@@ -303,6 +316,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
 
+  // ---------- المكتبة ----------
   String _sortBy = 'date';
   String get sortBy => _sortBy;
 
@@ -318,6 +332,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _recentGridView = false;
   bool get recentGridView => _recentGridView;
 
+  // ---------- عام ----------
   int _themeSeedColorValue = 0xFF1B6CA8;
   Color get themeSeedColor => Color(_themeSeedColorValue);
 
@@ -342,19 +357,14 @@ class SettingsProvider extends ChangeNotifier {
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
-  bool _autoHideStatusBar = false;
-  bool get autoHideStatusBar => _autoHideStatusBar;
-  void setAutoHideStatusBar(bool v) { _autoHideStatusBar = v; notifyListeners(); _save(); }
-
-  bool _animationsEnabled = true;
-  bool get animationsEnabled => _animationsEnabled;
-  void setAnimationsEnabled(bool v) { _animationsEnabled = v; notifyListeners(); _save(); }
-
+  // ---------- اللغة ----------
+  // 'system' يعني اتباع لغة الجهاز (إن كانت مدعومة، وإلا العربية كافتراضي)
   String _appLanguageCode = 'system';
   String get appLanguageCode => _appLanguageCode;
   Locale? get appLocale => _appLanguageCode == 'system' ? null : Locale(_appLanguageCode);
   void setAppLanguageCode(String v) { _appLanguageCode = v; notifyListeners(); _save(); }
 
+  // ---------- load / save ----------
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     final subtitleJsonString = p.getString('subtitleSettingsData');
@@ -451,8 +461,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = p.getDouble('longPressSpeedValue') ?? 2.0;
     _gestureSensitivity = p.getDouble('gestureSensitivity') ?? 1.0;
     _colorFormat = p.getString('colorFormat') ?? 'yuv';
-    _autoHideStatusBar = p.getBool('autoHideStatusBar') ?? false;
-    _animationsEnabled = p.getBool('animationsEnabled') ?? true;
     _appLanguageCode = p.getString('appLanguageCode') ?? 'system';
 
     notifyListeners();
@@ -543,8 +551,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('longPressSpeedValue', _longPressSpeedValue);
     await p.setDouble('gestureSensitivity', _gestureSensitivity);
     await p.setString('colorFormat', _colorFormat);
-    await p.setBool('autoHideStatusBar', _autoHideStatusBar);
-    await p.setBool('animationsEnabled', _animationsEnabled);
     await p.setString('appLanguageCode', _appLanguageCode);
   }
 
@@ -632,9 +638,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = 2.0;
     _gestureSensitivity = 1.0;
     _colorFormat = 'yuv';
-    _autoHideStatusBar = false;
-    _animationsEnabled = true;
-    _appLanguageCode = 'system';
     _save();
     notifyListeners();
   }
@@ -724,9 +727,6 @@ class SettingsProvider extends ChangeNotifier {
       'longPressSpeedValue': _longPressSpeedValue,
       'gestureSensitivity': _gestureSensitivity,
       'colorFormat': _colorFormat,
-      'autoHideStatusBar': _autoHideStatusBar,
-      'animationsEnabled': _animationsEnabled,
-      'appLanguageCode': _appLanguageCode,
     };
   }
 
@@ -826,9 +826,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = read('longPressSpeedValue', _longPressSpeedValue);
     _gestureSensitivity = read('gestureSensitivity', _gestureSensitivity);
     _colorFormat = read('colorFormat', _colorFormat);
-    _autoHideStatusBar = read('autoHideStatusBar', _autoHideStatusBar);
-    _animationsEnabled = read('animationsEnabled', _animationsEnabled);
-    _appLanguageCode = read('appLanguageCode', _appLanguageCode);
 
     notifyListeners();
     await _save();

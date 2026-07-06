@@ -143,7 +143,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rememberVideoModeOption => 'Mémoriser le dernier mode';
 
   @override
-  String get autoRotateOption => 'Rotation automatique de l\'écran';
+  String get autoRotateOption => 'Rotation automatique';
 
   @override
   String get autoFullscreenOption => 'Plein écran automatique';
@@ -667,7 +667,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importSettingsOption => 'Importer les paramètres';
 
   @override
-  String get resetAllButton => 'Restaurer les paramètres par défaut';
+  String get resetAllButton => 'Réinitialiser tous les paramètres';
 
   @override
   String get resetAllDialogTitle => 'Réinitialiser les paramètres';
@@ -1543,29 +1543,4 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get thumbnailError => 'Échec du chargement de l\'image';
-
-  @override
-  String get languageSection => 'Langue';
-
-  @override
-  String get themeSection => 'Thème';
-
-  @override
-  String get appColorSection => 'Couleur de l\'application';
-
-  @override
-  String get startupScreenSection => 'Écran de démarrage';
-
-  @override
-  String get autoHideStatusBarOption =>
-      'Masquer automatiquement la barre d\'état';
-
-  @override
-  String get vibrateOnGestureOption => 'Vibrer lors des gestes';
-
-  @override
-  String get animationsOption => 'Animations';
-
-  @override
-  String get resetAllSection => 'Réinitialiser les paramètres';
 }

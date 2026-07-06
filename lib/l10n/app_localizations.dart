@@ -355,7 +355,7 @@ abstract class AppLocalizations {
   /// No description provided for @autoRotateOption.
   ///
   /// In ar, this message translates to:
-  /// **'التدوير التلقائي للشاشة'**
+  /// **'تدوير تلقائي'**
   String get autoRotateOption;
 
   /// No description provided for @autoFullscreenOption.
@@ -2997,54 +2997,6 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'فشل تحميل الصورة'**
   String get thumbnailError;
-
-  /// No description provided for @languageSection.
-  ///
-  /// In ar, this message translates to:
-  /// **'اللغة'**
-  String get languageSection;
-
-  /// No description provided for @themeSection.
-  ///
-  /// In ar, this message translates to:
-  /// **'السمة'**
-  String get themeSection;
-
-  /// No description provided for @appColorSection.
-  ///
-  /// In ar, this message translates to:
-  /// **'لون التطبيق'**
-  String get appColorSection;
-
-  /// No description provided for @startupScreenSection.
-  ///
-  /// In ar, this message translates to:
-  /// **'شاشة البداية'**
-  String get startupScreenSection;
-
-  /// No description provided for @autoHideStatusBarOption.
-  ///
-  /// In ar, this message translates to:
-  /// **'إخفاء شريط الحالة تلقائياً'**
-  String get autoHideStatusBarOption;
-
-  /// No description provided for @vibrateOnGestureOption.
-  ///
-  /// In ar, this message translates to:
-  /// **'الاهتزاز عند الإيماءات'**
-  String get vibrateOnGestureOption;
-
-  /// No description provided for @animationsOption.
-  ///
-  /// In ar, this message translates to:
-  /// **'الرسوم المتحركة'**
-  String get animationsOption;
-
-  /// No description provided for @resetAllSection.
-  ///
-  /// In ar, this message translates to:
-  /// **'إعادة ضبط الإعدادات'**
-  String get resetAllSection;
 }
 
 class _AppLocalizationsDelegate

@@ -142,7 +142,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get rememberVideoModeOption => 'تذكر آخر وضع';
 
   @override
-  String get autoRotateOption => 'التدوير التلقائي للشاشة';
+  String get autoRotateOption => 'تدوير تلقائي';
 
   @override
   String get autoFullscreenOption => 'ملء الشاشة تلقائياً';
@@ -1534,28 +1534,4 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get thumbnailError => 'فشل تحميل الصورة';
-
-  @override
-  String get languageSection => 'اللغة';
-
-  @override
-  String get themeSection => 'السمة';
-
-  @override
-  String get appColorSection => 'لون التطبيق';
-
-  @override
-  String get startupScreenSection => 'شاشة البداية';
-
-  @override
-  String get autoHideStatusBarOption => 'إخفاء شريط الحالة تلقائياً';
-
-  @override
-  String get vibrateOnGestureOption => 'الاهتزاز عند الإيماءات';
-
-  @override
-  String get animationsOption => 'الرسوم المتحركة';
-
-  @override
-  String get resetAllSection => 'إعادة ضبط الإعدادات';
 }
