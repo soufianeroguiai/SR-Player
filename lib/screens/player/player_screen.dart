@@ -783,6 +783,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         },
                         subtitleSync: _state.subtitleSync,
                         onSyncChanged: _onSubtitleSyncChanged,
+                        videoName: widget.video.name,
+                        onLoadSrt: _loadSrtFile,
                       )
                     : _state.currentMenu == ActiveMenu.audio
                         ? AudioSettingsPanel(
