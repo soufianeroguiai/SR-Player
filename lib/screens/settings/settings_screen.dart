@@ -8,7 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
 import '../../services/thumbnail_service.dart';
-import '../../l10n/app_localizations.dart'; // تم التصحيح: المسار إلى l10n بدلاً من localizations
+import '../../l10n/app_localizations.dart';
 import 'settings_widgets.dart';
 import 'settings_dialogs.dart';
 import 'hidden_files_screen.dart';
@@ -56,9 +56,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         _sectionHeader(context, t.generalSection, Symbols.settings_rounded),
         _card(context, [
-          _choiceTile(context, Symbols.dark_mode_rounded, t.appearanceOption, themeName(s.themeMode), () => showThemePicker(context, s)),
+          _choiceTile(context, Symbols.dark_mode_rounded, t.appearanceOption, themeName(s.themeMode, t), () => showThemePicker(context, s)),
           _divider(),
-          _choiceTile(context, Symbols.language_rounded, t.languageOption, languageDisplayName(s.appLanguageCode),
+          _choiceTile(context, Symbols.language_rounded, t.languageOption, languageDisplayName(s.appLanguageCode, t),
               () => showLanguagePicker(context, s)),
           _divider(),
           ListTile(
@@ -85,12 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 16),
 
-        // ==========================================
-        //         المشغل (Player)
-        // ==========================================
         _sectionHeader(context, t.playerSection, Symbols.play_circle_rounded),
 
-        // --- التشغيل (Playback) ---
         _card(context, [
           _sectionFoldHeader(context, t.playbackSection, Symbols.play_arrow_rounded, _openSection == 100, () => setState(() => _openSection = _openSection == 100 ? -1 : 100)),
           AnimatedSize(
@@ -116,7 +112,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- سرعة التشغيل (Speed) ---
         _card(context, [
           _sectionFoldHeader(context, t.speedSection, Symbols.speed_rounded, _openSection == 101, () => setState(() => _openSection = _openSection == 101 ? -1 : 101)),
           AnimatedSize(
@@ -138,7 +133,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- عرض الفيديو (Video display) ---
         _card(context, [
           _sectionFoldHeader(context, t.videoDisplaySection, Symbols.aspect_ratio_rounded, _openSection == 102, () => setState(() => _openSection = _openSection == 102 ? -1 : 102)),
           AnimatedSize(
@@ -147,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             alignment: Alignment.topCenter,
             child: _openSection == 102
                 ? Column(children: [
-                    _choiceTile(context, Symbols.aspect_ratio_rounded, t.defaultVideoModeOption, videoModeName(s.defaultVideoMode), () => _showVideoModePicker(context, s)),
+                    _choiceTile(context, Symbols.aspect_ratio_rounded, t.defaultVideoModeOption, _videoModeName(s.defaultVideoMode, t), () => _showVideoModePicker(context, s)),
                     _divider(),
                     _switchTile(context, Symbols.history_rounded, t.rememberVideoModeOption, '', s.rememberVideoMode, s.setRememberVideoMode),
                     _divider(),
@@ -162,7 +156,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- التحكم بالإيماءات (Gestures) ---
         _card(context, [
           _sectionFoldHeader(context, t.gesturesSection, Symbols.touch_app_rounded, _openSection == 103, () => setState(() => _openSection = _openSection == 103 ? -1 : 103)),
           AnimatedSize(
@@ -190,7 +183,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- التقديم والترجيع (Seeking) ---
         _card(context, [
           _sectionFoldHeader(context, t.seekSection, Symbols.fast_rewind_rounded, _openSection == 104, () => setState(() => _openSection = _openSection == 104 ? -1 : 104)),
           AnimatedSize(
@@ -210,7 +202,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- واجهة المشغل (Player UI) ---
         _card(context, [
           _sectionFoldHeader(context, t.uiSection, Symbols.layers_rounded, _openSection == 105, () => setState(() => _openSection = _openSection == 105 ? -1 : 105)),
           AnimatedSize(
@@ -240,7 +231,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- القوائم (Playlist) ---
         _card(context, [
           _sectionFoldHeader(context, t.playlistSection, Symbols.queue_music_rounded, _openSection == 106, () => setState(() => _openSection = _openSection == 106 ? -1 : 106)),
           AnimatedSize(
@@ -264,7 +254,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- الطاقة (Energy) ---
         _card(context, [
           _sectionFoldHeader(context, t.energySection, Symbols.battery_saver_rounded, _openSection == 107, () => setState(() => _openSection = _openSection == 107 ? -1 : 107)),
           AnimatedSize(
@@ -288,7 +277,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- التحكم (Control) ---
         _card(context, [
           _sectionFoldHeader(context, t.controlSection, Symbols.gamepad_rounded, _openSection == 108, () => setState(() => _openSection = _openSection == 108 ? -1 : 108)),
           AnimatedSize(
@@ -308,7 +296,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 12),
 
-        // --- خيارات متقدمة (Advanced) ---
         _card(context, [
           _sectionFoldHeader(context, t.advancedSection, Symbols.settings_rounded, _openSection == 109, () => setState(() => _openSection = _openSection == 109 ? -1 : 109)),
           AnimatedSize(
@@ -336,9 +323,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 16),
 
-        // ==========================================
-        //                الصوت (Audio)
-        // ==========================================
         _sectionHeader(context, t.audioSection, Symbols.graphic_eq_rounded),
 
         _card(context, [
@@ -453,9 +437,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
         const SizedBox(height: 16),
 
-        // ==========================================
-        //                الترجمة (Subtitles)
-        // ==========================================
         _sectionHeader(context, t.subtitlesSection, Symbols.subtitles_rounded),
 
         _card(context, [
@@ -683,7 +664,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال الحفظ والتصدير (مع الترجمة) ---
   void _confirmReset(BuildContext context, SettingsProvider s) {
     final t = AppLocalizations.of(context)!;
     showDialog(
@@ -742,13 +722,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await file.writeAsString(jsonStr);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.exportSuccessMessage(file.path))), // تم التصحيح: استدعاء الدالة مباشرة
+          SnackBar(content: Text(t.exportSuccessMessage(file.path))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.exportFailMessage(e.toString()))), // تم التصحيح
+          SnackBar(content: Text(t.exportFailMessage(e.toString()))),
         );
       }
     }
@@ -770,7 +750,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.importFailMessage(e.toString()))), // تم التصحيح
+          SnackBar(content: Text(t.importFailMessage(e.toString()))),
         );
       }
     }
@@ -832,7 +812,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- أقسام الترجمة المتقدمة (مع الترجمة) ---
   Widget _fontSection(BuildContext context, SettingsProvider s, SubtitleSettings sub) {
     final t = AppLocalizations.of(context)!;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1209,7 +1188,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ]);
   }
 
-  // --- دوال واجهة المستخدم المساعدة (من دون تغيير كبير) ---
   Widget _sectionHeader(BuildContext context, String title, IconData icon) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
@@ -1303,12 +1281,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- دوال إعدادات المشغل الجديدة (مع الترجمة) ---
   String loopModeName(String mode, AppLocalizations t) {
     switch (mode) {
       case 'video': return t.repeatVideo;
       case 'playlist': return t.repeatPlaylist;
       default: return t.repeatNone;
+    }
+  }
+
+  String _videoModeName(String mode, AppLocalizations t) {
+    switch (mode) {
+      case 'cover': return t.videoModeCover;
+      case 'fill': return t.videoModeFill;
+      case 'stretch': return t.videoModeStretch;
+      default: return t.videoModeContain;
     }
   }
 
@@ -1343,16 +1329,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ]),
       ),
     );
-  }
-
-  String videoModeName(String mode) {
-    // هذه النصوص تبقى كما هي (مصطلحات تقنية)
-    switch (mode) {
-      case 'cover': return 'Cover';
-      case 'fill': return 'Fill';
-      case 'stretch': return 'Stretch';
-      default: return 'Contain';
-    }
   }
 
   void _showVideoModePicker(BuildContext context, SettingsProvider s) {

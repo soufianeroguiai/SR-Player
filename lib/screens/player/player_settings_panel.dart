@@ -1,9 +1,8 @@
-// FILE: lib/screens/player/player_settings_panel.dart
-
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'player_fit_mode.dart';
 
 class PlayerSettingsPanel extends StatefulWidget {
@@ -88,6 +87,29 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
+    final t = AppLocalizations.of(context)!;
+
+    String loopModeText() {
+      switch (s.loopMode) {
+        case 'video': return t.repeatVideo;
+        case 'playlist': return t.repeatPlaylist;
+        default: return t.repeatOff;
+      }
+    }
+    String fitModeText() {
+      switch (widget.fitMode) {
+        case VideoFitMode.cover: return t.cover;
+        case VideoFitMode.fill: return t.fill;
+        case VideoFitMode.stretch: return t.stretch;
+        case VideoFitMode.free: return t.free;
+        default: return t.contain;
+      }
+    }
+    String repeatABSubtitle() {
+      if (widget.repeatPointA == null) return t.repeatABDisabled;
+      if (widget.repeatPointB == null) return t.repeatABSetA;
+      return t.repeatABActive;
+    }
 
     return Directionality(
       textDirection: Directionality.of(context),
@@ -97,22 +119,21 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
           if (widget.onOpenPlaylistEditor != null) ...[
             _QuickActionTile(
               icon: Symbols.queue_music_rounded,
-              title: 'قوائم التشغيل',
+              title: t.playlistEditor,
               onTap: widget.onOpenPlaylistEditor!,
             ),
             const SizedBox(height: 4),
           ],
-          _QuickActionTile(icon: Symbols.favorite_rounded, title: widget.isFavorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة', iconColor: widget.isFavorite ? Colors.amber : Colors.white70, onTap: widget.onToggleFavorite),
+          _QuickActionTile(icon: Symbols.favorite_rounded, title: widget.isFavorite ? t.removeFromFavorites : t.addToFavorites, iconColor: widget.isFavorite ? Colors.amber : Colors.white70, onTap: widget.onToggleFavorite),
           const SizedBox(height: 4),
-          _QuickActionTile(icon: Symbols.playlist_add_rounded, title: 'إضافة إلى قائمة التشغيل', onTap: widget.onAddToPlaylist),
+          _QuickActionTile(icon: Symbols.playlist_add_rounded, title: t.addToPlaylist, onTap: widget.onAddToPlaylist),
           const SizedBox(height: 4),
-          _QuickActionTile(icon: Symbols.camera_rounded, title: 'لقطة شاشة', onTap: widget.onCaptureScreenshot),
+          _QuickActionTile(icon: Symbols.camera_rounded, title: t.screenshot, onTap: widget.onCaptureScreenshot),
           const SizedBox(height: 8),
 
-          // التشغيل المتكرر
           _QuickActionTile(
             icon: Symbols.repeat_rounded,
-            title: s.loopMode == 'none' ? 'تكرار: بدون' : s.loopMode == 'video' ? 'تكرار: الفيديو' : 'تكرار: القائمة',
+            title: loopModeText(),
             iconColor: s.loopMode != 'none' ? Colors.amber : Colors.white70,
             onTap: () {
               if (s.loopMode == 'none') {
@@ -126,20 +147,18 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
           ),
           const SizedBox(height: 4),
 
-          // منع قفل الشاشة
           _QuickActionTile(
             icon: Symbols.screen_lock_landscape_rounded,
-            title: s.preventScreenLock ? 'قفل الشاشة: ممنوع' : 'قفل الشاشة: مسموح',
+            title: s.preventScreenLock ? t.screenLockDisabled : t.screenLockEnabled,
             iconColor: s.preventScreenLock ? Colors.amber : Colors.white70,
             onTap: () => s.setPreventScreenLock(!s.preventScreenLock),
           ),
           const SizedBox(height: 4),
 
-          // إظهار معلومات الفيديو
           if (widget.onToggleStats != null)
             _QuickActionTile(
               icon: Symbols.info_rounded,
-              title: widget.showStats ? 'إخفاء معلومات الفيديو' : 'إظهار معلومات الفيديو',
+              title: widget.showStats ? t.hideVideoInfo : t.showVideoInfo,
               iconColor: widget.showStats ? Colors.amber : Colors.white70,
               onTap: widget.onToggleStats!,
             ),
@@ -148,38 +167,34 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
 
           _IntegratedSectionTile(
             icon: Symbols.aspect_ratio_rounded,
-            title: 'نسبة العرض',
-            subtitle: widget.currentFitMode,
+            title: t.aspectRatio,
+            subtitle: fitModeText(),
             isOpen: _openSection == 1,
             onTap: () => _toggleSection(1),
             child: Column(children: [
-              _SimpleTile(Icons.fit_screen_rounded, 'احتواء', widget.fitMode == VideoFitMode.contain, () => _pickFit(VideoFitMode.contain)),
-              _SimpleTile(Icons.fullscreen_rounded, 'تغطية', widget.fitMode == VideoFitMode.cover, () => _pickFit(VideoFitMode.cover)),
-              _SimpleTile(Icons.aspect_ratio_rounded, 'ملء', widget.fitMode == VideoFitMode.fill, () => _pickFit(VideoFitMode.fill)),
-              _SimpleTile(Icons.zoom_out_map_rounded, 'تمديد', widget.fitMode == VideoFitMode.stretch, () => _pickFit(VideoFitMode.stretch)),
-              _SimpleTile(Icons.open_with_rounded, 'حر (سحب/تكبير بإصبعين)', widget.fitMode == VideoFitMode.free, () => _pickFit(VideoFitMode.free)),
+              _SimpleTile(Icons.fit_screen_rounded, t.contain, widget.fitMode == VideoFitMode.contain, () => _pickFit(VideoFitMode.contain)),
+              _SimpleTile(Icons.fullscreen_rounded, t.cover, widget.fitMode == VideoFitMode.cover, () => _pickFit(VideoFitMode.cover)),
+              _SimpleTile(Icons.aspect_ratio_rounded, t.fill, widget.fitMode == VideoFitMode.fill, () => _pickFit(VideoFitMode.fill)),
+              _SimpleTile(Icons.zoom_out_map_rounded, t.stretch, widget.fitMode == VideoFitMode.stretch, () => _pickFit(VideoFitMode.stretch)),
+              _SimpleTile(Icons.open_with_rounded, t.free, widget.fitMode == VideoFitMode.free, () => _pickFit(VideoFitMode.free)),
             ]),
           ),
           const SizedBox(height: 4),
 
-          _QuickActionTile(icon: Symbols.picture_in_picture_rounded, title: 'نافذة عائمة (PiP)', onTap: widget.onEnterPip),
+          _QuickActionTile(icon: Symbols.picture_in_picture_rounded, title: t.pip, onTap: widget.onEnterPip),
           const SizedBox(height: 4),
           if (widget.onSleepTimer != null) ...[
-            _QuickActionTile(icon: Symbols.bedtime_rounded, title: 'مؤقت النوم', onTap: widget.onSleepTimer!),
+            _QuickActionTile(icon: Symbols.bedtime_rounded, title: t.sleepTimer, onTap: widget.onSleepTimer!),
             const SizedBox(height: 4),
           ],
-          _QuickActionTile(icon: Symbols.info_rounded, title: 'معلومات الفيديو', onTap: widget.onShowInfo),
+          _QuickActionTile(icon: Symbols.info_rounded, title: t.videoInfo, onTap: widget.onShowInfo),
           const SizedBox(height: 8),
 
           if (widget.onSetRepeatA != null) ...[
             _IntegratedSectionTile(
               icon: Icons.repeat_rounded,
-              title: 'تكرار مقطع A-B',
-              subtitle: widget.repeatPointA == null
-                  ? 'غير مفعّل'
-                  : widget.repeatPointB == null
-                      ? 'A محددة'
-                      : 'A-B مفعّل',
+              title: t.repeatAB,
+              subtitle: repeatABSubtitle(),
               isOpen: _openSection == 3,
               onTap: () => _toggleSection(3),
               child: Column(children: [
@@ -187,7 +202,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                   dense: true,
                   leading: const Icon(Icons.flag_rounded, color: Colors.white70, size: 20),
                   title: Text(
-                    widget.repeatPointA == null ? 'تحديد نقطة البداية (A)' : 'إعادة تحديد A عند الموضع الحالي',
+                    widget.repeatPointA == null ? t.setPointA : t.resetPointA,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                   onTap: widget.onSetRepeatA,
@@ -195,7 +210,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.sports_score_rounded, color: Colors.white70, size: 20),
-                  title: const Text('تحديد نقطة النهاية (B)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  title: Text(t.setPointB, style: const TextStyle(color: Colors.white, fontSize: 13)),
                   enabled: widget.repeatPointA != null,
                   onTap: widget.onSetRepeatB,
                 ),
@@ -203,7 +218,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 20),
-                    title: const Text('إلغاء التكرار', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                    title: Text(t.cancelRepeat, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                     onTap: widget.onClearRepeat,
                   ),
               ]),
@@ -214,7 +229,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
           if (widget.onAddBookmark != null) ...[
             _IntegratedSectionTile(
               icon: Icons.bookmark_rounded,
-              title: 'إشارات مرجعية',
+              title: t.bookmarks,
               subtitle: widget.bookmarks.isEmpty ? '' : '${widget.bookmarks.length}',
               isOpen: _openSection == 4,
               onTap: () => _toggleSection(4),
@@ -222,13 +237,13 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.add_rounded, color: Colors.white70, size: 20),
-                  title: const Text('إضافة إشارة عند الموضع الحالي', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  title: Text(t.addBookmark, style: const TextStyle(color: Colors.white, fontSize: 13)),
                   onTap: widget.onAddBookmark,
                 ),
                 if (widget.bookmarks.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 6),
-                    child: Text('لا توجد إشارات محفوظة فهاد الفيديو', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(t.noBookmarks, style: const TextStyle(color: Colors.white38, fontSize: 12)),
                   )
                 else
                   ...widget.bookmarks.map((d) => ListTile(
@@ -248,7 +263,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
 
           _IntegratedSectionTile(
             icon: Symbols.settings_rounded,
-            title: 'إعدادات المشغل',
+            title: t.playerSettings,
             subtitle: '',
             isOpen: _openSection == 2,
             onTap: () => _toggleSection(2),
@@ -257,14 +272,14 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                 ListTile(
                   dense: true,
                   leading: const Icon(Symbols.speed_rounded, color: Colors.white70, size: 20),
-                  title: Text('سرعة التشغيل (${widget.currentSpeed}x)', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                  title: Text(t.playbackSpeedWithValue(widget.currentSpeed), style: const TextStyle(color: Colors.white, fontSize: 13)),
                   onTap: widget.onShowSpeedPicker!,
                 ),
               if (widget.onToggleRememberPosition != null)
                 SwitchListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('تذكر موضع التشغيل', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  title: Text(t.rememberPosition, style: const TextStyle(color: Colors.white, fontSize: 13)),
                   value: widget.rememberPosition,
                   onChanged: (_) => widget.onToggleRememberPosition!(),
                   activeColor: Theme.of(context).colorScheme.primary,
@@ -273,7 +288,7 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
                 SwitchListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('معلومات تقنية (Stats for Nerds)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  title: Text(t.statsForNerds, style: const TextStyle(color: Colors.white, fontSize: 13)),
                   value: widget.showStats,
                   onChanged: (_) => widget.onToggleStats!(),
                   activeColor: Theme.of(context).colorScheme.primary,

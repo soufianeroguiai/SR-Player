@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/video_item.dart';
 import '../../widgets/video_card.dart';
 
 class VideoSearchDelegate extends SearchDelegate<VideoItem?> {
   final List<VideoItem> videos;
   final Future<void> Function(VideoItem) onOpen;
-  VideoSearchDelegate(this.videos, this.onOpen);
+  final AppLocalizations t;
+
+  VideoSearchDelegate(this.videos, this.onOpen, this.t);
 
   @override
-  String get searchFieldLabel => 'ابحث عن فيديو...';
+  String get searchFieldLabel => t.searchHint;
 
   @override
   List<Widget> buildActions(BuildContext context) => [
-        if (query.isNotEmpty) IconButton(icon: const Icon(Symbols.close_rounded), onPressed: () => query = ''),
+        if (query.isNotEmpty)
+          IconButton(icon: const Icon(Symbols.close_rounded), onPressed: () => query = ''),
       ];
 
   @override
@@ -28,9 +32,11 @@ class VideoSearchDelegate extends SearchDelegate<VideoItem?> {
 
   Widget _list(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final results =
-        query.isEmpty ? videos : videos.where((v) => v.name.toLowerCase().contains(query.toLowerCase())).toList();
-    if (results.isEmpty) return Center(child: Text('ما لقينا نتائج', style: TextStyle(color: cs.onSurfaceVariant)));
+    final results = query.isEmpty
+        ? videos
+        : videos.where((v) => v.name.toLowerCase().contains(query.toLowerCase())).toList();
+    if (results.isEmpty)
+      return Center(child: Text(t.noResults, style: TextStyle(color: cs.onSurfaceVariant)));
     return ListView.builder(
       itemCount: results.length,
       itemBuilder: (_, i) => VideoCard(

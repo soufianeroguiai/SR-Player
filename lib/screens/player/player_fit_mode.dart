@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../l10n/app_localizations.dart';
 
 enum VideoFitMode { contain, cover, fill, stretch, free }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
     case VideoFitMode.contain:
-    case VideoFitMode.free: // فالوضع الحر الفيديو الأساسي بـ contain، والتكبير/السحب كيتزادو فوقه بـ Transform
+    case VideoFitMode.free:
       return BoxFit.contain;
     case VideoFitMode.cover:
       return BoxFit.cover;
     case VideoFitMode.fill:
       return BoxFit.fill;
     case VideoFitMode.stretch:
-      return BoxFit.fill;   // stretch يملأ الشاشة مع تشويه النسبة (مثل fill)
+      return BoxFit.fill;
   }
 }
 
-String modeName(VideoFitMode mode) {
+String modeName(VideoFitMode mode, AppLocalizations t) {
   switch (mode) {
     case VideoFitMode.contain:
-      return 'احتواء';
+      return t.contain;
     case VideoFitMode.cover:
-      return 'تغطية';
+      return t.cover;
     case VideoFitMode.fill:
-      return 'ملء';
+      return t.fill;
     case VideoFitMode.stretch:
-      return 'تمديد';
+      return t.stretch;
     case VideoFitMode.free:
-      return 'حر (سحب/تكبير)';
+      return t.free;
   }
 }
 

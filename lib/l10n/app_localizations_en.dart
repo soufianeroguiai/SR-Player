@@ -106,10 +106,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repeatNone => 'None';
 
   @override
-  String get repeatVideo => 'Repeat video';
+  String get repeatVideo => 'Repeat: Video';
 
   @override
-  String get repeatPlaylist => 'Repeat playlist';
+  String get repeatPlaylist => 'Repeat: Playlist';
 
   @override
   String get autoNextOption => 'Auto next video';
@@ -849,16 +849,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playVideo => 'Play';
 
   @override
-  String get videoInfo => 'Info';
+  String get videoInfo => 'Video Info';
 
   @override
-  String get addToFavorites => 'Add to favorites';
+  String get addToFavorites => 'Add to Favorites';
 
   @override
-  String get removeFromFavorites => 'Remove from favorites';
+  String get removeFromFavorites => 'Remove from Favorites';
 
   @override
-  String get addToPlaylist => 'Add to playlist';
+  String get addToPlaylist => 'Add to Playlist';
 
   @override
   String get alreadyInPlaylist => 'Already in playlist';
@@ -997,7 +997,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apply => 'Apply';
 
   @override
-  String get sleepTimer => 'Sleep timer';
+  String get sleepTimer => 'Sleep Timer';
 
   @override
   String get selectTimeMinutes => 'Select time (minutes)';
@@ -1026,7 +1026,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get more => 'More';
 
   @override
-  String get playlistEditor => 'Playlist editor';
+  String get playlistEditor => 'Playlist Editor';
 
   @override
   String get releaseToOpen => 'Release to open';
@@ -1115,4 +1115,404 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepTimerStopped => 'Playback stopped by sleep timer';
+
+  @override
+  String get noActiveTrack => 'No active track';
+
+  @override
+  String get audioLabel => 'Audio';
+
+  @override
+  String get audioTracks => 'Audio Tracks';
+
+  @override
+  String audioTracksCount(Object count) {
+    return '$count tracks';
+  }
+
+  @override
+  String get volumeLevel => 'Volume Level';
+
+  @override
+  String get equalizerLabel => 'Equalizer';
+
+  @override
+  String get audioSyncLabel => 'Audio Sync';
+
+  @override
+  String get audioInfo => 'Audio Info';
+
+  @override
+  String audioTrackNumber(Object number) {
+    return 'Audio Track $number';
+  }
+
+  @override
+  String get mute => 'Mute';
+
+  @override
+  String get bassBoostLabel => 'Bass Boost';
+
+  @override
+  String get trebleBoostLabel => 'Treble Boost';
+
+  @override
+  String get bassBoostDesc => 'Amplify low frequencies';
+
+  @override
+  String get trebleBoostDesc => 'Amplify high frequencies';
+
+  @override
+  String get openGraphicEqualizer => 'Open Graphic Equalizer';
+
+  @override
+  String get bands10 => '10 bands';
+
+  @override
+  String get audioDelay => 'Audio Delay';
+
+  @override
+  String get audioDelayHelp =>
+      'Negative value speeds up audio, positive delays it';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get titleLabel => 'Title';
+
+  @override
+  String get codec => 'Codec';
+
+  @override
+  String get channel => 'Channel';
+
+  @override
+  String get bitrate => 'Bitrate';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get noAudioInfo => 'No audio information';
+
+  @override
+  String get subtitleLabel => 'Subtitles';
+
+  @override
+  String get embeddedSubtitles => 'Embedded Subtitles';
+
+  @override
+  String embeddedSubtitlesCount(Object count) {
+    return '$count tracks';
+  }
+
+  @override
+  String get externalSubtitles => 'External Subtitles';
+
+  @override
+  String get externalFile => 'External file';
+
+  @override
+  String get none => 'None';
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get position => 'Position';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get encoding => 'Encoding';
+
+  @override
+  String get advancedOptions => 'Advanced Options';
+
+  @override
+  String subtitleTrackNumber(Object number) {
+    return 'Subtitle $number';
+  }
+
+  @override
+  String get pickSubtitleFile => 'Pick subtitle file';
+
+  @override
+  String get removeExternalSubtitle => 'Remove external subtitle';
+
+  @override
+  String get fontSize => 'Font Size';
+
+  @override
+  String get systemDefaultFont => 'System Default';
+
+  @override
+  String get textBackground => 'Text Background';
+
+  @override
+  String get backgroundOpacity => 'Background Opacity';
+
+  @override
+  String get italic => 'Italic';
+
+  @override
+  String get bottomMargin => 'Bottom Margin';
+
+  @override
+  String get horizontalMargin => 'Horizontal Margin';
+
+  @override
+  String get subtitleDelay => 'Subtitle Delay';
+
+  @override
+  String get subtitleDelayHelp =>
+      'Negative value speeds up subtitles, positive delays them';
+
+  @override
+  String get saveAsDefault => 'Save as default';
+
+  @override
+  String get saveAsDefaultDesc => 'Apply to all videos';
+
+  @override
+  String get screenshot => 'Screenshot';
+
+  @override
+  String get repeatOff => 'Repeat: Off';
+
+  @override
+  String get screenLockDisabled => 'Screen Lock: Disabled';
+
+  @override
+  String get screenLockEnabled => 'Screen Lock: Enabled';
+
+  @override
+  String get hideVideoInfo => 'Hide Video Info';
+
+  @override
+  String get showVideoInfo => 'Show Video Info';
+
+  @override
+  String get aspectRatio => 'Aspect Ratio';
+
+  @override
+  String get contain => 'Contain';
+
+  @override
+  String get cover => 'Cover';
+
+  @override
+  String get fill => 'Fill';
+
+  @override
+  String get stretch => 'Stretch';
+
+  @override
+  String get free => 'Free (Drag/Pinch to zoom)';
+
+  @override
+  String get pip => 'Picture-in-Picture';
+
+  @override
+  String get repeatAB => 'A-B Repeat';
+
+  @override
+  String get repeatABDisabled => 'Disabled';
+
+  @override
+  String get repeatABSetA => 'A set';
+
+  @override
+  String get repeatABActive => 'A-B active';
+
+  @override
+  String get setPointA => 'Set start point (A)';
+
+  @override
+  String get resetPointA => 'Reset A to current position';
+
+  @override
+  String get setPointB => 'Set end point (B)';
+
+  @override
+  String get cancelRepeat => 'Cancel repeat';
+
+  @override
+  String get bookmarks => 'Bookmarks';
+
+  @override
+  String get addBookmark => 'Add bookmark at current position';
+
+  @override
+  String get noBookmarks => 'No bookmarks saved';
+
+  @override
+  String get playerSettings => 'Player Settings';
+
+  @override
+  String playbackSpeedWithValue(Object speed) {
+    return 'Playback Speed (${speed}x)';
+  }
+
+  @override
+  String get rememberPosition => 'Remember Playback Position';
+
+  @override
+  String get statsForNerds => 'Stats for Nerds';
+
+  @override
+  String get graphicEqualizerTitle => 'Graphic Equalizer';
+
+  @override
+  String get pickColor => 'Pick a color';
+
+  @override
+  String get searchHint => 'Search for a video...';
+
+  @override
+  String get noResults => 'No results found';
+
+  @override
+  String get noVideosFound => 'No videos found';
+
+  @override
+  String get noRecentVideos => 'No videos watched yet';
+
+  @override
+  String fileCount(Object count) {
+    return '$count file(s)';
+  }
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get noFoldersFound => 'No folders found';
+
+  @override
+  String folderVideoCount(Object count, Object size) {
+    return '$count video(s)  •  $size';
+  }
+
+  @override
+  String get openFileHint => 'Tap \"Open File\" to select a video';
+
+  @override
+  String get chooseFont => 'Choose Font';
+
+  @override
+  String get chooseBoost => 'Default Volume Boost (%)';
+
+  @override
+  String get chooseAudioLanguage => 'Choose Preferred Audio Language';
+
+  @override
+  String get chooseEncoding => 'Choose Character Encoding';
+
+  @override
+  String get chooseSubtitleLanguage => 'Choose Preferred Subtitle Language';
+
+  @override
+  String get syncDefault => 'Default Sync (seconds)';
+
+  @override
+  String get exampleSync => 'e.g. -0.5 or 1.0';
+
+  @override
+  String get chooseAppearance => 'Choose Appearance';
+
+  @override
+  String get chooseLanguage => 'Choose Language / Choisir la langue';
+
+  @override
+  String get playbackSpeedTitle => 'Playback Speed';
+
+  @override
+  String get sortByTitle => 'Sort by';
+
+  @override
+  String get doubleTapSeekTitle => 'Double-tap seek duration';
+
+  @override
+  String get controlsHideDelayTitle => 'Controls hide delay';
+
+  @override
+  String get longPressSpeedTitle => 'Long-press speed';
+
+  @override
+  String get gestureSensitivityTitle => 'Gesture Sensitivity';
+
+  @override
+  String get seconds5 => '5 seconds';
+
+  @override
+  String get seconds10 => '10 seconds';
+
+  @override
+  String get seconds15 => '15 seconds';
+
+  @override
+  String get seconds30 => '30 seconds';
+
+  @override
+  String get seconds2 => '2 seconds';
+
+  @override
+  String get seconds4 => '4 seconds';
+
+  @override
+  String get seconds6 => '6 seconds';
+
+  @override
+  String get seconds10b => '10 seconds';
+
+  @override
+  String get hiddenFilesTitle => 'Hidden Files';
+
+  @override
+  String get showAll => 'Show All';
+
+  @override
+  String get noHiddenFiles => 'No hidden files';
+
+  @override
+  String get show => 'Show';
+
+  @override
+  String get unhideAllConfirmTitle => 'Unhide All Files';
+
+  @override
+  String get unhideAllConfirmBody => 'Do you want to show all hidden files?';
+
+  @override
+  String get fileInfo => 'File Info';
+
+  @override
+  String get sizeLabel => 'Size';
+
+  @override
+  String get folderLabel => 'Folder';
+
+  @override
+  String get dateLabel => 'Date';
+
+  @override
+  String get extensionLabel => 'Extension';
+
+  @override
+  String get videoInfoLabel => 'Video Info';
+
+  @override
+  String get durationLabel => 'Duration';
+
+  @override
+  String get pathLabel => 'Path';
+
+  @override
+  String get playlistTitle => 'Playlist';
+
+  @override
+  String get emptyPlaylist => 'Playlist is empty';
 }

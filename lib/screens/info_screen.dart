@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../models/video_item.dart';
+import '../l10n/app_localizations.dart';
 
 class InfoScreen extends StatelessWidget {
   final VideoItem video;
@@ -9,15 +10,15 @@ class InfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(video.name), // عنوان ديناميكي باسم الفيديو
+        title: Text(video.name),
         leading: IconButton(icon: const Icon(Symbols.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(children: [
-          // أيقونة الفيديو
           Container(
             width: 100, height: 100,
             decoration: BoxDecoration(
@@ -28,25 +29,21 @@ class InfoScreen extends StatelessWidget {
             child: Icon(Symbols.movie_rounded, color: cs.onPrimaryContainer, size: 52),
           ),
           const SizedBox(height: 16),
-          // اسم الملف
           Text(video.name, textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurface, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 24),
-          // معلومات الملف
-          _section(context, 'معلومات الملف', [
-            _row(context, Symbols.storage_rounded, 'الحجم', video.formattedSize),
-            _row(context, Symbols.folder_rounded, 'المجلد', video.folder),
-            _row(context, Symbols.calendar_today_rounded, 'التاريخ', video.formattedDate),
-            _row(context, Symbols.label_rounded, 'الامتداد', video.extension.toUpperCase()),
+          _section(context, t.fileInfo, [
+            _row(context, Symbols.storage_rounded, t.sizeLabel, video.formattedSize),
+            _row(context, Symbols.folder_rounded, t.folderLabel, video.folder),
+            _row(context, Symbols.calendar_today_rounded, t.dateLabel, video.formattedDate),
+            _row(context, Symbols.label_rounded, t.extensionLabel, video.extension.toUpperCase()),
           ]),
           const SizedBox(height: 16),
-          // معلومات الفيديو
-          _section(context, 'معلومات الفيديو', [
-            _row(context, Symbols.timer_rounded, 'المدة', video.formattedDuration),
+          _section(context, t.videoInfoLabel, [
+            _row(context, Symbols.timer_rounded, t.durationLabel, video.formattedDuration),
           ]),
           const SizedBox(height: 16),
-          // مسار الملف
-          _section(context, 'المسار', [
+          _section(context, t.pathLabel, [
             Padding(padding: const EdgeInsets.all(16),
               child: SelectableText(video.path,
                 style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12, height: 1.5))),

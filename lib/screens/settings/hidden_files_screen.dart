@@ -3,14 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/library_provider.dart';
 import '../../models/video_item.dart';
+import '../../l10n/app_localizations.dart';
 
-/// شاشة تعرض كل الفيديوهات المخفية حالياً وتتيح إظهارها
-/// (فردياً أو دفعة واحدة) دون الحاجة للبحث عنها يدوياً في المكتبة.
 class HiddenFilesScreen extends StatelessWidget {
   const HiddenFilesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final lib = context.watch<LibraryProvider>();
     final hiddenPaths = lib.hiddenPaths;
     final hiddenVideos = lib.allVideos
@@ -22,7 +22,7 @@ class HiddenFilesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الملفات المخفية'),
+        title: Text(t.hiddenFilesTitle),
         leading: IconButton(
           icon: const Icon(Symbols.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
@@ -30,8 +30,8 @@ class HiddenFilesScreen extends StatelessWidget {
         actions: [
           if (hiddenVideos.isNotEmpty)
             TextButton(
-              onPressed: () => _confirmUnhideAll(context, lib),
-              child: Text('إظهار الكل', style: TextStyle(color: cs.primary)),
+              onPressed: () => _confirmUnhideAll(context, lib, t),
+              child: Text(t.showAll, style: TextStyle(color: cs.primary)),
             ),
         ],
       ),
@@ -42,7 +42,7 @@ class HiddenFilesScreen extends StatelessWidget {
                 children: [
                   Icon(Symbols.visibility_off_rounded, size: 48, color: cs.onSurfaceVariant),
                   const SizedBox(height: 12),
-                  Text('لا توجد ملفات مخفية', style: TextStyle(color: cs.onSurfaceVariant)),
+                  Text(t.noHiddenFiles, style: TextStyle(color: cs.onSurfaceVariant)),
                 ],
               ),
             )
@@ -71,7 +71,7 @@ class HiddenFilesScreen extends StatelessWidget {
                     subtitle: Text(v.folder, maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: TextButton(
                       onPressed: () => lib.unhideVideo(v.path),
-                      child: const Text('إظهار'),
+                      child: Text(t.show),
                     ),
                   ),
                 );
@@ -80,20 +80,20 @@ class HiddenFilesScreen extends StatelessWidget {
     );
   }
 
-  void _confirmUnhideAll(BuildContext context, LibraryProvider lib) {
+  void _confirmUnhideAll(BuildContext context, LibraryProvider lib, AppLocalizations t) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إظهار كل الملفات'),
-        content: const Text('هل تريد إظهار جميع الملفات المخفية؟'),
+        title: Text(t.unhideAllConfirmTitle),
+        content: Text(t.unhideAllConfirmBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           TextButton(
             onPressed: () {
               lib.clearHidden();
               Navigator.pop(ctx);
             },
-            child: const Text('إظهار الكل'),
+            child: Text(t.showAll),
           ),
         ],
       ),

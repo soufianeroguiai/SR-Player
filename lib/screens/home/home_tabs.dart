@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/video_item.dart';
 import '../../widgets/video_card.dart';
 
@@ -12,6 +13,7 @@ class LibraryTab extends StatelessWidget {
   final bool loading;
   final Set<VideoItem> selectedVideos;
   final void Function(VideoItem) onSelectionToggle;
+  final AppLocalizations t;
 
   const LibraryTab({
     super.key,
@@ -22,6 +24,7 @@ class LibraryTab extends StatelessWidget {
     this.loading = false,
     this.selectedVideos = const {},
     required this.onSelectionToggle,
+    required this.t,
   });
 
   @override
@@ -30,7 +33,7 @@ class LibraryTab extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (videos.isEmpty) {
-      return const EmptyState('ما لقينا فيديوهات', Symbols.video_library_rounded);
+      return EmptyState(t.noVideosFound, Symbols.video_library_rounded, t);
     }
 
     final bool selectionMode = selectedVideos.isNotEmpty;
@@ -47,7 +50,7 @@ class LibraryTab extends StatelessWidget {
                 video: v,
                 isSelected: selectedVideos.contains(v),
                 onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v),
-                onMoreTap: () => onMore(v),                // ✅ يظهر زر النقاط الثلاث
+                onMoreTap: () => onMore(v),
                 onLongPress: () => onSelectionToggle(v),
               );
             })
@@ -60,7 +63,7 @@ class LibraryTab extends StatelessWidget {
                 video: v,
                 isSelected: selectedVideos.contains(v),
                 onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v),
-                onMoreTap: () => onMore(v),                // ✅ يظهر زر النقاط الثلاث
+                onMoreTap: () => onMore(v),
                 onLongPress: () => onSelectionToggle(v),
               );
             });
@@ -75,6 +78,7 @@ class RecentTab extends StatelessWidget {
   final VoidCallback onClear;
   final Set<VideoItem> selectedVideos;
   final void Function(VideoItem) onSelectionToggle;
+  final AppLocalizations t;
 
   const RecentTab({
     super.key,
@@ -85,6 +89,7 @@ class RecentTab extends StatelessWidget {
     required this.onClear,
     this.selectedVideos = const {},
     required this.onSelectionToggle,
+    required this.t,
   });
 
   List<VideoItem> get list {
@@ -108,7 +113,7 @@ class RecentTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final items = list;
-    if (items.isEmpty) return const EmptyState('ما شفتي فيديو بعد', Symbols.history_rounded);
+    if (items.isEmpty) return EmptyState(t.noRecentVideos, Symbols.history_rounded, t);
 
     final bool selectionMode = selectedVideos.isNotEmpty;
 
@@ -118,12 +123,12 @@ class RecentTab extends StatelessWidget {
         child: Row(children: [
           Icon(Symbols.history_rounded, size: 16, color: cs.onSurfaceVariant),
           const SizedBox(width: 6),
-          Text('${items.length} ملف', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+          Text(t.fileCount(items.length), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
           const Spacer(),
           TextButton.icon(
               onPressed: onClear,
               icon: Icon(Symbols.delete_sweep_rounded, size: 16, color: cs.error),
-              label: const Text('مسح', style: TextStyle(color: Colors.red, fontSize: 12)),
+              label: Text(t.clear, style: const TextStyle(color: Colors.red, fontSize: 12)),
               style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10))),
         ]),
       ),
@@ -165,6 +170,7 @@ class FoldersTab extends StatelessWidget {
   final void Function(String) onTap;
   final void Function(String folderName, List<VideoItem> videos)? onMore;
   final bool gridView;
+  final AppLocalizations t;
 
   const FoldersTab({
     super.key,
@@ -172,13 +178,14 @@ class FoldersTab extends StatelessWidget {
     required this.onTap,
     this.onMore,
     this.gridView = false,
+    required this.t,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final keys = byFolder.keys.toList()..sort();
-    if (keys.isEmpty) return const EmptyState('ما لقينا مجلدات', Symbols.folder_off_rounded);
+    if (keys.isEmpty) return EmptyState(t.noFoldersFound, Symbols.folder_off_rounded, t);
 
     final children = keys.map((folder) {
       final videos = byFolder[folder]!;
@@ -218,7 +225,7 @@ class FoldersTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(folder, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 4),
-                  Text('${videos.length} فيديو  •  $size', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+                  Text(t.folderVideoCount(videos.length, size), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
                 ],
               ),
             ),
@@ -233,7 +240,7 @@ class FoldersTab extends StatelessWidget {
               decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(14)),
               child: Icon(Symbols.folder_rounded, color: cs.onSecondaryContainer, size: 28)),
           title: Text(folder, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 15)),
-          subtitle: Text('${videos.length} فيديو  •  $size', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+          subtitle: Text(t.folderVideoCount(videos.length, size), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
           trailing: onMore != null
               ? IconButton(
                   icon: Icon(Symbols.more_vert_rounded, color: cs.onSurfaceVariant, size: 20),
@@ -266,7 +273,8 @@ class FoldersTab extends StatelessWidget {
 class EmptyState extends StatelessWidget {
   final String msg;
   final IconData icon;
-  const EmptyState(this.msg, this.icon, {super.key});
+  final AppLocalizations t;
+  const EmptyState(this.msg, this.icon, this.t, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -281,7 +289,7 @@ class EmptyState extends StatelessWidget {
         const SizedBox(height: 20),
         Text(msg, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 17, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
-        Text('اضغط "فتح ملف" لاختيار فيديو', style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6), fontSize: 13)),
+        Text(t.openFileHint, style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6), fontSize: 13)),
       ]),
     );
   }

@@ -3,8 +3,10 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
+import '../../l10n/app_localizations.dart';
 
 void showFontPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   final fonts = [
     ('Roboto', 'Roboto'),
     ('Cairo', 'Cairo'),
@@ -17,7 +19,7 @@ void showFontPicker(BuildContext ctx, SettingsProvider s) {
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
-      title: const Text('اختر الخط'),
+      title: Text(t.chooseFont),
       children: fonts.map((f) => RadioListTile<String>(
         title: Text(f.$2),
         value: f.$1,
@@ -32,11 +34,12 @@ void showFontPicker(BuildContext ctx, SettingsProvider s) {
 }
 
 void showBoostDialog(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showDialog(
     context: ctx,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('تضخيم الصوت الافتراضي (%)'),
+        title: Text(t.chooseBoost),
         content: Slider(
           value: s.defaultAudioBoost,
           min: 50,
@@ -48,24 +51,25 @@ void showBoostDialog(BuildContext ctx, SettingsProvider s) {
             setDialogState(() {});
           },
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('موافق'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t.okButton))],
       ),
     ),
   );
 }
 
 void showAudioLanguagePicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   final langs = {
-    'ara': 'العربية',
-    'eng': 'الإنجليزية',
-    'fra': 'الفرنسية',
-    'spa': 'الإسبانية',
-    'jpn': 'اليابانية',
+    'ara': t.arabicLanguageOption,
+    'eng': t.englishLanguageOption,
+    'fra': t.frenchLanguageOption,
+    'spa': 'Español',
+    'jpn': '日本語',
   };
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
-      title: const Text('اختر لغة الصوت المفضلة'),
+      title: Text(t.chooseAudioLanguage),
       children: langs.entries.map((e) => RadioListTile<String>(
         title: Text(e.value),
         value: e.key,
@@ -77,11 +81,12 @@ void showAudioLanguagePicker(BuildContext ctx, SettingsProvider s) {
 }
 
 void showEncodingPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   const encodings = ['UTF-8', 'UTF-16', 'Windows-1256', 'ISO-8859-6'];
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
-      title: const Text('اختر ترميز الأحرف'),
+      title: Text(t.chooseEncoding),
       children: encodings.map((enc) => RadioListTile<String>(
         title: Text(enc),
         value: enc,
@@ -93,18 +98,19 @@ void showEncodingPicker(BuildContext ctx, SettingsProvider s) {
 }
 
 void showSubtitleLanguagePicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   final langs = {
-    'ara': 'العربية',
-    'eng': 'الإنجليزية',
-    'fra': 'الفرنسية',
-    'spa': 'الإسبانية',
-    'deu': 'الألمانية',
-    'ita': 'الإيطالية',
+    'ara': t.arabicLanguageOption,
+    'eng': t.englishLanguageOption,
+    'fra': t.frenchLanguageOption,
+    'spa': 'Español',
+    'deu': 'Deutsch',
+    'ita': 'Italiano',
   };
   showDialog(
     context: ctx,
     builder: (context) => SimpleDialog(
-      title: const Text('اختر لغة الترجمة المفضلة'),
+      title: Text(t.chooseSubtitleLanguage),
       children: langs.entries.map((e) => RadioListTile<String>(
         title: Text(e.value),
         value: e.key,
@@ -119,25 +125,26 @@ void showSubtitleLanguagePicker(BuildContext ctx, SettingsProvider s) {
 }
 
 void showSyncDialog(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   final controller = TextEditingController(text: s.defaultSubtitleSync.toStringAsFixed(1));
   showDialog(
     context: ctx,
     builder: (context) => AlertDialog(
-      title: const Text('المزامنة الافتراضية (ثواني)'),
+      title: Text(t.syncDefault),
       content: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: const InputDecoration(hintText: 'مثال: -0.5 أو 1.0'),
+        decoration: InputDecoration(hintText: t.exampleSync),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
         ElevatedButton(
           onPressed: () {
             final value = double.tryParse(controller.text);
             if (value != null) s.setDefaultSubtitleSync(value);
             Navigator.pop(context);
           },
-          child: const Text('موافق'),
+          child: Text(t.okButton),
         ),
       ],
     ),
@@ -145,37 +152,38 @@ void showSyncDialog(BuildContext ctx, SettingsProvider s) {
 }
 
 void showThemePicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showBottomPicker<ThemeMode>(
     ctx,
-    title: 'اختر المظهر',
+    title: t.chooseAppearance,
     currentValue: s.themeMode,
-    items: const [
-      (ThemeMode.dark, 'داكن', Symbols.dark_mode_rounded),
-      (ThemeMode.light, 'فاتح', Symbols.light_mode_rounded),
-      (ThemeMode.system, 'تلقائي', Symbols.brightness_auto_rounded),
+    items: [
+      (ThemeMode.dark, t.themeDark, Symbols.dark_mode_rounded),
+      (ThemeMode.light, t.themeLight, Symbols.light_mode_rounded),
+      (ThemeMode.system, t.themeSystem, Symbols.brightness_auto_rounded),
     ],
     onSelected: s.setThemeMode,
   );
 }
 
 void showLanguagePicker(BuildContext ctx, SettingsProvider s) {
-  // أسماء اللغات معروضة بلغتها الأصلية عمدًا (مش مترجمة) حتى تكون مقروءة
-  // لأي مستخدم بغض النظر عن اللغة الحالية للتطبيق.
+  final t = AppLocalizations.of(ctx)!;
   showBottomPicker<String>(
     ctx,
-    title: 'اختر اللغة / Choose language',
+    title: t.chooseLanguage,
     currentValue: s.appLanguageCode,
-    items: const [
-      ('system', 'لغة النظام / System', Symbols.smartphone_rounded),
-      ('ar', 'العربية', Symbols.language_rounded),
-      ('en', 'English', Symbols.language_rounded),
-      ('fr', 'Français', Symbols.language_rounded),
+    items: [
+      ('system', t.systemLanguageOption, Symbols.smartphone_rounded),
+      ('ar', t.arabicLanguageOption, Symbols.language_rounded),
+      ('en', t.englishLanguageOption, Symbols.language_rounded),
+      ('fr', t.frenchLanguageOption, Symbols.language_rounded),
     ],
     onSelected: s.setAppLanguageCode,
   );
 }
 
 void showSpeedPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   final cs = Theme.of(ctx).colorScheme;
   showModalBottomSheet(
     context: ctx,
@@ -184,7 +192,7 @@ void showSpeedPicker(BuildContext ctx, SettingsProvider s) {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-          child: Text('سرعة التشغيل', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+          child: Text(t.playbackSpeedTitle, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
         ),
         const Divider(height: 1),
         ...[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((sp) => ListTile(
@@ -198,56 +206,60 @@ void showSpeedPicker(BuildContext ctx, SettingsProvider s) {
 }
 
 void showSortPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showBottomPicker<String>(
     ctx,
-    title: 'ترتيب حسب',
+    title: t.sortByTitle,
     currentValue: s.sortBy,
-    items: const [
-      ('date', 'التاريخ', Symbols.calendar_today_rounded),
-      ('name', 'الاسم', Symbols.sort_by_alpha_rounded),
-      ('size', 'الحجم', Symbols.data_usage_rounded),
-      ('duration', 'المدة', Symbols.timer_rounded),
+    items: [
+      ('date', t.sortByDate, Symbols.calendar_today_rounded),
+      ('name', t.sortByName, Symbols.sort_by_alpha_rounded),
+      ('size', t.sortBySize, Symbols.data_usage_rounded),
+      ('duration', t.sortByDuration, Symbols.timer_rounded),
     ],
     onSelected: s.setSortBy,
   );
 }
 
 void showSeekSecondsPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showBottomPicker<int>(
     ctx,
-    title: 'مدة القفز عند النقر المزدوج',
+    title: t.doubleTapSeekTitle,
     currentValue: s.doubleTapSeekSeconds,
-    items: const [
-      (5, '5 ثوانٍ', Symbols.fast_rewind_rounded),
-      (10, '10 ثوانٍ', Symbols.fast_rewind_rounded),
-      (15, '15 ثانية', Symbols.fast_rewind_rounded),
-      (30, '30 ثانية', Symbols.fast_rewind_rounded),
+    items: [
+      (5, t.seconds5, Symbols.fast_rewind_rounded),
+      (10, t.seconds10, Symbols.fast_rewind_rounded),
+      (15, t.seconds15, Symbols.fast_rewind_rounded),
+      (30, t.seconds30, Symbols.fast_rewind_rounded),
     ],
     onSelected: s.setDoubleTapSeekSeconds,
   );
 }
 
 void showHideDelayPicker(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showBottomPicker<int>(
     ctx,
-    title: 'مدة اختفاء أزرار التحكم',
+    title: t.controlsHideDelayTitle,
     currentValue: s.controlsHideSeconds,
-    items: const [
-      (2, '2 ثانية', Symbols.timer_rounded),
-      (4, '4 ثوانٍ', Symbols.timer_rounded),
-      (6, '6 ثوانٍ', Symbols.timer_rounded),
-      (10, '10 ثوانٍ', Symbols.timer_rounded),
+    items: [
+      (2, t.seconds2, Symbols.timer_rounded),
+      (4, t.seconds4, Symbols.timer_rounded),
+      (6, t.seconds6, Symbols.timer_rounded),
+      (10, t.seconds10b, Symbols.timer_rounded),
     ],
     onSelected: s.setControlsHideSeconds,
   );
 }
 
 void showLongPressSpeedDialog(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showDialog(
     context: ctx,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('سرعة الضغط المطول'),
+        title: Text(t.longPressSpeedTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,18 +278,19 @@ void showLongPressSpeedDialog(BuildContext ctx, SettingsProvider s) {
             ),
           ],
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('موافق'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t.okButton))],
       ),
     ),
   );
 }
 
 void showGestureSensitivityDialog(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
   showDialog(
     context: ctx,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('حساسية الإيماءات'),
+        title: Text(t.gestureSensitivityTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +309,7 @@ void showGestureSensitivityDialog(BuildContext ctx, SettingsProvider s) {
             ),
           ],
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('موافق'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t.okButton))],
       ),
     ),
   );
@@ -305,33 +318,4 @@ void showGestureSensitivityDialog(BuildContext ctx, SettingsProvider s) {
 void showThemeColorPicker(BuildContext ctx, SettingsProvider s) async {
   final picked = await showColorPickerDialog(ctx, s.themeSeedColor);
   s.setThemeSeedColor(picked);
-}
-
-void showBottomPicker<T>(
-  BuildContext ctx, {
-  required String title,
-  required List<(T, String, IconData)> items,
-  required T currentValue,
-  required void Function(T) onSelected,
-}) {
-  final cs = Theme.of(ctx).colorScheme;
-  showModalBottomSheet(
-    context: ctx,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-          child: Text(title, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
-        ),
-        const Divider(height: 1),
-        ...items.map((item) => ListTile(
-          leading: Icon(item.$3),
-          title: Text(item.$2),
-          trailing: currentValue == item.$1 ? Icon(Symbols.check_rounded, color: cs.primary) : null,
-          onTap: () { onSelected(item.$1); Navigator.pop(ctx); },
-        )),
-      ]),
-    ),
-  );
 }

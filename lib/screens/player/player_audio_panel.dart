@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class AudioSettingsPanel extends StatefulWidget {
   final Player player;
@@ -46,16 +47,17 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
+    final t = AppLocalizations.of(context)!;
+
     final activeAudioName = widget.currentAudioTrack?.title ??
                             widget.currentAudioTrack?.language ??
-                            'لا يوجد مسار نشط';
+                            t.noActiveTrack;
 
     return Directionality(
       textDirection: Directionality.of(context),
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // رأس القسم مع mute
           Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -80,13 +82,12 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('الصوت', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text(t.audioLabel, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                       if (widget.currentAudioTrack != null)
                         Text(activeAudioName, style: TextStyle(color: cs.primary, fontSize: 11)),
                     ],
                   ),
                 ),
-                // زر Mute
                 _QuickIconBtn(
                   icon: _muted ? Symbols.volume_off_rounded : Symbols.volume_up_rounded,
                   color: _muted ? Colors.redAccent : Colors.white70,
@@ -99,68 +100,63 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             ),
           ),
 
-          // المسارات الصوتية
           if (widget.audioTracks.isNotEmpty) ...[
             _IntegratedSectionTile(
               icon: Symbols.audiotrack_rounded,
-              title: 'المسارات الصوتية',
-              subtitle: '${widget.audioTracks.length} مسارات',
+              title: t.audioTracks,
+              subtitle: t.audioTracksCount(widget.audioTracks.length),
               isOpen: _openSection == 0,
               onTap: () => _toggleSection(0),
-              child: _buildAudioTrackSection(cs),
+              child: _buildAudioTrackSection(cs, t),
             ),
           ],
 
-          // مستوى الصوت
           _IntegratedSectionTile(
             icon: Symbols.volume_up_rounded,
-            title: 'مستوى الصوت',
+            title: t.volumeLevel,
             subtitle: '${(widget.volumeLevel * 100).round()}%',
             isOpen: _openSection == 1,
             onTap: () => _toggleSection(1),
-            child: _buildVolumeSection(),
+            child: _buildVolumeSection(t),
           ),
 
-          // المعادل (Equalizer)
           _IntegratedSectionTile(
             icon: Symbols.equalizer_rounded,
-            title: 'المعادل',
-            subtitle: s.bassBoost ? 'مفعل' : 'غير مفعل',
+            title: t.equalizerLabel,
+            subtitle: s.bassBoost ? t.enabled : t.disabled,
             isOpen: _openSection == 4,
             onTap: () => _toggleSection(4),
-            child: _buildEqualizerSection(cs, s),
+            child: _buildEqualizerSection(cs, s, t),
           ),
 
-          // مزامنة الصوت
           _IntegratedSectionTile(
             icon: Symbols.timeline_rounded,
-            title: 'مزامنة الصوت',
+            title: t.audioSyncLabel,
             subtitle: '${widget.audioDelay > 0 ? '+' : ''}${widget.audioDelay.toStringAsFixed(0)} ms',
             isOpen: _openSection == 2,
             onTap: () => _toggleSection(2),
-            child: _buildAudioSyncSection(),
+            child: _buildAudioSyncSection(t),
           ),
 
-          // معلومات الصوت
           _IntegratedSectionTile(
             icon: Symbols.info_rounded,
-            title: 'معلومات الصوت',
+            title: t.audioInfo,
             subtitle: '',
             isOpen: _openSection == 3,
             onTap: () => _toggleSection(3),
-            child: _buildAudioInfoSection(),
+            child: _buildAudioInfoSection(t),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAudioTrackSection(ColorScheme cs) {
+  Widget _buildAudioTrackSection(ColorScheme cs, AppLocalizations t) {
     return Column(
       children: widget.audioTracks.asMap().entries.map((entry) {
         final index = entry.key;
         final track = entry.value;
-        final name = track.title ?? track.language ?? 'مسار صوتي ${index + 1}';
+        final name = track.title ?? track.language ?? t.audioTrackNumber(index + 1);
         final isActive = widget.currentAudioTrack == track;
         return ListTile(
           dense: true,
@@ -173,17 +169,17 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
     );
   }
 
-  Widget _buildVolumeSection() {
+  Widget _buildVolumeSection(AppLocalizations t) {
     final cs = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('مستوى الصوت', widget.volumeLevel, 0.0, 2.0, widget.onVolumeChanged, cs, display: (v) => '${(v * 100).round()}%'),
+      _CompactSlider(t.volumeLevel, widget.volumeLevel, 0.0, 2.0, widget.onVolumeChanged, cs, display: (v) => '${(v * 100).round()}%'),
       const SizedBox(height: 10),
-      _CompactSlider('تضخيم الصوت', widget.volumeLevel.clamp(1.0, 2.0), 1.0, 2.0, (v) => widget.onVolumeChanged(v), cs, display: (v) => '${(v * 100).round()}%'),
+      _CompactSlider(t.audioBoostOption, widget.volumeLevel.clamp(1.0, 2.0), 1.0, 2.0, (v) => widget.onVolumeChanged(v), cs, display: (v) => '${(v * 100).round()}%'),
       const SizedBox(height: 10),
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: const Text('كتم الصوت', style: TextStyle(color: Colors.white, fontSize: 13)),
+        title: Text(t.mute, style: const TextStyle(color: Colors.white, fontSize: 13)),
         value: _muted,
         onChanged: (v) {
           setState(() => _muted = v);
@@ -194,72 +190,69 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
     ]);
   }
 
-  Widget _buildEqualizerSection(ColorScheme cs, SettingsProvider s) {
+  Widget _buildEqualizerSection(ColorScheme cs, SettingsProvider s, AppLocalizations t) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Bass Boost
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: const Text('Bass Boost', style: TextStyle(color: Colors.white, fontSize: 13)),
-        subtitle: const Text('تضخيم الترددات المنخفضة', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        title: Text(t.bassBoostLabel, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: Text(t.bassBoostDesc, style: const TextStyle(color: Colors.white38, fontSize: 11)),
         value: s.bassBoost,
         onChanged: (v) => s.setBassBoost(v),
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
-      // Treble Boost
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: const Text('Treble Boost', style: TextStyle(color: Colors.white, fontSize: 13)),
-        subtitle: const Text('تضخيم الترددات العالية', style: TextStyle(color: Colors.white38, fontSize: 11)),
-        value: s.surroundSound, // نستخدم surroundSound مؤقتاً للـ Treble
+        title: Text(t.trebleBoostLabel, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: Text(t.trebleBoostDesc, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        value: s.surroundSound,
         onChanged: (v) => s.setSurroundSound(v),
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
-      // فتح المعادل الرسومي
       ListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: const Text('فتح المعادل الرسومي', style: TextStyle(color: Colors.white, fontSize: 13)),
-        subtitle: const Text('10 نطاقات تردد', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        title: Text(t.openGraphicEqualizer, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        subtitle: Text(t.bands10, style: const TextStyle(color: Colors.white38, fontSize: 11)),
         trailing: const Icon(Symbols.chevron_right_rounded, color: Colors.white54, size: 20),
-        onTap: () => _showEqualizerDialog(context, s),
+        onTap: () => _showEqualizerDialog(context, s, t),
       ),
     ]);
   }
 
-  Widget _buildAudioSyncSection() {
+  Widget _buildAudioSyncSection(AppLocalizations t) {
     final cs = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('تأخير الصوت', widget.audioDelay, -500.0, 500.0, widget.onAudioDelayChanged, cs,
+      _CompactSlider(t.audioDelay, widget.audioDelay, -500.0, 500.0, widget.onAudioDelayChanged, cs,
           display: (v) => '${v > 0 ? '+' : ''}${v.toStringAsFixed(0)} ms'),
       const SizedBox(height: 6),
-      Text('القيمة السالبة تُقدم الصوت، والموجبة تؤخره', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+      Text(t.audioDelayHelp, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
       const SizedBox(height: 8),
       Center(
         child: TextButton.icon(
           onPressed: () => widget.onAudioDelayChanged(0),
           icon: const Icon(Symbols.restart_alt_rounded, size: 18),
-          label: const Text('إعادة الضبط'),
+          label: Text(t.resetButton),
           style: TextButton.styleFrom(foregroundColor: cs.primary),
         ),
       ),
     ]);
   }
 
-  Widget _buildAudioInfoSection() {
+  Widget _buildAudioInfoSection(AppLocalizations t) {
     final track = widget.currentAudioTrack;
     return track != null
         ? Column(children: [
-            _infoTile('اللغة', track.language ?? 'غير معروف'),
-            _infoTile('العنوان', track.title ?? 'غير معروف'),
-            _infoTile('الترميز', track.codec ?? 'غير معروف'),
-            _infoTile('القناة', track.channels != null ? '${track.channels}' : 'غير معروف'),
-            _infoTile('معدل البت', track.bitrate != null ? '${track.bitrate} kbps' : 'غير معروف'),
+            _infoTile(t.language, track.language ?? t.unknown),
+            _infoTile(t.titleLabel, track.title ?? t.unknown),
+            _infoTile(t.codec, track.codec ?? t.unknown),
+            _infoTile(t.channel, track.channels != null ? '${track.channels}' : t.unknown),
+            _infoTile(t.bitrate, track.bitrate != null ? '${track.bitrate} kbps' : t.unknown),
           ])
-        : const Text('لا توجد معلومات صوتية', style: TextStyle(color: Colors.white38));
+        : Text(t.noAudioInfo, style: const TextStyle(color: Colors.white38));
   }
 
   Widget _infoTile(String label, String value) {
@@ -274,8 +267,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
     );
   }
 
-  // نافذة المعادل الرسومي (مطابقة لتلك الموجودة في SettingsScreen)
-  void _showEqualizerDialog(BuildContext context, SettingsProvider s) {
+  void _showEqualizerDialog(BuildContext context, SettingsProvider s, AppLocalizations t) {
     final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
     showDialog(
       context: context,
@@ -283,7 +275,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         builder: (ctx, setDialogState) {
           final bands = List<double>.from(s.equalizerBands);
           return AlertDialog(
-            title: const Text('المعادل الرسومي'),
+            title: Text(t.graphicEqualizerTitle),
             content: SizedBox(
               width: 300,
               child: SingleChildScrollView(
@@ -300,13 +292,13 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
               ElevatedButton(
                 onPressed: () {
                   s.setEqualizerBands(bands);
                   Navigator.pop(ctx);
                 },
-                child: const Text('تطبيق'),
+                child: Text(t.apply),
               ),
             ],
           );
@@ -316,7 +308,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
   }
 }
 
-// --- مكوّنات متكاملة ---
 class _IntegratedSectionTile extends StatelessWidget {
   final IconData icon;
   final String title;

@@ -106,10 +106,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get repeatNone => 'بدون';
 
   @override
-  String get repeatVideo => 'تكرار الفيديو';
+  String get repeatVideo => 'تكرار: الفيديو';
 
   @override
-  String get repeatPlaylist => 'تكرار القائمة';
+  String get repeatPlaylist => 'تكرار: القائمة';
 
   @override
   String get autoNextOption => 'الانتقال للفيديو التالي تلقائياً';
@@ -848,7 +848,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get playVideo => 'تشغيل';
 
   @override
-  String get videoInfo => 'معلومات';
+  String get videoInfo => 'معلومات الفيديو';
 
   @override
   String get addToFavorites => 'إضافة للمفضلة';
@@ -1114,4 +1114,403 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sleepTimerStopped => 'تم إيقاف التشغيل بواسطة المؤقت';
+
+  @override
+  String get noActiveTrack => 'لا يوجد مسار نشط';
+
+  @override
+  String get audioLabel => 'الصوت';
+
+  @override
+  String get audioTracks => 'المسارات الصوتية';
+
+  @override
+  String audioTracksCount(Object count) {
+    return '$count مسارات';
+  }
+
+  @override
+  String get volumeLevel => 'مستوى الصوت';
+
+  @override
+  String get equalizerLabel => 'المعادل';
+
+  @override
+  String get audioSyncLabel => 'مزامنة الصوت';
+
+  @override
+  String get audioInfo => 'معلومات الصوت';
+
+  @override
+  String audioTrackNumber(Object number) {
+    return 'مسار صوتي $number';
+  }
+
+  @override
+  String get mute => 'كتم الصوت';
+
+  @override
+  String get bassBoostLabel => 'Bass Boost';
+
+  @override
+  String get trebleBoostLabel => 'Treble Boost';
+
+  @override
+  String get bassBoostDesc => 'تضخيم الترددات المنخفضة';
+
+  @override
+  String get trebleBoostDesc => 'تضخيم الترددات العالية';
+
+  @override
+  String get openGraphicEqualizer => 'فتح المعادل الرسومي';
+
+  @override
+  String get bands10 => '10 نطاقات تردد';
+
+  @override
+  String get audioDelay => 'تأخير الصوت';
+
+  @override
+  String get audioDelayHelp => 'القيمة السالبة تُقدم الصوت، والموجبة تؤخره';
+
+  @override
+  String get language => 'اللغة';
+
+  @override
+  String get titleLabel => 'العنوان';
+
+  @override
+  String get codec => 'الترميز';
+
+  @override
+  String get channel => 'القناة';
+
+  @override
+  String get bitrate => 'معدل البت';
+
+  @override
+  String get unknown => 'غير معروف';
+
+  @override
+  String get noAudioInfo => 'لا توجد معلومات صوتية';
+
+  @override
+  String get subtitleLabel => 'الترجمة';
+
+  @override
+  String get embeddedSubtitles => 'الترجمات المدمجة';
+
+  @override
+  String embeddedSubtitlesCount(Object count) {
+    return '$count مسارات';
+  }
+
+  @override
+  String get externalSubtitles => 'الترجمات الخارجية';
+
+  @override
+  String get externalFile => 'ملف خارجي';
+
+  @override
+  String get none => 'لا يوجد';
+
+  @override
+  String get appearance => 'المظهر';
+
+  @override
+  String get position => 'الموضع';
+
+  @override
+  String get sync => 'المزامنة';
+
+  @override
+  String get encoding => 'الترميز';
+
+  @override
+  String get advancedOptions => 'خيارات متقدمة';
+
+  @override
+  String subtitleTrackNumber(Object number) {
+    return 'ترجمة $number';
+  }
+
+  @override
+  String get pickSubtitleFile => 'اختيار ملف ترجمة';
+
+  @override
+  String get removeExternalSubtitle => 'إزالة الترجمة الخارجية';
+
+  @override
+  String get fontSize => 'حجم الخط';
+
+  @override
+  String get systemDefaultFont => 'System Default';
+
+  @override
+  String get textBackground => 'خلفية النص';
+
+  @override
+  String get backgroundOpacity => 'شفافية الخلفية';
+
+  @override
+  String get italic => 'خط مائل';
+
+  @override
+  String get bottomMargin => 'الارتفاع عن الأسفل';
+
+  @override
+  String get horizontalMargin => 'الهامش الأفقي';
+
+  @override
+  String get subtitleDelay => 'تأخير الترجمة';
+
+  @override
+  String get subtitleDelayHelp =>
+      'القيمة السالبة تُقدم الترجمة، والموجبة تؤخرها';
+
+  @override
+  String get saveAsDefault => 'حفظ الإعدادات كافتراضية';
+
+  @override
+  String get saveAsDefaultDesc => 'تنطبق على جميع الفيديوهات';
+
+  @override
+  String get screenshot => 'لقطة شاشة';
+
+  @override
+  String get repeatOff => 'تكرار: بدون';
+
+  @override
+  String get screenLockDisabled => 'قفل الشاشة: ممنوع';
+
+  @override
+  String get screenLockEnabled => 'قفل الشاشة: مسموح';
+
+  @override
+  String get hideVideoInfo => 'إخفاء معلومات الفيديو';
+
+  @override
+  String get showVideoInfo => 'إظهار معلومات الفيديو';
+
+  @override
+  String get aspectRatio => 'نسبة العرض';
+
+  @override
+  String get contain => 'احتواء';
+
+  @override
+  String get cover => 'تغطية';
+
+  @override
+  String get fill => 'ملء';
+
+  @override
+  String get stretch => 'تمديد';
+
+  @override
+  String get free => 'حر (سحب/تكبير بإصبعين)';
+
+  @override
+  String get pip => 'نافذة عائمة (PiP)';
+
+  @override
+  String get repeatAB => 'تكرار مقطع A-B';
+
+  @override
+  String get repeatABDisabled => 'غير مفعّل';
+
+  @override
+  String get repeatABSetA => 'A محددة';
+
+  @override
+  String get repeatABActive => 'A-B مفعّل';
+
+  @override
+  String get setPointA => 'تحديد نقطة البداية (A)';
+
+  @override
+  String get resetPointA => 'إعادة تحديد A عند الموضع الحالي';
+
+  @override
+  String get setPointB => 'تحديد نقطة النهاية (B)';
+
+  @override
+  String get cancelRepeat => 'إلغاء التكرار';
+
+  @override
+  String get bookmarks => 'إشارات مرجعية';
+
+  @override
+  String get addBookmark => 'إضافة إشارة عند الموضع الحالي';
+
+  @override
+  String get noBookmarks => 'لا توجد إشارات محفوظة فهاد الفيديو';
+
+  @override
+  String get playerSettings => 'إعدادات المشغل';
+
+  @override
+  String playbackSpeedWithValue(Object speed) {
+    return 'سرعة التشغيل (${speed}x)';
+  }
+
+  @override
+  String get rememberPosition => 'تذكر موضع التشغيل';
+
+  @override
+  String get statsForNerds => 'معلومات تقنية (Stats for Nerds)';
+
+  @override
+  String get graphicEqualizerTitle => 'المعادل الرسومي';
+
+  @override
+  String get pickColor => 'اختر لوناً';
+
+  @override
+  String get searchHint => 'ابحث عن فيديو...';
+
+  @override
+  String get noResults => 'لا توجد نتائج';
+
+  @override
+  String get noVideosFound => 'ما لقينا فيديوهات';
+
+  @override
+  String get noRecentVideos => 'ما شفتي فيديو بعد';
+
+  @override
+  String fileCount(Object count) {
+    return '$count ملف';
+  }
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get noFoldersFound => 'ما لقينا مجلدات';
+
+  @override
+  String folderVideoCount(Object count, Object size) {
+    return '$count فيديو  •  $size';
+  }
+
+  @override
+  String get openFileHint => 'اضغط \"فتح ملف\" لاختيار فيديو';
+
+  @override
+  String get chooseFont => 'اختر الخط';
+
+  @override
+  String get chooseBoost => 'تضخيم الصوت الافتراضي (%)';
+
+  @override
+  String get chooseAudioLanguage => 'اختر لغة الصوت المفضلة';
+
+  @override
+  String get chooseEncoding => 'اختر ترميز الأحرف';
+
+  @override
+  String get chooseSubtitleLanguage => 'اختر لغة الترجمة المفضلة';
+
+  @override
+  String get syncDefault => 'المزامنة الافتراضية (ثواني)';
+
+  @override
+  String get exampleSync => 'مثال: -0.5 أو 1.0';
+
+  @override
+  String get chooseAppearance => 'اختر المظهر';
+
+  @override
+  String get chooseLanguage => 'اختر اللغة / Choose language';
+
+  @override
+  String get playbackSpeedTitle => 'سرعة التشغيل';
+
+  @override
+  String get sortByTitle => 'ترتيب حسب';
+
+  @override
+  String get doubleTapSeekTitle => 'مدة القفز عند النقر المزدوج';
+
+  @override
+  String get controlsHideDelayTitle => 'مدة اختفاء أزرار التحكم';
+
+  @override
+  String get longPressSpeedTitle => 'سرعة الضغط المطول';
+
+  @override
+  String get gestureSensitivityTitle => 'حساسية الإيماءات';
+
+  @override
+  String get seconds5 => '5 ثوانٍ';
+
+  @override
+  String get seconds10 => '10 ثوانٍ';
+
+  @override
+  String get seconds15 => '15 ثانية';
+
+  @override
+  String get seconds30 => '30 ثانية';
+
+  @override
+  String get seconds2 => '2 ثانية';
+
+  @override
+  String get seconds4 => '4 ثوانٍ';
+
+  @override
+  String get seconds6 => '6 ثوانٍ';
+
+  @override
+  String get seconds10b => '10 ثوانٍ';
+
+  @override
+  String get hiddenFilesTitle => 'الملفات المخفية';
+
+  @override
+  String get showAll => 'إظهار الكل';
+
+  @override
+  String get noHiddenFiles => 'لا توجد ملفات مخفية';
+
+  @override
+  String get show => 'إظهار';
+
+  @override
+  String get unhideAllConfirmTitle => 'إظهار كل الملفات';
+
+  @override
+  String get unhideAllConfirmBody => 'هل تريد إظهار جميع الملفات المخفية؟';
+
+  @override
+  String get fileInfo => 'معلومات الملف';
+
+  @override
+  String get sizeLabel => 'الحجم';
+
+  @override
+  String get folderLabel => 'المجلد';
+
+  @override
+  String get dateLabel => 'التاريخ';
+
+  @override
+  String get extensionLabel => 'الامتداد';
+
+  @override
+  String get videoInfoLabel => 'معلومات الفيديو';
+
+  @override
+  String get durationLabel => 'المدة';
+
+  @override
+  String get pathLabel => 'المسار';
+
+  @override
+  String get playlistTitle => 'قائمة التشغيل';
+
+  @override
+  String get emptyPlaylist => 'قائمة التشغيل فارغة';
 }

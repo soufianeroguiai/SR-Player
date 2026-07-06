@@ -719,7 +719,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       child: RepaintBoundary(
         child: SafeArea(
           child: Directionality(
-            textDirection: Directionality.of(context),
+            textDirection: TextDirection.ltr,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -882,85 +882,88 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     return Container(
       color: Colors.black.withValues(alpha: 0.65),
-      child: Column(
-        children: [
-          AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            title: Text(t.playlistEditor, style: const TextStyle(fontSize: 16)),
-            leading: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => setState(() => _showPlaylistEditor = false),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Column(
+          children: [
+            AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              title: Text(t.playlistEditor, style: const TextStyle(fontSize: 16)),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() => _showPlaylistEditor = false),
+              ),
             ),
-          ),
-          Expanded(
-            child: ReorderableListView.builder(
-              itemCount: videos.length,
-              onReorder: (oldIndex, newIndex) {
-                if (isCustom) {
-                  _libraryProvider.reorderPlaylist(oldIndex, newIndex);
-                  setState(() {});
-                }
-              },
-              itemBuilder: (context, index) {
-                final video = videos[index];
-                final isPlaying = video.path == widget.video.path;
+            Expanded(
+              child: ReorderableListView.builder(
+                itemCount: videos.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (isCustom) {
+                    _libraryProvider.reorderPlaylist(oldIndex, newIndex);
+                    setState(() {});
+                  }
+                },
+                itemBuilder: (context, index) {
+                  final video = videos[index];
+                  final isPlaying = video.path == widget.video.path;
 
-                return ListTile(
-                  key: Key(video.path),
-                  leading: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.drag_handle, color: Colors.white54),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 80,
-                        height: 50,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              VideoThumbnailLoader(video: video, width: 80, height: 50),
-                              if (isPlaying)
-                                Container(
-                                  color: Colors.black.withValues(alpha: 0.55),
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  child: const Center(
-                                    child: PlayingIndicator(),
+                  return ListTile(
+                    key: Key(video.path),
+                    leading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.drag_handle, color: Colors.white54),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 80,
+                          height: 50,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                VideoThumbnailLoader(video: video, width: 80, height: 50),
+                                if (isPlaying)
+                                  Container(
+                                    color: Colors.black.withValues(alpha: 0.55),
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    child: const Center(
+                                      child: PlayingIndicator(),
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  title: Text(
-                    video.name,
-                    style: TextStyle(
-                      color: isPlaying ? Theme.of(context).colorScheme.primary : Colors.white,
-                      fontSize: 13,
-                      fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(video.formattedDuration,
-                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white54, size: 20),
-                    onPressed: () => remove(video.path),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    splashRadius: 20,
-                  ),
-                );
-              },
+                    title: Text(
+                      video.name,
+                      style: TextStyle(
+                        color: isPlaying ? Theme.of(context).colorScheme.primary : Colors.white,
+                        fontSize: 13,
+                        fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(video.formattedDuration,
+                        style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                      onPressed: () => remove(video.path),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      splashRadius: 20,
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -997,371 +1000,374 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: !_state.initialized
-            ? Center(child: CircularProgressIndicator(color: cs.primary))
-            : Stack(children: [
-                PlayerGestureLayer(
-                  player: _player,
-                  isLocked: _state.isLocked,
-                  volumeLevel: _state.volumeLevel,
-                  brightnessNotifier: _brightnessNotifier,
-                  seekMsNotifier: _seekMsNotifier,
-                  position: _state.position,
-                  duration: _state.duration,
-                  isPlaying: _state.isPlaying,
-                  isSpeedBoosted: _state.isSpeedBoosted,
-                  fitMode: _state.fitMode,
-                  zoomScale: _state.zoomScale,
-                  panOffset: _state.panOffset,
-                  onToggleControls: _toggleControls,
-                  onVolumeChanged: _service.onVolumeChanged,
-                  onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
-                  onLongPressSpeedStart: _service.startLongPressSpeedBoost,
-                  onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
-                  onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
-                  child: Video(
-                    key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
-                    controller: _controller,
-                    fit: getBoxFit(_state.fitMode),
-                    controls: NoVideoControls,
-                    subtitleViewConfiguration: SubtitleViewConfiguration(
-                      visible: !useFlutterRenderer,
-                    ),
-                  ),
-                ),
-
-                ValueListenableBuilder<String?>(
-                  valueListenable: _state.currentSubtitleText,
-                  builder: (context, text, _) {
-                    if (!_shouldUseFlutterRenderer() || text == null || text.trim().isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
-                        ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
-                        : MediaQuery.of(context).size;
-                    final videoRect = VideoLayoutCalculator.calculate(
-                      videoSize: videoSize,
-                      screenSize: MediaQuery.of(context).size,
-                      fitMode: _state.fitMode,
-                      zoomScale: _state.zoomScale,
-                      panOffset: _state.panOffset,
-                    );
-                    return SubtitleRenderer(
-                      currentEntry: SubtitleEntry(
-                        start: Duration.zero,
-                        end: const Duration(hours: 1),
-                        text: text,
+        body: Directionality(
+          textDirection: TextDirection.ltr,
+          child: !_state.initialized
+              ? Center(child: CircularProgressIndicator(color: cs.primary))
+              : Stack(children: [
+                  PlayerGestureLayer(
+                    player: _player,
+                    isLocked: _state.isLocked,
+                    volumeLevel: _state.volumeLevel,
+                    brightnessNotifier: _brightnessNotifier,
+                    seekMsNotifier: _seekMsNotifier,
+                    position: _state.position,
+                    duration: _state.duration,
+                    isPlaying: _state.isPlaying,
+                    isSpeedBoosted: _state.isSpeedBoosted,
+                    fitMode: _state.fitMode,
+                    zoomScale: _state.zoomScale,
+                    panOffset: _state.panOffset,
+                    onToggleControls: _toggleControls,
+                    onVolumeChanged: _service.onVolumeChanged,
+                    onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
+                    onLongPressSpeedStart: _service.startLongPressSpeedBoost,
+                    onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
+                    onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
+                    child: Video(
+                      key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
+                      controller: _controller,
+                      fit: getBoxFit(_state.fitMode),
+                      controls: NoVideoControls,
+                      subtitleViewConfiguration: SubtitleViewConfiguration(
+                        visible: !useFlutterRenderer,
                       ),
-                      settings: subtitleSettings,
-                      videoRect: videoRect,
-                      videoSize: videoSize,
-                      screenSize: MediaQuery.of(context).size,
-                      safeArea: MediaQuery.of(context).padding,
-                    );
-                  },
-                ),
-
-                IgnorePointer(
-                  child: AnimatedOpacity(
-                    opacity: _state.showScreenshotFlash ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 150),
-                    child: Container(color: Colors.white),
-                  ),
-                ),
-
-                if (_state.showStatsOverlay)
-                  Positioned(
-                    top: MediaQuery.of(context).padding.top + 60,
-                    left: 12,
-                    child: IgnorePointer(
-                      child: _StatsForNerdsPanel(state: _state, player: _player),
                     ),
                   ),
 
-                if (_state.isLocked)
-                  Positioned(
-                    bottom: 40,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _state.showLockHint = true;
-                          });
-                          Future.delayed(const Duration(seconds: 2), () {
-                            if (mounted) {
-                              setState(() {
-                                _state.showLockHint = false;
-                              });
+                  ValueListenableBuilder<String?>(
+                    valueListenable: _state.currentSubtitleText,
+                    builder: (context, text, _) {
+                      if (!_shouldUseFlutterRenderer() || text == null || text.trim().isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
+                          ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
+                          : MediaQuery.of(context).size;
+                      final videoRect = VideoLayoutCalculator.calculate(
+                        videoSize: videoSize,
+                        screenSize: MediaQuery.of(context).size,
+                        fitMode: _state.fitMode,
+                        zoomScale: _state.zoomScale,
+                        panOffset: _state.panOffset,
+                      );
+                      return SubtitleRenderer(
+                        currentEntry: SubtitleEntry(
+                          start: Duration.zero,
+                          end: const Duration(hours: 1),
+                          text: text,
+                        ),
+                        settings: subtitleSettings,
+                        videoRect: videoRect,
+                        videoSize: videoSize,
+                        screenSize: MediaQuery.of(context).size,
+                        safeArea: MediaQuery.of(context).padding,
+                      );
+                    },
+                  ),
+
+                  IgnorePointer(
+                    child: AnimatedOpacity(
+                      opacity: _state.showScreenshotFlash ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: Container(color: Colors.white),
+                    ),
+                  ),
+
+                  if (_state.showStatsOverlay)
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 60,
+                      left: 12,
+                      child: IgnorePointer(
+                        child: _StatsForNerdsPanel(state: _state, player: _player),
+                      ),
+                    ),
+
+                  if (_state.isLocked)
+                    Positioned(
+                      bottom: 40,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _state.showLockHint = true;
+                            });
+                            Future.delayed(const Duration(seconds: 2), () {
+                              if (mounted) {
+                                setState(() {
+                                  _state.showLockHint = false;
+                                });
+                              }
+                            });
+                          },
+                          onHorizontalDragUpdate: (details) {
+                            _state.lockIconOffset =
+                                (_state.lockIconOffset + details.delta.dx)
+                                    .clamp(0.0, _lockTrackWidth - _lockBtnSize);
+                            _state.notifyListeners();
+                          },
+                          onHorizontalDragEnd: (_) {
+                            if (_state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8) {
+                              _toggleLock();
                             }
-                          });
-                        },
-                        onHorizontalDragUpdate: (details) {
-                          _state.lockIconOffset =
-                              (_state.lockIconOffset + details.delta.dx)
-                                  .clamp(0.0, _lockTrackWidth - _lockBtnSize);
-                          _state.notifyListeners();
-                        },
-                        onHorizontalDragEnd: (_) {
-                          if (_state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8) {
-                            _toggleLock();
-                          }
-                          _state.lockIconOffset = 0.0;
-                          _state.showLockHint = false;
-                          _state.notifyListeners();
-                        },
-                        child: AnimatedOpacity(
-                          opacity: _state.showLockHint ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Builder(builder: (context) {
-                            final cs = Theme.of(context).colorScheme;
-                            final progress = (_state.lockIconOffset /
-                                    (_lockTrackWidth - _lockBtnSize))
-                                .clamp(0.0, 1.0);
-                            return Container(
-                              width: _lockTrackWidth,
-                              height: _lockBtnSize + 8,
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
-                                border: Border.all(
-                                    color: cs.primary.withValues(alpha: 0.4), width: 1.5),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.centerLeft,
-                                children: [
-                                  if (progress > 0)
-                                    Positioned(
-                                      left: 0,
+                            _state.lockIconOffset = 0.0;
+                            _state.showLockHint = false;
+                            _state.notifyListeners();
+                          },
+                          child: AnimatedOpacity(
+                            opacity: _state.showLockHint ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Builder(builder: (context) {
+                              final cs = Theme.of(context).colorScheme;
+                              final progress = (_state.lockIconOffset /
+                                      (_lockTrackWidth - _lockBtnSize))
+                                  .clamp(0.0, 1.0);
+                              return Container(
+                                width: _lockTrackWidth,
+                                height: _lockBtnSize + 8,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.65),
+                                  borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
+                                  border: Border.all(
+                                      color: cs.primary.withValues(alpha: 0.4), width: 1.5),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    if (progress > 0)
+                                      Positioned(
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: _state.lockIconOffset + _lockBtnSize,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: cs.primary.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(_lockBtnSize / 2),
+                                          ),
+                                        ),
+                                      ),
+                                    Center(
+                                      child: Text(
+                                        progress > 0.6
+                                            ? t.releaseToOpen
+                                            : t.slideToUnlock,
+                                        style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.8),
+                                            fontSize: 13),
+                                      ),
+                                    ),
+                                    AnimatedPositioned(
+                                      duration: Duration.zero,
+                                      left: _state.lockIconOffset,
                                       top: 0,
                                       bottom: 0,
-                                      width: _state.lockIconOffset + _lockBtnSize,
                                       child: Container(
+                                        width: _lockBtnSize,
                                         decoration: BoxDecoration(
-                                          color: cs.primary.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(_lockBtnSize / 2),
+                                          color: cs.primary,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: cs.primary.withValues(alpha: 0.5),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          _state.lockIconOffset >=
+                                                  _lockTrackWidth - _lockBtnSize - 8
+                                              ? Symbols.lock_open_rounded
+                                              : Symbols.lock_rounded,
+                                          color: cs.onPrimary,
+                                          size: 20,
                                         ),
                                       ),
                                     ),
-                                  Center(
-                                    child: Text(
-                                      progress > 0.6
-                                          ? t.releaseToOpen
-                                          : t.slideToUnlock,
-                                      style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.8),
-                                          fontSize: 13),
-                                    ),
-                                  ),
-                                  AnimatedPositioned(
-                                    duration: Duration.zero,
-                                    left: _state.lockIconOffset,
-                                    top: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      width: _lockBtnSize,
-                                      decoration: BoxDecoration(
-                                        color: cs.primary,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: cs.primary.withValues(alpha: 0.5),
-                                            blurRadius: 8,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        _state.lockIconOffset >=
-                                                _lockTrackWidth - _lockBtnSize - 8
-                                            ? Symbols.lock_open_rounded
-                                            : Symbols.lock_rounded,
-                                        color: cs.onPrimary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                if (_state.fitOverlayText != null)
-                  Positioned(
-                    top: 100,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _state.fitOverlayText!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                                  ],
+                                ),
+                              );
+                            }),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                if (controlsVisible) ...[
-                  Positioned(
-                    top: 0, left: 0, right: 0,
-                    child: RepaintBoundary(
-                      child: PlayerTopBar(
-                      videoName: widget.video.name,
-                      onBack: () => Navigator.pop(context),
-                      onAudioMenu: () {
-                        _state.currentMenu = _state.currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
-                        _state.showQuickActions = false;
-                        _state.notifyListeners();
-                      },
-                      onSubtitleMenu: () {
-                        _state.currentMenu = _state.currentMenu == ActiveMenu.subtitles ? ActiveMenu.none : ActiveMenu.subtitles;
-                        _state.showQuickActions = false;
-                        _state.notifyListeners();
-                      },
-                      onQuickActions: () {
-                        _state.showQuickActions = !_state.showQuickActions;
-                        _state.notifyListeners();
-                      },
-                      onSettingsMenu: () {
-                        _state.currentMenu = ActiveMenu.settings;
-                        _state.notifyListeners();
-                      },
-                      isAudioActive: _state.currentMenu == ActiveMenu.audio,
-                      isSubtitleActive: _state.currentMenu == ActiveMenu.subtitles,
-                      isQuickActionsActive: _state.showQuickActions,
-                      quickActionWidgets: _state.showQuickActions
-                          ? [
-                              _qaBtn(Symbols.camera_rounded, Colors.white70, _service.captureScreenshot),
-                              _qaBtn(
-                                _state.smartEnhance ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded,
-                                _state.smartEnhance ? Colors.amber : Colors.white70,
-                                _service.toggleSmartEnhance,
-                              ),
-                              _qaBtn(
-                                _state.hdrEnabled ? Symbols.hdr_on_rounded : Symbols.hdr_off_rounded,
-                                _state.hdrEnabled ? Colors.amber : Colors.white70,
-                                _service.toggleHDREnhancement,
-                              ),
-                              _qaBtn(
-                                _state.hwEnabled ? Symbols.memory_rounded : Symbols.sd_card_rounded,
-                                _state.hwEnabled ? Colors.amber : Colors.white70,
-                                _service.toggleHardwareDecoding,
-                              ),
-                              _qaBtn(
-                                lib.isFavorite(widget.video.path) ? Symbols.favorite_rounded : Symbols.favorite_border,
-                                lib.isFavorite(widget.video.path) ? Colors.amber : Colors.white70,
-                                _service.toggleFavorite,
-                              ),
-                              _qaBtn(Symbols.playlist_add_rounded, Colors.white70, _service.addToPlaylist),
-                              _qaBtn(Symbols.share_rounded, Colors.white70, _service.shareVideo),
-                              _qaBtn(Symbols.speed_rounded, Colors.white70, () {
-                                _showSpeedPicker();
-                                _state.showQuickActions = false;
-                                _state.notifyListeners();
-                              }),
-                              _qaBtn(
-                                Symbols.timer_rounded,
-                                _sleepMinutes != null ? Colors.amber : Colors.white70,
-                                _showTimerPicker,
-                              ),
-                              _qaBtn(
-                                Symbols.dark_mode_rounded,
-                                _state.isNightMode ? Colors.amber : Colors.white70,
-                                () {
-                                  setState(() {
-                                    _state.isNightMode = !_state.isNightMode;
-                                    if (_state.isNightMode) {
-                                      _state.preNightBrightness = _brightnessNotifier.value;
-                                      _brightnessNotifier.value = 0.05;
-                                    } else {
-                                      _brightnessNotifier.value = _state.preNightBrightness;
-                                    }
-                                  });
-                                  ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text(_state.isNightMode ? t.nightModeOn : t.nightModeOff),
-                                  ));
-                                },
-                              ),
-                              _qaBtn(
-                                _state.volumeLevel == 0 ? Symbols.volume_off_rounded : Symbols.volume_up_rounded,
-                                _state.volumeLevel == 0 ? Colors.amber : Colors.white70,
-                                _service.toggleMute,
-                              ),
-                              _qaBtn(
-                                _state.playlistMode == PlaylistMode.single ? Symbols.repeat_one_rounded : Symbols.repeat_rounded,
-                                _state.playlistMode != PlaylistMode.none ? Colors.amber : Colors.white70,
-                                _service.toggleRepeat,
-                              ),
-                              _qaBtn(
-                                Symbols.shuffle_rounded,
-                                _state.isShuffle ? Colors.amber : Colors.white70,
-                                _service.toggleShuffle,
-                              ),
-                              _qaBtn(Symbols.palette_rounded, Colors.white70, _showColorAdjustment),
-                            ]
-                          : [],
+                  if (_state.fitOverlayText != null)
+                    Positioned(
+                      top: 100,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _state.fitOverlayText!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: RepaintBoundary(
-                      child: PlayerBottomBar(
-                      position: _state.position,
-                      duration: _state.duration,
-                      onSeek: (v) => _player.seek(Duration(milliseconds: (v * _state.duration.inMilliseconds).toInt())),
-                      primaryColor: cs.primary,
-                      isPlaying: _state.isPlaying,
-                      onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
-                      onSkipBack: () {
-                        final t = _state.position - Duration(seconds: s.doubleTapSeekSeconds);
-                        _player.seek(t.isNegative ? Duration.zero : t);
-                      },
-                      onSkipForward: () {
-                        final t = _state.position + Duration(seconds: s.doubleTapSeekSeconds);
-                        _player.seek(t > _state.duration ? _state.duration : t);
-                      },
-                      onToggleFit: _toggleFit,
-                      onToggleLock: _toggleLock,
-                      onPip: () async => PipService.enter(),
-                      chapters: _state.chapters,
-                      onPrevious: _service.playPrevious,
-                      onNext: _service.playNext,
-                      showRemainingTime: s.showRemainingTime,
-                      showElapsedTime: s.showElapsedTime,
-                      showVideoTitle: s.showVideoTitle,
+
+                  if (controlsVisible) ...[
+                    Positioned(
+                      top: 0, left: 0, right: 0,
+                      child: RepaintBoundary(
+                        child: PlayerTopBar(
+                        videoName: widget.video.name,
+                        onBack: () => Navigator.pop(context),
+                        onAudioMenu: () {
+                          _state.currentMenu = _state.currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
+                          _state.showQuickActions = false;
+                          _state.notifyListeners();
+                        },
+                        onSubtitleMenu: () {
+                          _state.currentMenu = _state.currentMenu == ActiveMenu.subtitles ? ActiveMenu.none : ActiveMenu.subtitles;
+                          _state.showQuickActions = false;
+                          _state.notifyListeners();
+                        },
+                        onQuickActions: () {
+                          _state.showQuickActions = !_state.showQuickActions;
+                          _state.notifyListeners();
+                        },
+                        onSettingsMenu: () {
+                          _state.currentMenu = ActiveMenu.settings;
+                          _state.notifyListeners();
+                        },
+                        isAudioActive: _state.currentMenu == ActiveMenu.audio,
+                        isSubtitleActive: _state.currentMenu == ActiveMenu.subtitles,
+                        isQuickActionsActive: _state.showQuickActions,
+                        quickActionWidgets: _state.showQuickActions
+                            ? [
+                                _qaBtn(Symbols.camera_rounded, Colors.white70, _service.captureScreenshot),
+                                _qaBtn(
+                                  _state.smartEnhance ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded,
+                                  _state.smartEnhance ? Colors.amber : Colors.white70,
+                                  _service.toggleSmartEnhance,
+                                ),
+                                _qaBtn(
+                                  _state.hdrEnabled ? Symbols.hdr_on_rounded : Symbols.hdr_off_rounded,
+                                  _state.hdrEnabled ? Colors.amber : Colors.white70,
+                                  _service.toggleHDREnhancement,
+                                ),
+                                _qaBtn(
+                                  _state.hwEnabled ? Symbols.memory_rounded : Symbols.sd_card_rounded,
+                                  _state.hwEnabled ? Colors.amber : Colors.white70,
+                                  _service.toggleHardwareDecoding,
+                                ),
+                                _qaBtn(
+                                  lib.isFavorite(widget.video.path) ? Symbols.favorite_rounded : Symbols.favorite_border,
+                                  lib.isFavorite(widget.video.path) ? Colors.amber : Colors.white70,
+                                  _service.toggleFavorite,
+                                ),
+                                _qaBtn(Symbols.playlist_add_rounded, Colors.white70, _service.addToPlaylist),
+                                _qaBtn(Symbols.share_rounded, Colors.white70, _service.shareVideo),
+                                _qaBtn(Symbols.speed_rounded, Colors.white70, () {
+                                  _showSpeedPicker();
+                                  _state.showQuickActions = false;
+                                  _state.notifyListeners();
+                                }),
+                                _qaBtn(
+                                  Symbols.timer_rounded,
+                                  _sleepMinutes != null ? Colors.amber : Colors.white70,
+                                  _showTimerPicker,
+                                ),
+                                _qaBtn(
+                                  Symbols.dark_mode_rounded,
+                                  _state.isNightMode ? Colors.amber : Colors.white70,
+                                  () {
+                                    setState(() {
+                                      _state.isNightMode = !_state.isNightMode;
+                                      if (_state.isNightMode) {
+                                        _state.preNightBrightness = _brightnessNotifier.value;
+                                        _brightnessNotifier.value = 0.05;
+                                      } else {
+                                        _brightnessNotifier.value = _state.preNightBrightness;
+                                      }
+                                    });
+                                    ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text(_state.isNightMode ? t.nightModeOn : t.nightModeOff),
+                                    ));
+                                  },
+                                ),
+                                _qaBtn(
+                                  _state.volumeLevel == 0 ? Symbols.volume_off_rounded : Symbols.volume_up_rounded,
+                                  _state.volumeLevel == 0 ? Colors.amber : Colors.white70,
+                                  _service.toggleMute,
+                                ),
+                                _qaBtn(
+                                  _state.playlistMode == PlaylistMode.single ? Symbols.repeat_one_rounded : Symbols.repeat_rounded,
+                                  _state.playlistMode != PlaylistMode.none ? Colors.amber : Colors.white70,
+                                  _service.toggleRepeat,
+                                ),
+                                _qaBtn(
+                                  Symbols.shuffle_rounded,
+                                  _state.isShuffle ? Colors.amber : Colors.white70,
+                                  _service.toggleShuffle,
+                                ),
+                                _qaBtn(Symbols.palette_rounded, Colors.white70, _showColorAdjustment),
+                              ]
+                            : [],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-                if (_state.showResumeDialog) _buildResumeDialog(),
-                _buildSidePanel(),
-                if (_showPlaylistEditor)
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    right: 0,
-                    width: MediaQuery.of(context).size.width * 0.5,
-                    child: _buildPlaylistEditor(),
-                  ),
-              ]),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: RepaintBoundary(
+                        child: PlayerBottomBar(
+                        position: _state.position,
+                        duration: _state.duration,
+                        onSeek: (v) => _player.seek(Duration(milliseconds: (v * _state.duration.inMilliseconds).toInt())),
+                        primaryColor: cs.primary,
+                        isPlaying: _state.isPlaying,
+                        onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
+                        onSkipBack: () {
+                          final t = _state.position - Duration(seconds: s.doubleTapSeekSeconds);
+                          _player.seek(t.isNegative ? Duration.zero : t);
+                        },
+                        onSkipForward: () {
+                          final t = _state.position + Duration(seconds: s.doubleTapSeekSeconds);
+                          _player.seek(t > _state.duration ? _state.duration : t);
+                        },
+                        onToggleFit: _toggleFit,
+                        onToggleLock: _toggleLock,
+                        onPip: () async => PipService.enter(),
+                        chapters: _state.chapters,
+                        onPrevious: _service.playPrevious,
+                        onNext: _service.playNext,
+                        showRemainingTime: s.showRemainingTime,
+                        showElapsedTime: s.showElapsedTime,
+                        showVideoTitle: s.showVideoTitle,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_state.showResumeDialog) _buildResumeDialog(),
+                  _buildSidePanel(),
+                  if (_showPlaylistEditor)
+                    Positioned(
+                      top: 0,
+                      bottom: 0,
+                      right: 0,
+                      width: MediaQuery.of(context).size.width * 0.5,
+                      child: _buildPlaylistEditor(),
+                    ),
+                ]),
+        ),
       ),
     );
   }
@@ -1491,7 +1497,7 @@ class _StatsForNerdsPanel extends StatelessWidget {
     ];
 
     return Directionality(
-      textDirection: Directionality.of(context),
+      textDirection: TextDirection.ltr,
       child: Container(
         padding: const EdgeInsets.all(10),
         constraints: const BoxConstraints(maxWidth: 260),

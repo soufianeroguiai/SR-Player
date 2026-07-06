@@ -553,6 +553,7 @@ class _HomeScreenState extends State<HomeScreen>
     final width = MediaQuery.of(context).size.width;
     final totalWidth = width - 32;
     final tabWidth = totalWidth / tabs.length;
+    final textDir = Directionality.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -575,10 +576,11 @@ class _HomeScreenState extends State<HomeScreen>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              AnimatedPositioned(
+              AnimatedPositioned.directional(
+                textDirection: textDir,
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
-                left: _currentIndex * tabWidth + 6,
+                start: _currentIndex * tabWidth + 6,
                 top: 8,
                 bottom: 8,
                 child: AnimatedContainer(
@@ -594,17 +596,19 @@ class _HomeScreenState extends State<HomeScreen>
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onHorizontalDragUpdate: (details) {
-                  final newIndex = (details.localPosition.dx / tabWidth)
-                      .floor()
-                      .clamp(0, tabs.length - 1);
+                  final offset = details.localPosition.dx;
+                  final newIndex = textDir == TextDirection.rtl
+                      ? ((totalWidth - offset) / tabWidth).floor().clamp(0, tabs.length - 1)
+                      : (offset / tabWidth).floor().clamp(0, tabs.length - 1);
                   if (newIndex != _currentIndex && newIndex != 3) {
                     setState(() => _currentIndex = newIndex);
                   }
                 },
                 onHorizontalDragEnd: (details) {
-                  final finalIndex = (details.localPosition.dx / tabWidth)
-                      .floor()
-                      .clamp(0, tabs.length - 1);
+                  final offset = details.localPosition.dx;
+                  final finalIndex = textDir == TextDirection.rtl
+                      ? ((totalWidth - offset) / tabWidth).floor().clamp(0, tabs.length - 1)
+                      : (offset / tabWidth).floor().clamp(0, tabs.length - 1);
                   if (finalIndex == 3) {
                     Navigator.push(
                         context,
@@ -745,7 +749,7 @@ class _HomeScreenState extends State<HomeScreen>
                       if (!mounted) return;
                       showSearch(
                           context: context,
-                          delegate: VideoSearchDelegate(lib.videos, _openPlayer));
+                          delegate: VideoSearchDelegate(lib.videos, _openPlayer, t));
                     },
                     tooltip: t.searchTooltip,
                   ),
@@ -777,9 +781,10 @@ class _HomeScreenState extends State<HomeScreen>
                   loading: lib.loading,
                   selectedVideos: _selectedVideos,
                   onSelectionToggle: _toggleSelection,
+                  t: t,
                 ),
               ),
-              _buildFoldersTab(lib, settings),
+              _buildFoldersTab(lib, settings, t),
               RefreshIndicator(
                 onRefresh: _refreshLibrary,
                 child: RecentTab(
@@ -790,6 +795,7 @@ class _HomeScreenState extends State<HomeScreen>
                   onClear: lib.clearRecent,
                   selectedVideos: _selectedVideos,
                   onSelectionToggle: _toggleSelection,
+                  t: t,
                 ),
               ),
               const SizedBox.shrink(),
@@ -819,8 +825,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildFoldersTab(LibraryProvider lib, SettingsProvider settings) {
-    final t = AppLocalizations.of(context)!;
+  Widget _buildFoldersTab(LibraryProvider lib, SettingsProvider settings, AppLocalizations t) {
     if (_browsingFolder != null) {
       final folderVideos = _sorted(
           lib.videos.where((v) => v.folder == _browsingFolder).toList());
@@ -857,6 +862,7 @@ class _HomeScreenState extends State<HomeScreen>
           loading: false,
           selectedVideos: _selectedVideos,
           onSelectionToggle: _toggleSelection,
+          t: t,
         )),
       ]);
     }
@@ -866,7 +872,8 @@ class _HomeScreenState extends State<HomeScreen>
             byFolder: lib.byFolder,
             gridView: settings.foldersGridView,
             onTap: (folder) => setState(() => _browsingFolder = folder),
-            onMore: _buildFolderOptionsSheet));
+            onMore: _buildFolderOptionsSheet,
+            t: t));
   }
 
   void _buildVideoOptionsSheet(VideoItem video) {

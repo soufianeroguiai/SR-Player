@@ -283,13 +283,13 @@ abstract class AppLocalizations {
   /// No description provided for @repeatVideo.
   ///
   /// In ar, this message translates to:
-  /// **'تكرار الفيديو'**
+  /// **'تكرار: الفيديو'**
   String get repeatVideo;
 
   /// No description provided for @repeatPlaylist.
   ///
   /// In ar, this message translates to:
-  /// **'تكرار القائمة'**
+  /// **'تكرار: القائمة'**
   String get repeatPlaylist;
 
   /// No description provided for @autoNextOption.
@@ -1735,7 +1735,7 @@ abstract class AppLocalizations {
   /// No description provided for @videoInfo.
   ///
   /// In ar, this message translates to:
-  /// **'معلومات'**
+  /// **'معلومات الفيديو'**
   String get videoInfo;
 
   /// No description provided for @addToFavorites.
@@ -2187,6 +2187,774 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم إيقاف التشغيل بواسطة المؤقت'**
   String get sleepTimerStopped;
+
+  /// No description provided for @noActiveTrack.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد مسار نشط'**
+  String get noActiveTrack;
+
+  /// No description provided for @audioLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصوت'**
+  String get audioLabel;
+
+  /// No description provided for @audioTracks.
+  ///
+  /// In ar, this message translates to:
+  /// **'المسارات الصوتية'**
+  String get audioTracks;
+
+  /// No description provided for @audioTracksCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} مسارات'**
+  String audioTracksCount(Object count);
+
+  /// No description provided for @volumeLevel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مستوى الصوت'**
+  String get volumeLevel;
+
+  /// No description provided for @equalizerLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المعادل'**
+  String get equalizerLabel;
+
+  /// No description provided for @audioSyncLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزامنة الصوت'**
+  String get audioSyncLabel;
+
+  /// No description provided for @audioInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات الصوت'**
+  String get audioInfo;
+
+  /// No description provided for @audioTrackNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسار صوتي {number}'**
+  String audioTrackNumber(Object number);
+
+  /// No description provided for @mute.
+  ///
+  /// In ar, this message translates to:
+  /// **'كتم الصوت'**
+  String get mute;
+
+  /// No description provided for @bassBoostLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'Bass Boost'**
+  String get bassBoostLabel;
+
+  /// No description provided for @trebleBoostLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'Treble Boost'**
+  String get trebleBoostLabel;
+
+  /// No description provided for @bassBoostDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'تضخيم الترددات المنخفضة'**
+  String get bassBoostDesc;
+
+  /// No description provided for @trebleBoostDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'تضخيم الترددات العالية'**
+  String get trebleBoostDesc;
+
+  /// No description provided for @openGraphicEqualizer.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح المعادل الرسومي'**
+  String get openGraphicEqualizer;
+
+  /// No description provided for @bands10.
+  ///
+  /// In ar, this message translates to:
+  /// **'10 نطاقات تردد'**
+  String get bands10;
+
+  /// No description provided for @audioDelay.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأخير الصوت'**
+  String get audioDelay;
+
+  /// No description provided for @audioDelayHelp.
+  ///
+  /// In ar, this message translates to:
+  /// **'القيمة السالبة تُقدم الصوت، والموجبة تؤخره'**
+  String get audioDelayHelp;
+
+  /// No description provided for @language.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللغة'**
+  String get language;
+
+  /// No description provided for @titleLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'العنوان'**
+  String get titleLabel;
+
+  /// No description provided for @codec.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترميز'**
+  String get codec;
+
+  /// No description provided for @channel.
+  ///
+  /// In ar, this message translates to:
+  /// **'القناة'**
+  String get channel;
+
+  /// No description provided for @bitrate.
+  ///
+  /// In ar, this message translates to:
+  /// **'معدل البت'**
+  String get bitrate;
+
+  /// No description provided for @unknown.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير معروف'**
+  String get unknown;
+
+  /// No description provided for @noAudioInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد معلومات صوتية'**
+  String get noAudioInfo;
+
+  /// No description provided for @subtitleLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترجمة'**
+  String get subtitleLabel;
+
+  /// No description provided for @embeddedSubtitles.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترجمات المدمجة'**
+  String get embeddedSubtitles;
+
+  /// No description provided for @embeddedSubtitlesCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} مسارات'**
+  String embeddedSubtitlesCount(Object count);
+
+  /// No description provided for @externalSubtitles.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترجمات الخارجية'**
+  String get externalSubtitles;
+
+  /// No description provided for @externalFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملف خارجي'**
+  String get externalFile;
+
+  /// No description provided for @none.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد'**
+  String get none;
+
+  /// No description provided for @appearance.
+  ///
+  /// In ar, this message translates to:
+  /// **'المظهر'**
+  String get appearance;
+
+  /// No description provided for @position.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموضع'**
+  String get position;
+
+  /// No description provided for @sync.
+  ///
+  /// In ar, this message translates to:
+  /// **'المزامنة'**
+  String get sync;
+
+  /// No description provided for @encoding.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترميز'**
+  String get encoding;
+
+  /// No description provided for @advancedOptions.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات متقدمة'**
+  String get advancedOptions;
+
+  /// No description provided for @subtitleTrackNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترجمة {number}'**
+  String subtitleTrackNumber(Object number);
+
+  /// No description provided for @pickSubtitleFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار ملف ترجمة'**
+  String get pickSubtitleFile;
+
+  /// No description provided for @removeExternalSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة الترجمة الخارجية'**
+  String get removeExternalSubtitle;
+
+  /// No description provided for @fontSize.
+  ///
+  /// In ar, this message translates to:
+  /// **'حجم الخط'**
+  String get fontSize;
+
+  /// No description provided for @systemDefaultFont.
+  ///
+  /// In ar, this message translates to:
+  /// **'System Default'**
+  String get systemDefaultFont;
+
+  /// No description provided for @textBackground.
+  ///
+  /// In ar, this message translates to:
+  /// **'خلفية النص'**
+  String get textBackground;
+
+  /// No description provided for @backgroundOpacity.
+  ///
+  /// In ar, this message translates to:
+  /// **'شفافية الخلفية'**
+  String get backgroundOpacity;
+
+  /// No description provided for @italic.
+  ///
+  /// In ar, this message translates to:
+  /// **'خط مائل'**
+  String get italic;
+
+  /// No description provided for @bottomMargin.
+  ///
+  /// In ar, this message translates to:
+  /// **'الارتفاع عن الأسفل'**
+  String get bottomMargin;
+
+  /// No description provided for @horizontalMargin.
+  ///
+  /// In ar, this message translates to:
+  /// **'الهامش الأفقي'**
+  String get horizontalMargin;
+
+  /// No description provided for @subtitleDelay.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأخير الترجمة'**
+  String get subtitleDelay;
+
+  /// No description provided for @subtitleDelayHelp.
+  ///
+  /// In ar, this message translates to:
+  /// **'القيمة السالبة تُقدم الترجمة، والموجبة تؤخرها'**
+  String get subtitleDelayHelp;
+
+  /// No description provided for @saveAsDefault.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ الإعدادات كافتراضية'**
+  String get saveAsDefault;
+
+  /// No description provided for @saveAsDefaultDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنطبق على جميع الفيديوهات'**
+  String get saveAsDefaultDesc;
+
+  /// No description provided for @screenshot.
+  ///
+  /// In ar, this message translates to:
+  /// **'لقطة شاشة'**
+  String get screenshot;
+
+  /// No description provided for @repeatOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'تكرار: بدون'**
+  String get repeatOff;
+
+  /// No description provided for @screenLockDisabled.
+  ///
+  /// In ar, this message translates to:
+  /// **'قفل الشاشة: ممنوع'**
+  String get screenLockDisabled;
+
+  /// No description provided for @screenLockEnabled.
+  ///
+  /// In ar, this message translates to:
+  /// **'قفل الشاشة: مسموح'**
+  String get screenLockEnabled;
+
+  /// No description provided for @hideVideoInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء معلومات الفيديو'**
+  String get hideVideoInfo;
+
+  /// No description provided for @showVideoInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار معلومات الفيديو'**
+  String get showVideoInfo;
+
+  /// No description provided for @aspectRatio.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسبة العرض'**
+  String get aspectRatio;
+
+  /// No description provided for @contain.
+  ///
+  /// In ar, this message translates to:
+  /// **'احتواء'**
+  String get contain;
+
+  /// No description provided for @cover.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغطية'**
+  String get cover;
+
+  /// No description provided for @fill.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملء'**
+  String get fill;
+
+  /// No description provided for @stretch.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمديد'**
+  String get stretch;
+
+  /// No description provided for @free.
+  ///
+  /// In ar, this message translates to:
+  /// **'حر (سحب/تكبير بإصبعين)'**
+  String get free;
+
+  /// No description provided for @pip.
+  ///
+  /// In ar, this message translates to:
+  /// **'نافذة عائمة (PiP)'**
+  String get pip;
+
+  /// No description provided for @repeatAB.
+  ///
+  /// In ar, this message translates to:
+  /// **'تكرار مقطع A-B'**
+  String get repeatAB;
+
+  /// No description provided for @repeatABDisabled.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مفعّل'**
+  String get repeatABDisabled;
+
+  /// No description provided for @repeatABSetA.
+  ///
+  /// In ar, this message translates to:
+  /// **'A محددة'**
+  String get repeatABSetA;
+
+  /// No description provided for @repeatABActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'A-B مفعّل'**
+  String get repeatABActive;
+
+  /// No description provided for @setPointA.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد نقطة البداية (A)'**
+  String get setPointA;
+
+  /// No description provided for @resetPointA.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة تحديد A عند الموضع الحالي'**
+  String get resetPointA;
+
+  /// No description provided for @setPointB.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد نقطة النهاية (B)'**
+  String get setPointB;
+
+  /// No description provided for @cancelRepeat.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء التكرار'**
+  String get cancelRepeat;
+
+  /// No description provided for @bookmarks.
+  ///
+  /// In ar, this message translates to:
+  /// **'إشارات مرجعية'**
+  String get bookmarks;
+
+  /// No description provided for @addBookmark.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة إشارة عند الموضع الحالي'**
+  String get addBookmark;
+
+  /// No description provided for @noBookmarks.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد إشارات محفوظة فهاد الفيديو'**
+  String get noBookmarks;
+
+  /// No description provided for @playerSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات المشغل'**
+  String get playerSettings;
+
+  /// No description provided for @playbackSpeedWithValue.
+  ///
+  /// In ar, this message translates to:
+  /// **'سرعة التشغيل ({speed}x)'**
+  String playbackSpeedWithValue(Object speed);
+
+  /// No description provided for @rememberPosition.
+  ///
+  /// In ar, this message translates to:
+  /// **'تذكر موضع التشغيل'**
+  String get rememberPosition;
+
+  /// No description provided for @statsForNerds.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات تقنية (Stats for Nerds)'**
+  String get statsForNerds;
+
+  /// No description provided for @graphicEqualizerTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المعادل الرسومي'**
+  String get graphicEqualizerTitle;
+
+  /// No description provided for @pickColor.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر لوناً'**
+  String get pickColor;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث عن فيديو...'**
+  String get searchHint;
+
+  /// No description provided for @noResults.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد نتائج'**
+  String get noResults;
+
+  /// No description provided for @noVideosFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما لقينا فيديوهات'**
+  String get noVideosFound;
+
+  /// No description provided for @noRecentVideos.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما شفتي فيديو بعد'**
+  String get noRecentVideos;
+
+  /// No description provided for @fileCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} ملف'**
+  String fileCount(Object count);
+
+  /// No description provided for @clear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح'**
+  String get clear;
+
+  /// No description provided for @noFoldersFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما لقينا مجلدات'**
+  String get noFoldersFound;
+
+  /// No description provided for @folderVideoCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} فيديو  •  {size}'**
+  String folderVideoCount(Object count, Object size);
+
+  /// No description provided for @openFileHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط \"فتح ملف\" لاختيار فيديو'**
+  String get openFileHint;
+
+  /// No description provided for @chooseFont.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الخط'**
+  String get chooseFont;
+
+  /// No description provided for @chooseBoost.
+  ///
+  /// In ar, this message translates to:
+  /// **'تضخيم الصوت الافتراضي (%)'**
+  String get chooseBoost;
+
+  /// No description provided for @chooseAudioLanguage.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر لغة الصوت المفضلة'**
+  String get chooseAudioLanguage;
+
+  /// No description provided for @chooseEncoding.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر ترميز الأحرف'**
+  String get chooseEncoding;
+
+  /// No description provided for @chooseSubtitleLanguage.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر لغة الترجمة المفضلة'**
+  String get chooseSubtitleLanguage;
+
+  /// No description provided for @syncDefault.
+  ///
+  /// In ar, this message translates to:
+  /// **'المزامنة الافتراضية (ثواني)'**
+  String get syncDefault;
+
+  /// No description provided for @exampleSync.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثال: -0.5 أو 1.0'**
+  String get exampleSync;
+
+  /// No description provided for @chooseAppearance.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر المظهر'**
+  String get chooseAppearance;
+
+  /// No description provided for @chooseLanguage.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر اللغة / Choose language'**
+  String get chooseLanguage;
+
+  /// No description provided for @playbackSpeedTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'سرعة التشغيل'**
+  String get playbackSpeedTitle;
+
+  /// No description provided for @sortByTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترتيب حسب'**
+  String get sortByTitle;
+
+  /// No description provided for @doubleTapSeekTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدة القفز عند النقر المزدوج'**
+  String get doubleTapSeekTitle;
+
+  /// No description provided for @controlsHideDelayTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدة اختفاء أزرار التحكم'**
+  String get controlsHideDelayTitle;
+
+  /// No description provided for @longPressSpeedTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'سرعة الضغط المطول'**
+  String get longPressSpeedTitle;
+
+  /// No description provided for @gestureSensitivityTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساسية الإيماءات'**
+  String get gestureSensitivityTitle;
+
+  /// No description provided for @seconds5.
+  ///
+  /// In ar, this message translates to:
+  /// **'5 ثوانٍ'**
+  String get seconds5;
+
+  /// No description provided for @seconds10.
+  ///
+  /// In ar, this message translates to:
+  /// **'10 ثوانٍ'**
+  String get seconds10;
+
+  /// No description provided for @seconds15.
+  ///
+  /// In ar, this message translates to:
+  /// **'15 ثانية'**
+  String get seconds15;
+
+  /// No description provided for @seconds30.
+  ///
+  /// In ar, this message translates to:
+  /// **'30 ثانية'**
+  String get seconds30;
+
+  /// No description provided for @seconds2.
+  ///
+  /// In ar, this message translates to:
+  /// **'2 ثانية'**
+  String get seconds2;
+
+  /// No description provided for @seconds4.
+  ///
+  /// In ar, this message translates to:
+  /// **'4 ثوانٍ'**
+  String get seconds4;
+
+  /// No description provided for @seconds6.
+  ///
+  /// In ar, this message translates to:
+  /// **'6 ثوانٍ'**
+  String get seconds6;
+
+  /// No description provided for @seconds10b.
+  ///
+  /// In ar, this message translates to:
+  /// **'10 ثوانٍ'**
+  String get seconds10b;
+
+  /// No description provided for @hiddenFilesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملفات المخفية'**
+  String get hiddenFilesTitle;
+
+  /// No description provided for @showAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار الكل'**
+  String get showAll;
+
+  /// No description provided for @noHiddenFiles.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد ملفات مخفية'**
+  String get noHiddenFiles;
+
+  /// No description provided for @show.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار'**
+  String get show;
+
+  /// No description provided for @unhideAllConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار كل الملفات'**
+  String get unhideAllConfirmTitle;
+
+  /// No description provided for @unhideAllConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد إظهار جميع الملفات المخفية؟'**
+  String get unhideAllConfirmBody;
+
+  /// No description provided for @fileInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات الملف'**
+  String get fileInfo;
+
+  /// No description provided for @sizeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحجم'**
+  String get sizeLabel;
+
+  /// No description provided for @folderLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجلد'**
+  String get folderLabel;
+
+  /// No description provided for @dateLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'التاريخ'**
+  String get dateLabel;
+
+  /// No description provided for @extensionLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الامتداد'**
+  String get extensionLabel;
+
+  /// No description provided for @videoInfoLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات الفيديو'**
+  String get videoInfoLabel;
+
+  /// No description provided for @durationLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المدة'**
+  String get durationLabel;
+
+  /// No description provided for @pathLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المسار'**
+  String get pathLabel;
+
+  /// No description provided for @playlistTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة التشغيل'**
+  String get playlistTitle;
+
+  /// No description provided for @emptyPlaylist.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة التشغيل فارغة'**
+  String get emptyPlaylist;
 }
 
 class _AppLocalizationsDelegate

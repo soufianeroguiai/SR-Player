@@ -72,30 +72,29 @@ Widget settingsChoiceTile(
 String langName(String code) {
   const names = {
     'ara': 'العربية',
-    'eng': 'الإنجليزية',
-    'fra': 'الفرنسية',
-    'spa': 'الإسبانية',
-    'deu': 'الألمانية',
-    'ita': 'الإيطالية',
-    'jpn': 'اليابانية',
+    'eng': 'English',
+    'fra': 'Français',
+    'spa': 'Español',
+    'deu': 'Deutsch',
+    'ita': 'Italiano',
+    'jpn': '日本語',
   };
   return names[code] ?? code.toUpperCase();
 }
 
-String themeName(ThemeMode m) => switch (m) {
-      ThemeMode.dark => 'داكن',
-      ThemeMode.light => 'فاتح',
-      ThemeMode.system => 'تلقائي',
+String themeName(ThemeMode m, AppLocalizations t) => switch (m) {
+      ThemeMode.dark => t.themeDark,
+      ThemeMode.light => t.themeLight,
+      ThemeMode.system => t.themeSystem,
     };
 
-String languageDisplayName(String code) => switch (code) {
-      'ar' => 'العربية',
-      'en' => 'English',
-      'fr' => 'Français',
-      _ => 'لغة النظام / System',
+String languageDisplayName(String code, AppLocalizations t) => switch (code) {
+      'ar' => t.arabicLanguageOption,
+      'en' => t.englishLanguageOption,
+      'fr' => t.frenchLanguageOption,
+      _ => t.systemLanguageOption,
     };
 
-// تم تعديل الدالة لقبول الترجمة
 String sortName(String s, AppLocalizations t) => switch (s) {
       'name' => t.sortByName,
       'size' => t.sortBySize,

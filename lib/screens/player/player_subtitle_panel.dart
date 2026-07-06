@@ -5,6 +5,7 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/subtitle_settings.dart';
+import '../../l10n/app_localizations.dart';
 
 class SubtitleAppearancePanel extends StatefulWidget {
   final List<SubtitleTrack> subtitleTracks;
@@ -63,10 +64,11 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     final cs = Theme.of(context).colorScheme;
     final s = context.watch<SettingsProvider>();
     final sub = s.subtitleSettings;
+    final t = AppLocalizations.of(context)!;
 
     final activeSubtitleName = widget.currentSubtitleTrack?.title ??
                                widget.currentSubtitleTrack?.language ??
-                               'لا يوجد مسار نشط';
+                               t.noActiveTrack;
 
     return Directionality(
       textDirection: Directionality.of(context),
@@ -97,7 +99,7 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('الترجمة', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text(t.subtitleLabel, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                       if (widget.showSubtitles && widget.currentSubtitleTrack != null)
                         Text(activeSubtitleName, style: TextStyle(color: cs.primary, fontSize: 11)),
                     ],
@@ -115,53 +117,53 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
           if (widget.subtitleTracks.isNotEmpty) ...[
             _IntegratedSectionTile(
               icon: Symbols.video_file_rounded,
-              title: 'الترجمات المدمجة',
-              subtitle: '${widget.subtitleTracks.length} مسارات',
+              title: t.embeddedSubtitles,
+              subtitle: t.embeddedSubtitlesCount(widget.subtitleTracks.length),
               isOpen: _openSection == 1,
               onTap: () => _toggleSection(1),
-              child: _buildEmbeddedTracksSection(cs),
+              child: _buildEmbeddedTracksSection(cs, t),
             ),
           ],
 
           _IntegratedSectionTile(
             icon: Symbols.folder_open_rounded,
-            title: 'الترجمات الخارجية',
-            subtitle: widget.hasExternalSubtitle ? 'ملف خارجي' : 'لا يوجد',
+            title: t.externalSubtitles,
+            subtitle: widget.hasExternalSubtitle ? t.externalFile : t.none,
             isOpen: _openSection == 2,
             onTap: () => _toggleSection(2),
-            child: _buildExternalSubtitleSection(),
+            child: _buildExternalSubtitleSection(t),
           ),
 
           _IntegratedSectionTile(
             icon: Symbols.palette_rounded,
-            title: 'المظهر',
+            title: t.appearance,
             subtitle: '${sub.fontSize.toInt()}px',
             isOpen: _openSection == 3,
             onTap: () => _toggleSection(3),
-            child: _buildAppearanceSection(s, sub, cs),
+            child: _buildAppearanceSection(s, sub, cs, t),
           ),
 
           _IntegratedSectionTile(
             icon: Symbols.open_with_rounded,
-            title: 'الموضع',
+            title: t.position,
             subtitle: '${sub.bottomMargin.toInt()}px / ${sub.horizontalMargin.toInt()}px',
             isOpen: _openSection == 7,
             onTap: () => _toggleSection(7),
-            child: _buildPositionSection(s, sub, cs),
+            child: _buildPositionSection(s, sub, cs, t),
           ),
 
           _IntegratedSectionTile(
             icon: Symbols.timeline_rounded,
-            title: 'المزامنة',
+            title: t.sync,
             subtitle: '${widget.subtitleSync > 0 ? '+' : ''}${widget.subtitleSync.toStringAsFixed(1)}s',
             isOpen: _openSection == 4,
             onTap: () => _toggleSection(4),
-            child: _buildSyncSection(cs),
+            child: _buildSyncSection(cs, t),
           ),
 
           _IntegratedSectionTile(
             icon: Symbols.text_fields_rounded,
-            title: 'الترميز',
+            title: t.encoding,
             subtitle: s.subtitleEncoding,
             isOpen: _openSection == 5,
             onTap: () => _toggleSection(5),
@@ -170,23 +172,23 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
 
           _IntegratedSectionTile(
             icon: Symbols.tune_rounded,
-            title: 'خيارات متقدمة',
+            title: t.advancedOptions,
             subtitle: '',
             isOpen: _openSection == 6,
             onTap: () => _toggleSection(6),
-            child: _buildAdvancedSection(s),
+            child: _buildAdvancedSection(s, t),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmbeddedTracksSection(ColorScheme cs) {
+  Widget _buildEmbeddedTracksSection(ColorScheme cs, AppLocalizations t) {
     return Column(
       children: widget.subtitleTracks.asMap().entries.map((entry) {
         final index = entry.key;
         final track = entry.value;
-        final name = track.title ?? track.language ?? 'ترجمة ${index + 1}';
+        final name = track.title ?? track.language ?? t.subtitleTrackNumber(index + 1);
         final isActive = widget.currentSubtitleTrack == track;
         return ListTile(
           dense: true,
@@ -199,27 +201,27 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     );
   }
 
-  Widget _buildExternalSubtitleSection() {
+  Widget _buildExternalSubtitleSection(AppLocalizations t) {
     return Column(children: [
       ListTile(
         dense: true,
         leading: const Icon(Symbols.folder_open_rounded, color: Colors.white70, size: 18),
-        title: const Text('اختيار ملف ترجمة', style: TextStyle(color: Colors.white, fontSize: 13)),
+        title: Text(t.pickSubtitleFile, style: const TextStyle(color: Colors.white, fontSize: 13)),
         onTap: widget.onPickSubtitle,
       ),
       if (widget.hasExternalSubtitle)
         ListTile(
           dense: true,
           leading: const Icon(Symbols.close_rounded, color: Colors.redAccent, size: 18),
-          title: const Text('إزالة الترجمة الخارجية', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+          title: Text(t.removeExternalSubtitle, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
           onTap: widget.onRemoveExternal,
         ),
     ]);
   }
 
-  Widget _buildAppearanceSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs) {
+  Widget _buildAppearanceSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs, AppLocalizations t) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('حجم الخط', sub.fontSize, 12, 80, (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v)), cs),
+      _CompactSlider(t.fontSize, sub.fontSize, 12, 80, (v) => s.updateSubtitleSettings(sub.copyWith(fontSize: v)), cs),
       const SizedBox(height: 14),
       SizedBox(
         height: 40,
@@ -228,6 +230,7 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
           itemCount: _fontList.length,
           itemBuilder: (_, i) {
             final (id, label, isGoogle) = _fontList[i];
+            final displayLabel = label == 'System Default' ? t.systemDefaultFont : label;
             final sel = sub.fontFamily == id;
             return GestureDetector(
               onTap: () => s.updateSubtitleSettings(sub.copyWith(fontFamily: id)),
@@ -239,17 +242,17 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: sel ? cs.primary : Colors.white24, width: sel ? 1.5 : 1),
                 ),
-                child: Text(label, style: TextStyle(color: sel ? cs.primary : Colors.white54, fontSize: 11)),
+                child: Text(displayLabel, style: TextStyle(color: sel ? cs.primary : Colors.white54, fontSize: 11)),
               ),
             );
           },
         ),
       ),
       const SizedBox(height: 14),
-      _ColorPickerRow(currentColor: sub.textColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c))),
+      _ColorPickerRow(currentColor: sub.textColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(textColor: c)), t: t),
       const SizedBox(height: 14),
       Row(children: [
-        const Expanded(child: Text('خلفية النص', style: TextStyle(color: Colors.white70, fontSize: 12))),
+        Expanded(child: Text(t.textBackground, style: const TextStyle(color: Colors.white70, fontSize: 12))),
         Switch(
           value: sub.bgOpacity > 0,
           onChanged: (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v ? 0.65 : 0.0)),
@@ -258,15 +261,15 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
       ]),
       if (sub.bgOpacity > 0) ...[
         const SizedBox(height: 6),
-        _ColorPickerRow(currentColor: sub.bgColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(bgColor: c))),
+        _ColorPickerRow(currentColor: sub.bgColor, onColorChanged: (c) => s.updateSubtitleSettings(sub.copyWith(bgColor: c)), t: t),
         const SizedBox(height: 6),
-        _CompactSlider('شفافية الخلفية', sub.bgOpacity, 0.1, 1.0, (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v)), cs, display: (v) => '${(v * 100).toInt()}%'),
+        _CompactSlider(t.backgroundOpacity, sub.bgOpacity, 0.1, 1.0, (v) => s.updateSubtitleSettings(sub.copyWith(bgOpacity: v)), cs, display: (v) => '${(v * 100).toInt()}%'),
       ],
       const SizedBox(height: 14),
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: const Text('خط مائل', style: TextStyle(color: Colors.white, fontSize: 13)),
+        title: Text(t.italic, style: const TextStyle(color: Colors.white, fontSize: 13)),
         value: s.subtitleItalic,
         onChanged: s.setSubtitleItalic,
         activeColor: cs.primary,
@@ -274,20 +277,20 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     ]);
   }
 
-  Widget _buildPositionSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs) {
+  Widget _buildPositionSection(SettingsProvider s, SubtitleSettings sub, ColorScheme cs, AppLocalizations t) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('الارتفاع عن الأسفل', sub.bottomMargin, 0, 300, (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v)), cs, display: (v) => '${v.toInt()} px'),
+      _CompactSlider(t.bottomMargin, sub.bottomMargin, 0, 300, (v) => s.updateSubtitleSettings(sub.copyWith(bottomMargin: v)), cs, display: (v) => '${v.toInt()} px'),
       const SizedBox(height: 14),
-      _CompactSlider('الهامش الأفقي', sub.horizontalMargin, 0, 120, (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v)), cs, display: (v) => '${v.toInt()} px'),
+      _CompactSlider(t.horizontalMargin, sub.horizontalMargin, 0, 120, (v) => s.updateSubtitleSettings(sub.copyWith(horizontalMargin: v)), cs, display: (v) => '${v.toInt()} px'),
     ]);
   }
 
-  Widget _buildSyncSection(ColorScheme cs) {
+  Widget _buildSyncSection(ColorScheme cs, AppLocalizations t) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CompactSlider('تأخير الترجمة', widget.subtitleSync, -5.0, 5.0, widget.onSyncChanged, cs,
-          display: (v) => '${v > 0 ? '+' : ''}${v.toStringAsFixed(1)} ثانية'),
+      _CompactSlider(t.subtitleDelay, widget.subtitleSync, -5.0, 5.0, widget.onSyncChanged, cs,
+          display: (v) => '${v > 0 ? '+' : ''}${v.toStringAsFixed(1)} s'),
       const SizedBox(height: 6),
-      Text('القيمة السالبة تُقدم الترجمة، والموجبة تؤخرها', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+      Text(t.subtitleDelayHelp, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
     ]);
   }
 
@@ -306,12 +309,12 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
     );
   }
 
-  Widget _buildAdvancedSection(SettingsProvider s) {
+  Widget _buildAdvancedSection(SettingsProvider s, AppLocalizations t) {
     return SwitchListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
-      title: const Text('حفظ الإعدادات كافتراضية', style: TextStyle(color: Colors.white, fontSize: 13)),
-      subtitle: const Text('تنطبق على جميع الفيديوهات', style: TextStyle(color: Colors.white38, fontSize: 11)),
+      title: Text(t.saveAsDefault, style: const TextStyle(color: Colors.white, fontSize: 13)),
+      subtitle: Text(t.saveAsDefaultDesc, style: const TextStyle(color: Colors.white38, fontSize: 11)),
       value: s.rememberPosition,
       onChanged: s.setRememberPosition,
       activeColor: Theme.of(context).colorScheme.primary,
@@ -400,7 +403,8 @@ class _CompactSlider extends StatelessWidget {
 class _ColorPickerRow extends StatelessWidget {
   final Color currentColor;
   final ValueChanged<Color> onColorChanged;
-  const _ColorPickerRow({required this.currentColor, required this.onColorChanged});
+  final AppLocalizations t;
+  const _ColorPickerRow({required this.currentColor, required this.onColorChanged, required this.t});
   static const _colors = [Colors.white, Colors.yellow, Color(0xFFFFE680), Color(0xFF80FF80), Color(0xFF80D4FF), Color(0xFFFFB3B3)];
   @override
   Widget build(BuildContext context) {
@@ -416,7 +420,7 @@ class _ColorPickerRow extends StatelessWidget {
       const SizedBox(width: 6),
       GestureDetector(
         onTap: () async {
-          final picked = await showColorPickerDialog(context, currentColor, title: const Text('اختر لوناً', style: TextStyle(fontWeight: FontWeight.bold)));
+          final picked = await showColorPickerDialog(context, currentColor, title: Text(t.pickColor, style: const TextStyle(fontWeight: FontWeight.bold)));
           onColorChanged(picked);
         },
         child: Container(
