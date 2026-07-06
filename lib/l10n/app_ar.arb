@@ -43,7 +43,7 @@
   "videoDisplaySection": "عرض الفيديو",
   "defaultVideoModeOption": "الوضع الافتراضي",
   "rememberVideoModeOption": "تذكر آخر وضع",
-  "autoRotateOption": "تدوير تلقائي",
+  "autoRotateOption": "التدوير التلقائي للشاشة",
   "autoFullscreenOption": "ملء الشاشة تلقائياً",
   "keepScreenOnOption": "إبقاء الشاشة مضاءة",
   "gesturesSection": "التحكم بالإيماءات",
@@ -489,5 +489,13 @@
   "saturation": "التشبع",
   "hue": "درجة اللون",
   "subtitlePreviewText": "مرحباً بك في SR Player",
-  "thumbnailError": "فشل تحميل الصورة"
+  "thumbnailError": "فشل تحميل الصورة",
+  "languageSection": "اللغة",
+  "themeSection": "السمة",
+  "appColorSection": "لون التطبيق",
+  "startupScreenSection": "شاشة البداية",
+  "autoHideStatusBarOption": "إخفاء شريط الحالة تلقائياً",
+  "vibrateOnGestureOption": "الاهتزاز عند الإيماءات",
+  "animationsOption": "الرسوم المتحركة",
+  "resetAllSection": "إعادة ضبط الإعدادات"
 }

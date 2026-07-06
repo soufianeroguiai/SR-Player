@@ -142,13 +142,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rememberVideoModeOption => 'Remember last mode';
 
   @override
-  String get autoRotateOption => 'Auto rotate';
+  String get autoRotateOption => 'Auto Rotate Screen';
 
   @override
   String get autoFullscreenOption => 'Auto fullscreen';
 
   @override
-  String get keepScreenOnOption => 'Keep screen on';
+  String get keepScreenOnOption => 'Keep Screen On';
 
   @override
   String get gesturesSection => 'Gestures';
@@ -664,7 +664,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importSettingsOption => 'Import settings';
 
   @override
-  String get resetAllButton => 'Reset all settings';
+  String get resetAllButton => 'Restore Default Settings';
 
   @override
   String get resetAllDialogTitle => 'Reset settings';
@@ -997,7 +997,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apply => 'Apply';
 
   @override
-  String get sleepTimer => 'Sleep Timer';
+  String get sleepTimer => 'Sleep timer';
 
   @override
   String get selectTimeMinutes => 'Select time (minutes)';
@@ -1026,7 +1026,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get more => 'More';
 
   @override
-  String get playlistEditor => 'Playlist Editor';
+  String get playlistEditor => 'Playlist editor';
 
   @override
   String get releaseToOpen => 'Release to open';
@@ -1536,4 +1536,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get thumbnailError => 'Failed to load image';
+
+  @override
+  String get languageSection => 'Language';
+
+  @override
+  String get themeSection => 'Theme';
+
+  @override
+  String get appColorSection => 'App Color';
+
+  @override
+  String get startupScreenSection => 'Startup Screen';
+
+  @override
+  String get autoHideStatusBarOption => 'Auto-hide Status Bar';
+
+  @override
+  String get vibrateOnGestureOption => 'Vibrate on Gestures';
+
+  @override
+  String get animationsOption => 'Animations';
+
+  @override
+  String get resetAllSection => 'Reset Settings';
 }
