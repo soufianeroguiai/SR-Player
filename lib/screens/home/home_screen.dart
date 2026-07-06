@@ -179,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen>
     final size = box.size;
     final cs = Theme.of(context).colorScheme;
     final lib = context.read<LibraryProvider>();
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     _collectionsOverlay = OverlayEntry(
       builder: (ctx) => GestureDetector(
@@ -186,9 +188,10 @@ class _HomeScreenState extends State<HomeScreen>
         onTap: _closeCollections,
         child: Stack(
           children: [
-            Positioned(
+            Positioned.directional(
+              textDirection: Directionality.of(context),
               top: pos.dy + size.height + 8,
-              right: MediaQuery.of(context).size.width - pos.dx - size.width,
+              start: isRtl ? pos.dx : screenWidth - pos.dx - size.width,
               child: Material(
                 elevation: 8,
                 borderRadius: BorderRadius.circular(16),
@@ -320,11 +323,15 @@ class _HomeScreenState extends State<HomeScreen>
             ? settings.foldersGridView
             : settings.recentGridView;
 
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final position = isRtl
+        ? RelativeRect.fromLTRB(0, 80, 60, 0)
+        : RelativeRect.fromLTRB(MediaQuery.of(context).size.width - 60, 80,
+            MediaQuery.of(context).size.width, 0);
+
     showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(
-          MediaQuery.of(context).size.width - 60, 80,
-          MediaQuery.of(context).size.width, 0),
+      position: position,
       items: [
         PopupMenuItem(
           value: 'grid',
@@ -334,7 +341,8 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(width: 12),
             Text(t.gridView,
                 style: TextStyle(
-                    fontWeight: currentGrid ? FontWeight.bold : FontWeight.normal)),
+                    fontWeight:
+                        currentGrid ? FontWeight.bold : FontWeight.normal)),
           ]),
         ),
         PopupMenuItem(
@@ -345,7 +353,8 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(width: 12),
             Text(t.listView,
                 style: TextStyle(
-                    fontWeight: !currentGrid ? FontWeight.bold : FontWeight.normal)),
+                    fontWeight:
+                        !currentGrid ? FontWeight.bold : FontWeight.normal)),
           ]),
         ),
         const PopupMenuDivider(),
