@@ -1421,12 +1421,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+    try {
+      _player.setVolume(0);
+      _player.stop();
+    } catch (_) {}
+
+    Future.delayed(const Duration(milliseconds: 50), () {
+      try {
+        _player.dispose();
+      } catch (_) {}
+    });
+
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
-      _player.stop();
-      _player.dispose();
       provider.closeMiniPlayer();
     }
+
     super.dispose();
   }
 }
