@@ -1421,19 +1421,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+    // نقوم بإيقاف الصوت فقط، ولا ندمر المشغل هنا لأن PlayerProvider هو المسؤول عنه
     try {
       _player.setVolume(0);
       _player.stop();
     } catch (_) {}
 
-    Future.delayed(const Duration(milliseconds: 50), () {
-      try {
-        _player.dispose();
-      } catch (_) {}
-    });
-
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
+      // سيؤدي هذا إلى إيقاف المشغل وتدميره بأمان عبر المزوّد
       provider.closeMiniPlayer();
     }
 
