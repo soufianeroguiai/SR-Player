@@ -36,10 +36,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
             color: Colors.transparent,
             child: _buildMiniPlayer(miniWidth, miniHeight, provider),
           ),
-          childWhenDragging: Opacity(
-            opacity: 0.4,
-            child: _buildMiniPlayer(miniWidth, miniHeight, provider),
-          ),
+          childWhenDragging: const SizedBox.shrink(),
           onDragEnd: (details) {
             setState(() {
               _position = Offset(
@@ -75,6 +72,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Video(
+              key: ValueKey('mini_video_${provider.isMini}'),
               controller: provider.controller!,
               fit: BoxFit.cover,
             ),

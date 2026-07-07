@@ -79,9 +79,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _controller = provider.controller!;
       provider.restore();
     } else {
-      _player = Player();
-      _controller = VideoController(_player);
       provider.initPlayer();
+      _player = provider.player!;
+      _controller = provider.controller!;
       provider.setCurrentVideo(widget.video);
     }
 
@@ -1423,7 +1423,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
-      _player.dispose();
       provider.closeMiniPlayer();
     }
     super.dispose();
