@@ -17,8 +17,10 @@ class PlayerProvider extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
 
   void initPlayer() {
-    _player ??= Player();
-    _controller ??= VideoController(_player!);
+    if (_player == null) {
+      _player = Player();
+      _controller = VideoController(_player!);
+    }
     notifyListeners();
   }
 
@@ -43,6 +45,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void closeMiniPlayer() {
+    _isPlaying = false;
     _player?.pause();
     _player?.dispose();
     _controller?.player.dispose();
@@ -50,7 +53,6 @@ class PlayerProvider extends ChangeNotifier {
     _controller = null;
     _isMini = false;
     _currentVideo = null;
-    _isPlaying = false;
     notifyListeners();
   }
 

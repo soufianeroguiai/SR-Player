@@ -100,14 +100,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
               ),
             ),
           ),
-          if (!provider.isPlaying)
-            const Center(
-              child: Icon(
-                Icons.play_arrow_rounded,
-                color: Colors.white70,
-                size: 32,
-              ),
-            ),
         ],
       ),
     );
