@@ -1261,11 +1261,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           _state.currentMenu = ActiveMenu.settings;
                           _state.notifyListeners();
                         },
-                        onMinimize: () {
-                          final provider = context.read<PlayerProvider>();
-                          provider.minimize();
-                          Navigator.pop(context);
-                        },
                         isAudioActive: _state.currentMenu == ActiveMenu.audio,
                         isSubtitleActive: _state.currentMenu == ActiveMenu.subtitles,
                         isQuickActionsActive: _state.showQuickActions,
@@ -1367,6 +1362,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         onToggleFit: _toggleFit,
                         onToggleLock: _toggleLock,
                         onPip: () async => PipService.enter(),
+                        onMinimize: () {
+                          final provider = context.read<PlayerProvider>();
+                          provider.minimize();
+                          Navigator.pop(context);
+                        },
                         chapters: _state.chapters,
                         onPrevious: _service.playPrevious,
                         onNext: _service.playNext,

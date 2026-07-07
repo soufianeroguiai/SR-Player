@@ -45,7 +45,7 @@ class PlayerProvider extends ChangeNotifier {
   void closeMiniPlayer() {
     _player?.pause();
     _player?.dispose();
-    _controller?.dispose();
+    _controller?.player.dispose();
     _player = null;
     _controller = null;
     _isMini = false;
@@ -57,7 +57,6 @@ class PlayerProvider extends ChangeNotifier {
   @override
   void dispose() {
     _player?.dispose();
-    _controller?.dispose();
     super.dispose();
   }
 }
