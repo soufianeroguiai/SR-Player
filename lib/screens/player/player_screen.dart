@@ -13,6 +13,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../models/video_item.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/player_provider.dart';
 import '../../services/pip_service.dart';
 import '../../services/subtitle_service.dart';
 import '../../services/player_control_service.dart';
@@ -71,8 +72,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     PipService.isInPipMode.addListener(_onPipModeChanged);
 
     _state = PlayerUIState();
-    _player = Player();
-    _controller = VideoController(_player);
+
+    final provider = context.read<PlayerProvider>();
+    if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
+      _player = provider.player!;
+      _controller = provider.controller!;
+      provider.restore();
+    } else {
+      _player = Player();
+      _controller = VideoController(_player);
+      provider.initPlayer();
+      provider.setCurrentVideo(widget.video);
+    }
 
     _libraryProvider = context.read<LibraryProvider>();
     _settingsProvider = context.read<SettingsProvider>();
@@ -1250,6 +1261,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           _state.currentMenu = ActiveMenu.settings;
                           _state.notifyListeners();
                         },
+                        onMinimize: () {
+                          final provider = context.read<PlayerProvider>();
+                          provider.minimize();
+                          Navigator.pop(context);
+                        },
                         isAudioActive: _state.currentMenu == ActiveMenu.audio,
                         isSubtitleActive: _state.currentMenu == ActiveMenu.subtitles,
                         isQuickActionsActive: _state.showQuickActions,
@@ -1404,7 +1420,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    _player.dispose();
+
+    final provider = context.read<PlayerProvider>();
+    if (!provider.isMini) {
+      _player.dispose();
+      provider.closeMiniPlayer();
+    }
     super.dispose();
   }
 }

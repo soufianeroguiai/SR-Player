@@ -7,8 +7,11 @@ import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
 import 'theme/app_theme.dart';
 import 'providers/settings_provider.dart';
 import 'providers/library_provider.dart';
+import 'providers/player_provider.dart';
+import 'widgets/mini_player.dart';
 import 'app/permission_gate.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/player/player_screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -50,6 +53,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: settings),
         ChangeNotifierProvider(create: (_) => LibraryProvider()),
+        ChangeNotifierProvider(create: (_) => PlayerProvider()),
       ],
       child: const SPlayerApp(),
     ),
@@ -68,8 +72,6 @@ class SPlayerApp extends StatelessWidget {
       theme: AppTheme.light(seed: settings.themeSeedColor),
       darkTheme: AppTheme.dark(seed: settings.themeSeedColor),
       themeMode: settings.themeMode,
-      // اتجاه النص (RTL/LTR) كيتضبط تلقائيًا من فلاتر حسب اللغة المختارة هنا،
-      // ماكاينش داعي لأي Directionality مُثبّت يدويًا فـ أي شاشة.
       locale: settings.appLocale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -78,7 +80,29 @@ class SPlayerApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const PermissionGate(child: HomeScreen()),
+      home: Builder(
+        builder: (context) {
+          return Stack(
+            children: [
+              const PermissionGate(child: HomeScreen()),
+              MiniPlayer(
+                onTap: () {
+                  final provider = context.read<PlayerProvider>();
+                  if (provider.currentVideo != null) {
+                    provider.restore();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlayerScreen(video: provider.currentVideo!),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
