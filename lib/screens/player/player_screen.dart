@@ -1423,6 +1423,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
+      _player.stop();
+      _player.dispose();
       provider.closeMiniPlayer();
     }
     super.dispose();

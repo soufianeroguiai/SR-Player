@@ -46,8 +46,14 @@ class PlayerProvider extends ChangeNotifier {
 
   void closeMiniPlayer() {
     _isPlaying = false;
-    _player?.pause();
-    _player?.dispose();
+    _player?.stop();
+
+    try {
+      _player?.dispose();
+    } catch (_) {
+      // تجاهل الخطأ في حال تم تدمير المشغل مسبقاً في شاشة العرض
+    }
+
     _player = null;
     _controller = null;
     _isMini = false;
@@ -57,8 +63,10 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _player?.pause();
-    _player?.dispose();
+    _player?.stop();
+    try {
+      _player?.dispose();
+    } catch (_) {}
     super.dispose();
   }
 }
