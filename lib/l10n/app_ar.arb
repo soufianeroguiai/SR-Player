@@ -506,5 +506,14 @@
   "externalSubtitleLabel": "ترجمة خارجية",
   "searchOnlineSubtitles": "بحث عن ترجمة أونلاين",
   "noSubtitlesFound": "لم يتم العثور على ترجمة",
-  "downloadFailed": "فشل التنزيل: {error}"
+  "downloadFailed": "فشل التنزيل: {error}",
+  "outputSection": "الإخراج",
+  "languageSectionAudio": "اللغة المفضلة للصوت",
+  "defaultLabel": "افتراضي",
+  "presetLabel": "الإعداد المسبق",
+  "normalizeVolume": "تطبيع مستوى الصوت",
+  "normalizeVolumeDesc": "توحيد مستوى الصوت بين المقاطع",
+  "autoOption": "تلقائي",
+  "sampleRate": "معدل العينة",
+  "bitDepth": "عمق البت"
 }

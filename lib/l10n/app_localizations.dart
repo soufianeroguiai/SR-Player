@@ -3093,6 +3093,60 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'فشل التنزيل: {error}'**
   String downloadFailed(Object error);
+
+  /// No description provided for @outputSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإخراج'**
+  String get outputSection;
+
+  /// No description provided for @languageSectionAudio.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللغة المفضلة للصوت'**
+  String get languageSectionAudio;
+
+  /// No description provided for @defaultLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'افتراضي'**
+  String get defaultLabel;
+
+  /// No description provided for @presetLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعداد المسبق'**
+  String get presetLabel;
+
+  /// No description provided for @normalizeVolume.
+  ///
+  /// In ar, this message translates to:
+  /// **'تطبيع مستوى الصوت'**
+  String get normalizeVolume;
+
+  /// No description provided for @normalizeVolumeDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'توحيد مستوى الصوت بين المقاطع'**
+  String get normalizeVolumeDesc;
+
+  /// No description provided for @autoOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'تلقائي'**
+  String get autoOption;
+
+  /// No description provided for @sampleRate.
+  ///
+  /// In ar, this message translates to:
+  /// **'معدل العينة'**
+  String get sampleRate;
+
+  /// No description provided for @bitDepth.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمق البت'**
+  String get bitDepth;
 }
 
 class _AppLocalizationsDelegate

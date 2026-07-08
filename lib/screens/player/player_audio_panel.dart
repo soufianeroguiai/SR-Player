@@ -36,7 +36,6 @@ class AudioSettingsPanel extends StatefulWidget {
 }
 
 class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
-  // السماح بفتح عدة أقسام في وقت واحد
   final Set<int> _openSections = {};
   bool _muted = false;
   double _previousVolume = 1.0;
@@ -68,7 +67,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // الهيدر مع اسم المسار النشط وزر الكتم السريع
           Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -121,7 +119,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             ),
           ),
 
-          // المسارات الصوتية
           if (widget.audioTracks.isNotEmpty) ...[
             _IntegratedSectionTile(
               icon: Symbols.audiotrack_rounded,
@@ -133,7 +130,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             ),
           ],
 
-          // مستوى الصوت + تعزيز الصوت
           _IntegratedSectionTile(
             icon: Symbols.volume_up_rounded,
             title: t.volumeLevel,
@@ -143,7 +139,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildVolumeSection(t),
           ),
 
-          // المعادل
           _IntegratedSectionTile(
             icon: Symbols.equalizer_rounded,
             title: t.equalizerLabel,
@@ -153,7 +148,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildEqualizerSection(cs, s, t),
           ),
 
-          // مزامنة الصوت
           _IntegratedSectionTile(
             icon: Symbols.timeline_rounded,
             title: t.audioSyncLabel,
@@ -163,7 +157,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildAudioSyncSection(t),
           ),
 
-          // معلومات الصوت
           _IntegratedSectionTile(
             icon: Symbols.info_rounded,
             title: t.audioInfo,
@@ -173,7 +166,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildAudioInfoSection(t),
           ),
 
-          // قسم الإخراج (Output) – جديد
           _IntegratedSectionTile(
             icon: Symbols.speaker_rounded,
             title: t.outputSection,
@@ -183,7 +175,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
             child: _buildOutputSection(s, t),
           ),
 
-          // قسم اللغة المفضلة للصوت – جديد
           _IntegratedSectionTile(
             icon: Symbols.language_rounded,
             title: t.languageSectionAudio,
@@ -244,7 +235,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
   Widget _buildVolumeSection(AppLocalizations t) {
     final cs = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Volume 0 – 100%
       _CompactSlider(
         t.volumeLevel,
         widget.volumeLevel.clamp(0.0, 1.0),
@@ -258,7 +248,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         display: (v) => '${(v * 100).round()}%',
       ),
       const SizedBox(height: 10),
-      // Audio Boost 100% – 300%
       _CompactSlider(
         t.audioBoostOption,
         widget.volumeLevel > 1.0 ? widget.volumeLevel : 1.0,
@@ -276,7 +265,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
 
   Widget _buildEqualizerSection(ColorScheme cs, SettingsProvider s, AppLocalizations t) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Presets
       _choiceTile(
         context: context,
         icon: Symbols.tune_rounded,
@@ -285,7 +273,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         onTap: () => _showPresetPicker(context, s, t),
       ),
       const SizedBox(height: 8),
-      // Bass Boost
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -299,7 +286,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
-      // Treble Boost
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -313,7 +299,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
-      // Normalize Volume (جديد)
       SwitchListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -327,7 +312,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
-      // Graphic Equalizer (Bottom Sheet)
       ListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -347,7 +331,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
       const SizedBox(height: 6),
       Text(t.audioDelayHelp, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
       const SizedBox(height: 8),
-      // أزرار سريعة للقفز
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -373,9 +356,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
     final track = widget.currentAudioTrack;
     return track != null
         ? Column(children: [
-            _infoTile(t.sampleRate, track.sampleRate != null ? '${track.sampleRate} Hz' : t.unknown),
             _infoTile(t.codec, track.codec ?? t.unknown),
-            _infoTile(t.bitDepth, track.bitDepth?.toString() ?? t.unknown),
             _infoTile(t.channel, track.channels != null ? '${track.channels}' : t.unknown),
             _infoTile(t.bitrate, track.bitrate != null ? '${track.bitrate} kbps' : t.unknown),
             _infoTile(t.language, track.language ?? t.unknown),
@@ -651,7 +632,6 @@ class _QuickJumpBtn extends StatelessWidget {
   }
 }
 
-// دوال مساعدة (من ملف settings_widgets.dart)
 String langName(String code) {
   const names = {
     'ara': 'العربية',

@@ -507,5 +507,14 @@
   "externalSubtitleLabel": "External subtitle",
   "searchOnlineSubtitles": "Search Online Subtitles",
   "noSubtitlesFound": "No subtitles found",
-  "downloadFailed": "Download failed: {error}"
+  "downloadFailed": "Download failed: {error}",
+  "outputSection": "Output",
+  "languageSectionAudio": "Preferred Audio Language",
+  "defaultLabel": "Default",
+  "presetLabel": "Preset",
+  "normalizeVolume": "Normalize Volume",
+  "normalizeVolumeDesc": "Keep volume consistent across clips",
+  "autoOption": "Auto",
+  "sampleRate": "Sample Rate",
+  "bitDepth": "Bit Depth"
 }

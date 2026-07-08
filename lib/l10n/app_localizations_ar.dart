@@ -1586,4 +1586,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String downloadFailed(Object error) {
     return 'فشل التنزيل: $error';
   }
+
+  @override
+  String get outputSection => 'الإخراج';
+
+  @override
+  String get languageSectionAudio => 'اللغة المفضلة للصوت';
+
+  @override
+  String get defaultLabel => 'افتراضي';
+
+  @override
+  String get presetLabel => 'الإعداد المسبق';
+
+  @override
+  String get normalizeVolume => 'تطبيع مستوى الصوت';
+
+  @override
+  String get normalizeVolumeDesc => 'توحيد مستوى الصوت بين المقاطع';
+
+  @override
+  String get autoOption => 'تلقائي';
+
+  @override
+  String get sampleRate => 'معدل العينة';
+
+  @override
+  String get bitDepth => 'عمق البت';
 }

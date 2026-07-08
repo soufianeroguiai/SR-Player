@@ -1588,4 +1588,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String downloadFailed(Object error) {
     return 'Download failed: $error';
   }
+
+  @override
+  String get outputSection => 'Output';
+
+  @override
+  String get languageSectionAudio => 'Preferred Audio Language';
+
+  @override
+  String get defaultLabel => 'Default';
+
+  @override
+  String get presetLabel => 'Preset';
+
+  @override
+  String get normalizeVolume => 'Normalize Volume';
+
+  @override
+  String get normalizeVolumeDesc => 'Keep volume consistent across clips';
+
+  @override
+  String get autoOption => 'Auto';
+
+  @override
+  String get sampleRate => 'Sample Rate';
+
+  @override
+  String get bitDepth => 'Bit Depth';
 }

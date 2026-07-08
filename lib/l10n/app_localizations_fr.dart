@@ -1597,4 +1597,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String downloadFailed(Object error) {
     return 'Échec du téléchargement : $error';
   }
+
+  @override
+  String get outputSection => 'Sortie';
+
+  @override
+  String get languageSectionAudio => 'Langue audio préférée';
+
+  @override
+  String get defaultLabel => 'Défaut';
+
+  @override
+  String get presetLabel => 'Préréglage';
+
+  @override
+  String get normalizeVolume => 'Normaliser le volume';
+
+  @override
+  String get normalizeVolumeDesc => 'Garder le volume constant';
+
+  @override
+  String get autoOption => 'Auto';
+
+  @override
+  String get sampleRate => 'Taux d\'échantillonnage';
+
+  @override
+  String get bitDepth => 'Profondeur de bits';
 }
