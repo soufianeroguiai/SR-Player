@@ -104,7 +104,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
                     setState(() {
                       if (_muted) {
                         _muted = false;
-                        widget.player.setVolume((_previousVolume * 100).toInt());
+                        widget.player.setVolume((_previousVolume * 100).toDouble());
                         widget.onVolumeChanged(_previousVolume);
                       } else {
                         _previousVolume = widget.volumeLevel;
@@ -242,7 +242,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         1.0,
         (v) {
           widget.onVolumeChanged(v);
-          widget.player.setVolume((v * 100).toInt());
+          widget.player.setVolume((v * 100).toDouble());
         },
         cs,
         display: (v) => '${(v * 100).round()}%',
@@ -255,7 +255,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         3.0,
         (v) {
           widget.onVolumeChanged(v);
-          widget.player.setVolume((v * 100).toInt());
+          widget.player.setVolume((v * 100).toDouble());
         },
         cs,
         display: (v) => '${(v * 100).round()}%',
