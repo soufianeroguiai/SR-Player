@@ -20,6 +20,7 @@ class PlayerGestureLayer extends StatefulWidget {
   final Duration duration;
   final bool isPlaying;
   final bool isSpeedBoosted;
+  final bool isLongPressRewinding;
   final VideoFitMode fitMode;
   final double zoomScale;
   final Offset panOffset;
@@ -28,6 +29,8 @@ class PlayerGestureLayer extends StatefulWidget {
   final VoidCallback onPlayPause;
   final VoidCallback? onLongPressSpeedStart;
   final VoidCallback? onLongPressSpeedEnd;
+  final VoidCallback? onLongPressRewindStart;
+  final VoidCallback? onLongPressRewindEnd;
   final void Function(double scale, Offset offset)? onZoomPanChanged;
   final Widget child;
 
@@ -42,6 +45,7 @@ class PlayerGestureLayer extends StatefulWidget {
     required this.duration,
     required this.isPlaying,
     this.isSpeedBoosted = false,
+    this.isLongPressRewinding = false,
     this.fitMode = VideoFitMode.contain,
     this.zoomScale = 1.0,
     this.panOffset = Offset.zero,
@@ -50,6 +54,8 @@ class PlayerGestureLayer extends StatefulWidget {
     required this.onPlayPause,
     this.onLongPressSpeedStart,
     this.onLongPressSpeedEnd,
+    this.onLongPressRewindStart,
+    this.onLongPressRewindEnd,
     this.onZoomPanChanged,
     required this.child,
   });
@@ -71,6 +77,7 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
   Timer? _indicatorTimer;
 
   int? _hintSeconds;
+  int _accumulatedSeekSeconds = 0;
   Timer? _seekHintTimer;
 
   GestureType _activeGesture = GestureType.none;
@@ -79,6 +86,7 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   double _startZoomScale = 1.0;
   Offset _startZoomPanOffset = Offset.zero;
+  bool _longPressIsRewind = false;
 
   @override
   void dispose() {
@@ -100,9 +108,16 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   void _showSeekHint(int seconds) {
     if (!context.read<SettingsProvider>().showSeekTime) return;
-    setState(() => _hintSeconds = seconds);
+    // إلا النافذة مازالت بادية وبنفس الاتجاه، كنزيدو على المجموع
+    // (بحال أغلب التطبيقات: تمرير متكرر سريع = +10 ثم +20 ثم +30...).
+    // وإلا تبدلات الجهة أو خرجات النافذة، كنبداو من جديد.
+    final sameDirection = _hintSeconds != null &&
+        ((_hintSeconds! > 0 && seconds > 0) || (_hintSeconds! < 0 && seconds < 0));
+    _accumulatedSeekSeconds = sameDirection ? _accumulatedSeekSeconds + seconds : seconds;
+    setState(() => _hintSeconds = _accumulatedSeekSeconds);
     _seekHintTimer?.cancel();
     _seekHintTimer = Timer(const Duration(milliseconds: 700), () {
+      _accumulatedSeekSeconds = 0;
       if (mounted) setState(() => _hintSeconds = null);
     });
   }
@@ -124,7 +139,12 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
     return Stack(
       children: [
         GestureDetector(
-          onTap: s.tapToPause && !widget.isLocked ? widget.onToggleControls : null,
+          // كنخليو النقر يخدم حتى وقت القفل، حيت هو اللي كيظهر نافذة
+          // "اسحب للفتح" (_toggleControls كيتحقق من isLocked بنفسه).
+          // إعداد tapToPause ماعندوش علاقة بهاد الحالة أصلاً.
+          onTap: widget.isLocked
+              ? widget.onToggleControls
+              : (s.tapToPause ? widget.onToggleControls : null),
           onDoubleTapDown: widget.isLocked || !s.doubleTapSeek
               ? null
               : (details) {
@@ -144,13 +164,26 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
                 },
           onLongPressStart: widget.isLocked || !s.longPressSpeed
               ? null
-              : (_) => widget.onLongPressSpeedStart?.call(),
+              : (details) {
+                  // الجهة اليسرى من الشاشة = ترجيع مستمر للخلف.
+                  // باقي الشاشة = تسريع للأمام (كيفما كان من قبل).
+                  _longPressIsRewind = details.localPosition.dx < screenWidth / 2;
+                  if (_longPressIsRewind) {
+                    widget.onLongPressRewindStart?.call();
+                  } else {
+                    widget.onLongPressSpeedStart?.call();
+                  }
+                },
           onLongPressEnd: widget.isLocked || !s.longPressSpeed
               ? null
-              : (_) => widget.onLongPressSpeedEnd?.call(),
+              : (_) => _longPressIsRewind
+                  ? widget.onLongPressRewindEnd?.call()
+                  : widget.onLongPressSpeedEnd?.call(),
           onLongPressCancel: widget.isLocked || !s.longPressSpeed
               ? null
-              : () => widget.onLongPressSpeedEnd?.call(),
+              : () => _longPressIsRewind
+                  ? widget.onLongPressRewindEnd?.call()
+                  : widget.onLongPressSpeedEnd?.call(),
           onScaleStart: (details) {
             if (widget.isLocked) return;
             final sub = s.subtitleSettings;
@@ -164,7 +197,10 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
               _activeGesture = GestureType.subtitle;
               return;
             }
-            if (details.pointerCount == 2 && widget.fitMode == VideoFitMode.free) {
+            // تكبير/تحريك الفيديو بإصبعين: متاح دائماً وقت التشغيل، بلا حاجة
+            // لاختيار وضع خاص. وقت التوقف، إصبعين كيبقاو لتكبير الترجمة
+            // (تحت) باش الجستشرين ما يتلخبطوش مع بعضهم.
+            if (details.pointerCount == 2 && widget.isPlaying) {
               _startZoomScale = widget.zoomScale;
               _startZoomPanOffset = widget.panOffset;
               _activeGesture = GestureType.zoomPan;
@@ -379,6 +415,29 @@ class _PlayerGestureLayerState extends State<PlayerGestureLayer> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+        if (widget.isLongPressRewinding)
+          Positioned(
+            top: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Symbols.fast_rewind_rounded, color: cs.primary, size: 18),
+                  ],
+                ),
               ),
             ),
           ),

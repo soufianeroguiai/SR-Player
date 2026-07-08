@@ -101,7 +101,6 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
         case VideoFitMode.cover: return t.cover;
         case VideoFitMode.fill: return t.fill;
         case VideoFitMode.stretch: return t.stretch;
-        case VideoFitMode.free: return t.free;
         default: return t.contain;
       }
     }
@@ -177,7 +176,6 @@ class _PlayerSettingsPanelState extends State<PlayerSettingsPanel> {
               _SimpleTile(Icons.fullscreen_rounded, t.cover, widget.fitMode == VideoFitMode.cover, () => _pickFit(VideoFitMode.cover)),
               _SimpleTile(Icons.aspect_ratio_rounded, t.fill, widget.fitMode == VideoFitMode.fill, () => _pickFit(VideoFitMode.fill)),
               _SimpleTile(Icons.zoom_out_map_rounded, t.stretch, widget.fitMode == VideoFitMode.stretch, () => _pickFit(VideoFitMode.stretch)),
-              _SimpleTile(Icons.open_with_rounded, t.free, widget.fitMode == VideoFitMode.free, () => _pickFit(VideoFitMode.free)),
             ]),
           ),
           const SizedBox(height: 4),

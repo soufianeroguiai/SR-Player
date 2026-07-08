@@ -14,6 +14,7 @@ class AudioSettingsPanel extends StatefulWidget {
   final void Function(AudioTrack) onTrackSelected;
   final double audioDelay;
   final ValueChanged<double> onAudioDelayChanged;
+  final VoidCallback onAudioFilterSettingsChanged;
   final VoidCallback onClose;
 
   const AudioSettingsPanel({
@@ -26,6 +27,7 @@ class AudioSettingsPanel extends StatefulWidget {
     required this.onTrackSelected,
     required this.audioDelay,
     required this.onAudioDelayChanged,
+    required this.onAudioFilterSettingsChanged,
     required this.onClose,
   });
 
@@ -177,18 +179,6 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
       _CompactSlider(t.volumeLevel, widget.volumeLevel, 0.0, 2.0, widget.onVolumeChanged, cs, display: (v) => '${(v * 100).round()}%'),
       const SizedBox(height: 10),
       _CompactSlider(t.audioBoostOption, widget.volumeLevel.clamp(1.0, 2.0), 1.0, 2.0, (v) => widget.onVolumeChanged(v), cs, display: (v) => '${(v * 100).round()}%'),
-      const SizedBox(height: 10),
-      SwitchListTile(
-        dense: true,
-        contentPadding: EdgeInsets.zero,
-        title: Text(t.mute, style: const TextStyle(color: Colors.white, fontSize: 13)),
-        value: _muted,
-        onChanged: (v) {
-          setState(() => _muted = v);
-          widget.player.setVolume(v ? 0 : widget.volumeLevel * 100.0);
-        },
-        activeColor: cs.primary,
-      ),
     ]);
   }
 
@@ -200,7 +190,10 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         title: Text(t.bassBoostLabel, style: const TextStyle(color: Colors.white, fontSize: 13)),
         subtitle: Text(t.bassBoostDesc, style: const TextStyle(color: Colors.white38, fontSize: 11)),
         value: s.bassBoost,
-        onChanged: (v) => s.setBassBoost(v),
+        onChanged: (v) {
+          s.setBassBoost(v);
+          widget.onAudioFilterSettingsChanged();
+        },
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
@@ -210,7 +203,10 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
         title: Text(t.trebleBoostLabel, style: const TextStyle(color: Colors.white, fontSize: 13)),
         subtitle: Text(t.trebleBoostDesc, style: const TextStyle(color: Colors.white38, fontSize: 11)),
         value: s.surroundSound,
-        onChanged: (v) => s.setSurroundSound(v),
+        onChanged: (v) {
+          s.setSurroundSound(v);
+          widget.onAudioFilterSettingsChanged();
+        },
         activeColor: cs.primary,
       ),
       const Divider(height: 1, color: Colors.white12),
@@ -271,11 +267,15 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
 
   void _showEqualizerDialog(BuildContext context, SettingsProvider s, AppLocalizations t) {
     final List<int> bandFrequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+    // مهم: bands خاصها تتبنى مرة وحدة برا الـ builder، حيت StatefulBuilder كيعاود
+    // ينفّذ الـ builder كامل مع كل setDialogState — وإلا بقات bands كتتبنى من
+    // s.equalizerBands بداخل الـ builder، غادي تترجع للقيمة الأصلية بعد كل سحب
+    // (هذا بالضبط سبب "الأشرطة ما كتتحركش").
+    final bands = List<double>.from(s.equalizerBands);
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final bands = List<double>.from(s.equalizerBands);
           return AlertDialog(
             title: Text(t.graphicEqualizerTitle),
             content: SizedBox(
@@ -298,6 +298,7 @@ class _AudioSettingsPanelState extends State<AudioSettingsPanel> {
               ElevatedButton(
                 onPressed: () {
                   s.setEqualizerBands(bands);
+                  widget.onAudioFilterSettingsChanged();
                   Navigator.pop(ctx);
                 },
                 child: Text(t.apply),

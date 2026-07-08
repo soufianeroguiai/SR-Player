@@ -49,6 +49,7 @@ class PlayerControlService {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
     _sleepTimer?.cancel();
+    _rewindTimer?.cancel();
   }
 
   // ---------- تطبيق إعدادات المشغل ----------
@@ -216,6 +217,29 @@ class PlayerControlService {
     player.setRate(_preLongPressSpeed!);
     _preLongPressSpeed = null;
     state.isSpeedBoosted = false;
+    state.notifyListeners();
+  }
+
+  // ترجيع مستمر بالضغط المطول على الجهة اليسرى من الشاشة. مكتبة media_kit/mpv
+  // ما كتدعمش معدل تشغيل سالب، فكنسيميو الترجيع بتقديم الموضع للخلف بشكل
+  // دوري كل ما دام الإصبع مضغوط.
+  Timer? _rewindTimer;
+
+  void startLongPressRewind() {
+    if (!settingsProvider.longPressSpeedEnabled || !settingsProvider.longPressSpeed) return;
+    if (_rewindTimer != null) return;
+    state.isLongPressRewinding = true;
+    state.notifyListeners();
+    _rewindTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
+      final target = state.position - const Duration(milliseconds: 600);
+      player.seek(target.isNegative ? Duration.zero : target);
+    });
+  }
+
+  void endLongPressRewind() {
+    _rewindTimer?.cancel();
+    _rewindTimer = null;
+    state.isLongPressRewinding = false;
     state.notifyListeners();
   }
 
@@ -778,6 +802,7 @@ class PlayerControlService {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
     _sleepTimer?.cancel();
+    _rewindTimer?.cancel();
     for (final sub in _playerSubscriptions) {
       sub.cancel();
     }

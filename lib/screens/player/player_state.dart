@@ -44,6 +44,7 @@ class PlayerUIState extends ChangeNotifier {
   Duration? savedPosition;
 
   bool isSpeedBoosted = false;
+  bool isLongPressRewinding = false;
 
   double brightness = 0;
   double contrast = 0;

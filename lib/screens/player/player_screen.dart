@@ -79,9 +79,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _controller = provider.controller!;
       provider.restore();
     } else {
+      _player = Player();
+      _controller = VideoController(_player);
       provider.initPlayer();
-      _player = provider.player!;
-      _controller = provider.controller!;
       provider.setCurrentVideo(widget.video);
     }
 
@@ -203,10 +203,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final t = AppLocalizations.of(context)!;
     _state.fitMode = VideoFitMode.values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
     _state.fitOverlayText = modeName(_state.fitMode, t);
-    if (_state.fitMode != VideoFitMode.free) {
-      _state.zoomScale = 1.0;
-      _state.panOffset = Offset.zero;
-    }
+    // تبديل وضع الملاءمة كيصفّي أي تكبير/سحب تفاعلي كان مفعّل بإصبعين.
+    _state.zoomScale = 1.0;
+    _state.panOffset = Offset.zero;
     _fitOverlayTimer?.cancel();
     _fitOverlayTimer = Timer(const Duration(milliseconds: 1200), () {
       _state.fitOverlayText = null;
@@ -220,10 +219,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final t = AppLocalizations.of(context)!;
     _state.fitMode = mode;
     _state.fitOverlayText = modeName(mode, t);
-    if (mode != VideoFitMode.free) {
-      _state.zoomScale = 1.0;
-      _state.panOffset = Offset.zero;
-    }
+    _state.zoomScale = 1.0;
+    _state.panOffset = Offset.zero;
     _fitOverlayTimer?.cancel();
     _fitOverlayTimer = Timer(const Duration(milliseconds: 1200), () {
       _state.fitOverlayText = null;
@@ -810,6 +807,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               _state.audioDelay = v;
                               _state.notifyListeners();
                             },
+                            onAudioFilterSettingsChanged: _service.applyPlayerSettings,
                             onClose: () {
                               _state.currentMenu = ActiveMenu.none;
                               _state.notifyListeners();
@@ -999,19 +997,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final controlsVisible = _state.showControls && !_state.isLocked && _state.currentMenu == ActiveMenu.none;
 
+    // كنفعّلو الدخول التلقائي للشاشة المصغرة عبر زر الرجوع غير إلا المستخدم
+    // فعّل إعداد "الشاشة المصغرة تلقائياً" صراحة والفيديو كيتصفّح. غير هكاك
+    // زر الرجوع خاصو يخرج من المشغل بشكل عادي (ويوقف الصوت).
+    final shouldAutoPip = !_state.isLocked &&
+        _settingsProvider.autoPipOnBackground &&
+        _state.isPlaying;
+
     return PopScope(
-      canPop: !_state.isLocked,
+      canPop: !_state.isLocked && !shouldAutoPip,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           if (_state.currentMenu != ActiveMenu.none || _state.showQuickActions) {
             _state.resetMenu();
             return;
           }
-          if (!_state.isLocked) await PipService.enter();
-        }
-        if (_state.isLocked) {
-          _state.isLocked = false;
-          _state.notifyListeners();
+          if (_state.isLocked) {
+            _state.isLocked = false;
+            _state.notifyListeners();
+            return;
+          }
+          if (shouldAutoPip) await PipService.enter();
         }
       },
       child: Scaffold(
@@ -1031,6 +1037,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     duration: _state.duration,
                     isPlaying: _state.isPlaying,
                     isSpeedBoosted: _state.isSpeedBoosted,
+                    isLongPressRewinding: _state.isLongPressRewinding,
                     fitMode: _state.fitMode,
                     zoomScale: _state.zoomScale,
                     panOffset: _state.panOffset,
@@ -1039,14 +1046,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
                     onLongPressSpeedStart: _service.startLongPressSpeedBoost,
                     onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
+                    onLongPressRewindStart: _service.startLongPressRewind,
+                    onLongPressRewindEnd: _service.endLongPressRewind,
                     onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
-                    child: Video(
-                      key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
-                      controller: _controller,
-                      fit: getBoxFit(_state.fitMode),
-                      controls: NoVideoControls,
-                      subtitleViewConfiguration: SubtitleViewConfiguration(
-                        visible: !useFlutterRenderer,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..translate(_state.panOffset.dx, _state.panOffset.dy)
+                        ..scale(_state.zoomScale),
+                      child: Video(
+                        key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
+                        controller: _controller,
+                        fit: getBoxFit(_state.fitMode),
+                        controls: NoVideoControls,
+                        subtitleViewConfiguration: SubtitleViewConfiguration(
+                          visible: !useFlutterRenderer,
+                        ),
                       ),
                     ),
                   ),
@@ -1064,8 +1079,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         videoSize: videoSize,
                         screenSize: MediaQuery.of(context).size,
                         fitMode: _state.fitMode,
-                        zoomScale: _state.zoomScale,
-                        panOffset: _state.panOffset,
                       );
                       return SubtitleRenderer(
                         currentEntry: SubtitleEntry(
@@ -1421,18 +1434,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    // نقوم بإيقاف الصوت فقط، ولا ندمر المشغل هنا لأن PlayerProvider هو المسؤول عنه
-    try {
-      _player.setVolume(0);
-      _player.stop();
-    } catch (_) {}
-
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
-      // سيؤدي هذا إلى إيقاف المشغل وتدميره بأمان عبر المزوّد
+      _player.dispose();
       provider.closeMiniPlayer();
     }
-
     super.dispose();
   }
 }

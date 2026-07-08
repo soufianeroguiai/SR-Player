@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 
-enum VideoFitMode { contain, cover, fill, stretch, free }
+enum VideoFitMode { contain, cover, fill, stretch }
 
 BoxFit getBoxFit(VideoFitMode mode) {
   switch (mode) {
     case VideoFitMode.contain:
-    case VideoFitMode.free:
       return BoxFit.contain;
     case VideoFitMode.cover:
       return BoxFit.cover;
@@ -28,8 +27,6 @@ String modeName(VideoFitMode mode, AppLocalizations t) {
       return t.fill;
     case VideoFitMode.stretch:
       return t.stretch;
-    case VideoFitMode.free:
-      return t.free;
   }
 }
 
