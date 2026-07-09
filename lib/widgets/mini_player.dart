@@ -82,7 +82,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
             right: 4,
             child: GestureDetector(
               onTap: () {
-                provider.closeMiniPlayer();
+                provider.closeMiniPlayer(); // سيوقف كل شيء
               },
               child: Container(
                 padding: const EdgeInsets.all(4),

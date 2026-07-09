@@ -65,7 +65,12 @@ class PlayerProvider extends ChangeNotifier {
     );
   }
 
+  /// إغلاق المشغّل المصغّر وإنهاء أي PiP نشط
   void closeMiniPlayer() {
+    // أوقف PiP إذا كان لا يزال في وضع PiP
+    if (PipService.isInPipMode.value) {
+      PipService.exit();
+    }
     _isPlaying = false;
     _player?.stop();
 
