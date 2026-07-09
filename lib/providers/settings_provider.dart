@@ -16,12 +16,10 @@ class SettingsProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  // ---------- دوال قديمة يجب أن تبقى ----------
   void setThemeMode(ThemeMode v) { _themeMode = v; notifyListeners(); _save(); }
   void setRememberPosition(bool v) { _rememberPosition = v; notifyListeners(); _save(); }
   void setAutoPlay(bool v) { _autoPlay = v; notifyListeners(); _save(); }
   void setDefaultSpeed(double v) { _defaultSpeed = v; notifyListeners(); _save(); }
-  void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
   void setPreferredAudioLanguage(String v) { _preferredAudioLanguage = v; notifyListeners(); _save(); }
   void setSortBy(String v) { _sortBy = v; notifyListeners(); _save(); }
   void setSortDesc(bool v) { _sortDesc = v; notifyListeners(); _save(); }
@@ -47,7 +45,6 @@ class SettingsProvider extends ChangeNotifier {
   void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
   void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: التشغيل ----------
   bool _autoPlay = true;
   bool get autoPlay => _autoPlay;
 
@@ -66,7 +63,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get autoNextVideo => _autoNextVideo;
   void setAutoNextVideo(bool v) { _autoNextVideo = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: سرعة التشغيل ----------
   double _defaultSpeed = 1.0;
   double get defaultSpeed => _defaultSpeed;
 
@@ -82,7 +78,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get pitchCorrection => _pitchCorrection;
   void setPitchCorrection(bool v) { _pitchCorrection = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: عرض الفيديو ----------
   String _defaultVideoMode = 'contain';
   String get defaultVideoMode => _defaultVideoMode;
   void setDefaultVideoMode(String v) { _defaultVideoMode = v; notifyListeners(); _save(); }
@@ -103,7 +98,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get keepScreenOn => _keepScreenOn;
   void setKeepScreenOn(bool v) { _keepScreenOn = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: الإيماءات ----------
   bool _gestureVolume = true;
   bool get gestureVolume => _gestureVolume;
   void setGestureVolume(bool v) { _gestureVolume = v; notifyListeners(); _save(); }
@@ -132,7 +126,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get vibrateOnEnd => _vibrateOnEnd;
   void setVibrateOnEnd(bool v) { _vibrateOnEnd = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: التقديم والترجيع ----------
   int _doubleTapSeekSeconds = 10;
   int get doubleTapSeekSeconds => _doubleTapSeekSeconds;
 
@@ -144,7 +137,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get showSeekTime => _showSeekTime;
   void setShowSeekTime(bool v) { _showSeekTime = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: واجهة المشغل ----------
   bool _autoHideControls = true;
   bool get autoHideControls => _autoHideControls;
   void setAutoHideControls(bool v) { _autoHideControls = v; notifyListeners(); _save(); }
@@ -172,7 +164,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get showClock => _showClock;
   void setShowClock(bool v) { _showClock = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: القوائم ----------
   bool _continuousPlayback = true;
   bool get continuousPlayback => _continuousPlayback;
   void setContinuousPlayback(bool v) { _continuousPlayback = v; notifyListeners(); _save(); }
@@ -193,7 +184,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get shufflePlaylist => _shufflePlaylist;
   void setShufflePlaylist(bool v) { _shufflePlaylist = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: الطاقة ----------
   bool _preventScreenLock = true;
   bool get preventScreenLock => _preventScreenLock;
   void setPreventScreenLock(bool v) { _preventScreenLock = v; notifyListeners(); _save(); }
@@ -210,7 +200,6 @@ class SettingsProvider extends ChangeNotifier {
   int get sleepTimerMinutes => _sleepTimerMinutes;
   void setSleepTimerMinutes(int v) { _sleepTimerMinutes = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: التحكم ----------
   bool _volumeKeysSeek = false;
   bool get volumeKeysSeek => _volumeKeysSeek;
   void setVolumeKeysSeek(bool v) { _volumeKeysSeek = v; notifyListeners(); _save(); }
@@ -223,7 +212,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get gamepadSupport => _gamepadSupport;
   void setGamepadSupport(bool v) { _gamepadSupport = v; notifyListeners(); _save(); }
 
-  // ---------- المشغل: خيارات متقدمة ----------
   String _hwDecoderMode = 'auto';
   String get hwDecoderMode => _hwDecoderMode;
 
@@ -251,7 +239,6 @@ class SettingsProvider extends ChangeNotifier {
   bool get showVideoInfo => _showVideoInfo;
   void setShowVideoInfo(bool v) { _showVideoInfo = v; notifyListeners(); _save(); }
 
-  // ---------- الصوت ----------
   double _defaultAudioBoost = 100.0;
   double get defaultAudioBoost => _defaultAudioBoost;
   void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
@@ -311,7 +298,6 @@ class SettingsProvider extends ChangeNotifier {
   List<double> get equalizerBands => _equalizerBands;
   void setEqualizerBands(List<double> bands) { _equalizerBands = bands; notifyListeners(); _save(); }
 
-  // ---------- الترجمة ----------
   bool _showSubtitlesByDefault = true;
   bool get showSubtitlesByDefault => _showSubtitlesByDefault;
 
@@ -333,7 +319,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
 
-  // ---------- المكتبة ----------
   String _sortBy = 'date';
   String get sortBy => _sortBy;
 
@@ -349,7 +334,6 @@ class SettingsProvider extends ChangeNotifier {
   bool _recentGridView = false;
   bool get recentGridView => _recentGridView;
 
-  // ---------- عام ----------
   int _themeSeedColorValue = 0xFF1B6CA8;
   Color get themeSeedColor => Color(_themeSeedColorValue);
 
@@ -374,14 +358,11 @@ class SettingsProvider extends ChangeNotifier {
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
-  // ---------- اللغة ----------
-  // 'system' يعني اتباع لغة الجهاز (إن كانت مدعومة، وإلا العربية كافتراضي)
   String _appLanguageCode = 'system';
   String get appLanguageCode => _appLanguageCode;
   Locale? get appLocale => _appLanguageCode == 'system' ? null : Locale(_appLanguageCode);
   void setAppLanguageCode(String v) { _appLanguageCode = v; notifyListeners(); _save(); }
 
-  // ---------- load / save ----------
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     final subtitleJsonString = p.getString('subtitleSettingsData');
@@ -452,7 +433,6 @@ class SettingsProvider extends ChangeNotifier {
     _normalizeVolume = p.getBool('normalizeVolume') ?? false;
     _skipSilence = p.getBool('skipSilence') ?? false;
     _replayGain = p.getBool('replayGain') ?? false;
-    _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
     _audioBalance = p.getDouble('audioBalance') ?? 0.0;
     _audioOutputMode = p.getString('audioOutputMode') ?? 'stereo';
     _audioDelayMs = p.getInt('audioDelayMs') ?? 0;
@@ -550,7 +530,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setBool('normalizeVolume', _normalizeVolume);
     await p.setBool('skipSilence', _skipSilence);
     await p.setBool('replayGain', _replayGain);
-    await p.setDouble('defaultAudioBoost', _defaultAudioBoost);
     await p.setDouble('audioBalance', _audioBalance);
     await p.setString('audioOutputMode', _audioOutputMode);
     await p.setInt('audioDelayMs', _audioDelayMs);
@@ -642,7 +621,6 @@ class SettingsProvider extends ChangeNotifier {
     _normalizeVolume = false;
     _skipSilence = false;
     _replayGain = false;
-    _defaultAudioBoost = 100.0;
     _audioBalance = 0.0;
     _audioOutputMode = 'stereo';
     _audioDelayMs = 0;
@@ -736,7 +714,6 @@ class SettingsProvider extends ChangeNotifier {
       'normalizeVolume': _normalizeVolume,
       'skipSilence': _skipSilence,
       'replayGain': _replayGain,
-      'defaultAudioBoost': _defaultAudioBoost,
       'audioBalance': _audioBalance,
       'audioOutputMode': _audioOutputMode,
       'audioDelayMs': _audioDelayMs,
@@ -840,7 +817,6 @@ class SettingsProvider extends ChangeNotifier {
     _normalizeVolume = read('normalizeVolume', _normalizeVolume);
     _skipSilence = read('skipSilence', _skipSilence);
     _replayGain = read('replayGain', _replayGain);
-    _defaultAudioBoost = read('defaultAudioBoost', _defaultAudioBoost);
     _audioBalance = read('audioBalance', _audioBalance);
     _audioOutputMode = read('audioOutputMode', _audioOutputMode);
     _audioDelayMs = read('audioDelayMs', _audioDelayMs);
