@@ -1590,29 +1590,100 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get outputSection => 'Output';
+  String get audioBoostLabel => 'Audio Boost';
 
   @override
-  String get languageSectionAudio => 'Preferred Audio Language';
+  String get equalizerPresetLabel => 'Preset';
 
   @override
-  String get defaultLabel => 'Default';
+  String get presetOff => 'Off';
 
   @override
-  String get presetLabel => 'Preset';
+  String get presetRock => 'Rock';
 
   @override
-  String get normalizeVolume => 'Normalize Volume';
+  String get presetPop => 'Pop';
 
   @override
-  String get normalizeVolumeDesc => 'Keep volume consistent across clips';
+  String get presetMovie => 'Movie';
+
+  @override
+  String get presetClassical => 'Classical';
+
+  @override
+  String get presetJazz => 'Jazz';
+
+  @override
+  String get presetSpeech => 'Speech';
+
+  @override
+  String get presetCustom => 'Custom';
+
+  @override
+  String get normalizeVolumeLabel => 'Normalize Volume';
+
+  @override
+  String get normalizeVolumeDesc =>
+      'Automatically even out volume between clips';
+
+  @override
+  String get skipSilenceLabel => 'Skip Silence';
+
+  @override
+  String get skipSilenceDesc =>
+      'Automatically skip silent parts during playback';
+
+  @override
+  String get replayGainLabel => 'ReplayGain';
+
+  @override
+  String get replayGainDesc =>
+      'Adjust volume based on the file\'s embedded loudness data';
+
+  @override
+  String get outputSectionLabel => 'Output';
+
+  @override
+  String get outputStereo => 'Stereo';
+
+  @override
+  String get outputMono => 'Mono';
+
+  @override
+  String get outputLeft => 'Left channel';
+
+  @override
+  String get outputRight => 'Right channel';
+
+  @override
+  String get output51Downmix => '5.1 Downmix';
+
+  @override
+  String get outputPassthrough => 'Passthrough';
+
+  @override
+  String get preferredAudioSectionLabel => 'Preferred Audio';
 
   @override
   String get autoOption => 'Auto';
+
+  @override
+  String get playbackSectionLabel => 'Playback';
 
   @override
   String get sampleRate => 'Sample Rate';
 
   @override
   String get bitDepth => 'Bit Depth';
+
+  @override
+  String get restorePreviousVolume => 'Restore previous volume';
+
+  @override
+  String get graphicEqualizerPanelTitle => 'Graphic Equalizer (10 bands)';
+
+  @override
+  String channelsCount(Object count) {
+    return '$count channels';
+  }
 }

@@ -254,6 +254,23 @@ class SettingsProvider extends ChangeNotifier {
   // ---------- الصوت ----------
   double _defaultAudioBoost = 100.0;
   double get defaultAudioBoost => _defaultAudioBoost;
+  void setDefaultAudioBoost(double v) { _defaultAudioBoost = v; notifyListeners(); _save(); }
+
+  String _equalizerPreset = 'off';
+  String get equalizerPreset => _equalizerPreset;
+  void setEqualizerPreset(String v) { _equalizerPreset = v; notifyListeners(); _save(); }
+
+  bool _normalizeVolume = false;
+  bool get normalizeVolume => _normalizeVolume;
+  void setNormalizeVolume(bool v) { _normalizeVolume = v; notifyListeners(); _save(); }
+
+  bool _skipSilence = false;
+  bool get skipSilence => _skipSilence;
+  void setSkipSilence(bool v) { _skipSilence = v; notifyListeners(); _save(); }
+
+  bool _replayGain = false;
+  bool get replayGain => _replayGain;
+  void setReplayGain(bool v) { _replayGain = v; notifyListeners(); _save(); }
 
   String _preferredAudioLanguage = 'ara';
   String get preferredAudioLanguage => _preferredAudioLanguage;
@@ -270,7 +287,7 @@ class SettingsProvider extends ChangeNotifier {
   double get audioBalance => _audioBalance;
   void setAudioBalance(double v) { _audioBalance = v.clamp(-1.0, 1.0); notifyListeners(); _save(); }
 
-  String _audioOutputMode = 'Stereo';
+  String _audioOutputMode = 'stereo';
   String get audioOutputMode => _audioOutputMode;
   void setAudioOutputMode(String v) { _audioOutputMode = v; notifyListeners(); _save(); }
 
@@ -293,19 +310,6 @@ class SettingsProvider extends ChangeNotifier {
   List<double> _equalizerBands = [0,0,0,0,0,0,0,0,0,0];
   List<double> get equalizerBands => _equalizerBands;
   void setEqualizerBands(List<double> bands) { _equalizerBands = bands; notifyListeners(); _save(); }
-
-  // الإعدادات الصوتية الجديدة
-  String _equalizerPreset = 'Off';
-  String get equalizerPreset => _equalizerPreset;
-  void setEqualizerPreset(String v) { _equalizerPreset = v; notifyListeners(); _save(); }
-
-  bool _normalizeVolume = false;
-  bool get normalizeVolume => _normalizeVolume;
-  void setNormalizeVolume(bool v) { _normalizeVolume = v; notifyListeners(); _save(); }
-
-  double _audioBoostLevel = 1.0; // 1.0 = off, 3.0 = max boost
-  double get audioBoostLevel => _audioBoostLevel;
-  void setAudioBoostLevel(double v) { _audioBoostLevel = v; notifyListeners(); _save(); }
 
   // ---------- الترجمة ----------
   bool _showSubtitlesByDefault = true;
@@ -370,15 +374,8 @@ class SettingsProvider extends ChangeNotifier {
   String _colorFormat = 'yuv';
   String get colorFormat => _colorFormat;
 
-  bool _autoHideStatusBar = false;
-  bool get autoHideStatusBar => _autoHideStatusBar;
-  void setAutoHideStatusBar(bool v) { _autoHideStatusBar = v; notifyListeners(); _save(); }
-
-  bool _animationsEnabled = true;
-  bool get animationsEnabled => _animationsEnabled;
-  void setAnimationsEnabled(bool v) { _animationsEnabled = v; notifyListeners(); _save(); }
-
   // ---------- اللغة ----------
+  // 'system' يعني اتباع لغة الجهاز (إن كانت مدعومة، وإلا العربية كافتراضي)
   String _appLanguageCode = 'system';
   String get appLanguageCode => _appLanguageCode;
   Locale? get appLocale => _appLanguageCode == 'system' ? null : Locale(_appLanguageCode);
@@ -451,8 +448,13 @@ class SettingsProvider extends ChangeNotifier {
     _preferredAudioLanguage = p.getString('preferredAudioLanguage') ?? 'ara';
     _surroundSound = p.getBool('surroundSound') ?? false;
     _bassBoost = p.getBool('bassBoost') ?? false;
+    _equalizerPreset = p.getString('equalizerPreset') ?? 'off';
+    _normalizeVolume = p.getBool('normalizeVolume') ?? false;
+    _skipSilence = p.getBool('skipSilence') ?? false;
+    _replayGain = p.getBool('replayGain') ?? false;
+    _defaultAudioBoost = p.getDouble('defaultAudioBoost') ?? 100.0;
     _audioBalance = p.getDouble('audioBalance') ?? 0.0;
-    _audioOutputMode = p.getString('audioOutputMode') ?? 'Stereo';
+    _audioOutputMode = p.getString('audioOutputMode') ?? 'stereo';
     _audioDelayMs = p.getInt('audioDelayMs') ?? 0;
     _autoSwitchBluetooth = p.getBool('autoSwitchBluetooth') ?? true;
     _rememberVolumePerVideo = p.getBool('rememberVolumePerVideo') ?? false;
@@ -461,10 +463,6 @@ class SettingsProvider extends ChangeNotifier {
     if (eqList != null && eqList.length == 10) {
       _equalizerBands = eqList.map((e) => double.tryParse(e) ?? 0.0).toList();
     }
-    _equalizerPreset = p.getString('equalizerPreset') ?? 'Off';
-    _normalizeVolume = p.getBool('normalizeVolume') ?? false;
-    _audioBoostLevel = p.getDouble('audioBoostLevel') ?? 1.0;
-
     _showSubtitlesByDefault = p.getBool('showSubtitles') ?? true;
     _subtitleFolder = p.getString('subtitleFolder') ?? '';
     _subtitleEncoding = p.getString('subtitleEncoding') ?? 'UTF-8';
@@ -485,8 +483,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = p.getDouble('longPressSpeedValue') ?? 2.0;
     _gestureSensitivity = p.getDouble('gestureSensitivity') ?? 1.0;
     _colorFormat = p.getString('colorFormat') ?? 'yuv';
-    _autoHideStatusBar = p.getBool('autoHideStatusBar') ?? false;
-    _animationsEnabled = p.getBool('animationsEnabled') ?? true;
     _appLanguageCode = p.getString('appLanguageCode') ?? 'system';
 
     notifyListeners();
@@ -550,6 +546,11 @@ class SettingsProvider extends ChangeNotifier {
     await p.setString('preferredAudioLanguage', _preferredAudioLanguage);
     await p.setBool('surroundSound', _surroundSound);
     await p.setBool('bassBoost', _bassBoost);
+    await p.setString('equalizerPreset', _equalizerPreset);
+    await p.setBool('normalizeVolume', _normalizeVolume);
+    await p.setBool('skipSilence', _skipSilence);
+    await p.setBool('replayGain', _replayGain);
+    await p.setDouble('defaultAudioBoost', _defaultAudioBoost);
     await p.setDouble('audioBalance', _audioBalance);
     await p.setString('audioOutputMode', _audioOutputMode);
     await p.setInt('audioDelayMs', _audioDelayMs);
@@ -557,10 +558,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setBool('rememberVolumePerVideo', _rememberVolumePerVideo);
     await p.setBool('resetVolumePerVideo', _resetVolumePerVideo);
     await p.setStringList('equalizerBands', _equalizerBands.map((e) => e.toString()).toList());
-    await p.setString('equalizerPreset', _equalizerPreset);
-    await p.setBool('normalizeVolume', _normalizeVolume);
-    await p.setDouble('audioBoostLevel', _audioBoostLevel);
-
     await p.setBool('showSubtitles', _showSubtitlesByDefault);
     await p.setString('subtitleFolder', _subtitleFolder);
     await p.setString('subtitleEncoding', _subtitleEncoding);
@@ -581,8 +578,6 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('longPressSpeedValue', _longPressSpeedValue);
     await p.setDouble('gestureSensitivity', _gestureSensitivity);
     await p.setString('colorFormat', _colorFormat);
-    await p.setBool('autoHideStatusBar', _autoHideStatusBar);
-    await p.setBool('animationsEnabled', _animationsEnabled);
     await p.setString('appLanguageCode', _appLanguageCode);
   }
 
@@ -643,16 +638,18 @@ class SettingsProvider extends ChangeNotifier {
     _preferredAudioLanguage = 'ara';
     _surroundSound = false;
     _bassBoost = false;
+    _equalizerPreset = 'off';
+    _normalizeVolume = false;
+    _skipSilence = false;
+    _replayGain = false;
+    _defaultAudioBoost = 100.0;
     _audioBalance = 0.0;
-    _audioOutputMode = 'Stereo';
+    _audioOutputMode = 'stereo';
     _audioDelayMs = 0;
     _autoSwitchBluetooth = true;
     _rememberVolumePerVideo = false;
     _resetVolumePerVideo = true;
     _equalizerBands = [0,0,0,0,0,0,0,0,0,0];
-    _equalizerPreset = 'Off';
-    _normalizeVolume = false;
-    _audioBoostLevel = 1.0;
     _showSubtitlesByDefault = true;
     _subtitleFolder = '';
     _subtitleEncoding = 'UTF-8';
@@ -673,9 +670,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = 2.0;
     _gestureSensitivity = 1.0;
     _colorFormat = 'yuv';
-    _autoHideStatusBar = false;
-    _animationsEnabled = true;
-    _appLanguageCode = 'system';
     _save();
     notifyListeners();
   }
@@ -738,6 +732,11 @@ class SettingsProvider extends ChangeNotifier {
       'preferredAudioLanguage': _preferredAudioLanguage,
       'surroundSound': _surroundSound,
       'bassBoost': _bassBoost,
+      'equalizerPreset': _equalizerPreset,
+      'normalizeVolume': _normalizeVolume,
+      'skipSilence': _skipSilence,
+      'replayGain': _replayGain,
+      'defaultAudioBoost': _defaultAudioBoost,
       'audioBalance': _audioBalance,
       'audioOutputMode': _audioOutputMode,
       'audioDelayMs': _audioDelayMs,
@@ -745,9 +744,6 @@ class SettingsProvider extends ChangeNotifier {
       'rememberVolumePerVideo': _rememberVolumePerVideo,
       'resetVolumePerVideo': _resetVolumePerVideo,
       'equalizerBands': _equalizerBands,
-      'equalizerPreset': _equalizerPreset,
-      'normalizeVolume': _normalizeVolume,
-      'audioBoostLevel': _audioBoostLevel,
       'showSubtitlesByDefault': _showSubtitlesByDefault,
       'subtitleFolder': _subtitleFolder,
       'subtitleEncoding': _subtitleEncoding,
@@ -768,9 +764,6 @@ class SettingsProvider extends ChangeNotifier {
       'longPressSpeedValue': _longPressSpeedValue,
       'gestureSensitivity': _gestureSensitivity,
       'colorFormat': _colorFormat,
-      'autoHideStatusBar': _autoHideStatusBar,
-      'animationsEnabled': _animationsEnabled,
-      'appLanguageCode': _appLanguageCode,
     };
   }
 
@@ -843,6 +836,11 @@ class SettingsProvider extends ChangeNotifier {
     _preferredAudioLanguage = read('preferredAudioLanguage', _preferredAudioLanguage);
     _surroundSound = read('surroundSound', _surroundSound);
     _bassBoost = read('bassBoost', _bassBoost);
+    _equalizerPreset = read('equalizerPreset', _equalizerPreset);
+    _normalizeVolume = read('normalizeVolume', _normalizeVolume);
+    _skipSilence = read('skipSilence', _skipSilence);
+    _replayGain = read('replayGain', _replayGain);
+    _defaultAudioBoost = read('defaultAudioBoost', _defaultAudioBoost);
     _audioBalance = read('audioBalance', _audioBalance);
     _audioOutputMode = read('audioOutputMode', _audioOutputMode);
     _audioDelayMs = read('audioDelayMs', _audioDelayMs);
@@ -850,10 +848,6 @@ class SettingsProvider extends ChangeNotifier {
     _rememberVolumePerVideo = read('rememberVolumePerVideo', _rememberVolumePerVideo);
     _resetVolumePerVideo = read('resetVolumePerVideo', _resetVolumePerVideo);
     _equalizerBands = read<List<double>>('equalizerBands', _equalizerBands);
-    _equalizerPreset = read('equalizerPreset', _equalizerPreset);
-    _normalizeVolume = read('normalizeVolume', _normalizeVolume);
-    _audioBoostLevel = read('audioBoostLevel', _audioBoostLevel);
-
     _showSubtitlesByDefault = read('showSubtitlesByDefault', _showSubtitlesByDefault);
     _subtitleFolder = read('subtitleFolder', _subtitleFolder);
     _subtitleEncoding = read('subtitleEncoding', _subtitleEncoding);
@@ -874,9 +868,6 @@ class SettingsProvider extends ChangeNotifier {
     _longPressSpeedValue = read('longPressSpeedValue', _longPressSpeedValue);
     _gestureSensitivity = read('gestureSensitivity', _gestureSensitivity);
     _colorFormat = read('colorFormat', _colorFormat);
-    _autoHideStatusBar = read('autoHideStatusBar', _autoHideStatusBar);
-    _animationsEnabled = read('animationsEnabled', _animationsEnabled);
-    _appLanguageCode = read('appLanguageCode', _appLanguageCode);
 
     notifyListeners();
     await _save();

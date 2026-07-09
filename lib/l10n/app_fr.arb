@@ -502,17 +502,5 @@
   "outputFileEmptyMessage": "Le fichier de sortie est vide",
   "ffmpegFailedMessage": "Échec du traitement de la vidéo",
   "timeoutMessage": "Délai dépassé",
-  "externalSubtitleLabel": "Sous-titre externe",
-  "searchOnlineSubtitles": "Rechercher des sous-titres en ligne",
-  "noSubtitlesFound": "Aucun sous-titre trouvé",
-  "downloadFailed": "Échec du téléchargement : {error}",
-  "outputSection": "Sortie",
-  "languageSectionAudio": "Langue audio préférée",
-  "defaultLabel": "Défaut",
-  "presetLabel": "Préréglage",
-  "normalizeVolume": "Normaliser le volume",
-  "normalizeVolumeDesc": "Garder le volume constant",
-  "autoOption": "Auto",
-  "sampleRate": "Taux d'échantillonnage",
-  "bitDepth": "Profondeur de bits"
+  "externalSubtitleLabel": "Sous-titre externe"
 }

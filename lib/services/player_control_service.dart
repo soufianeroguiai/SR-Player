@@ -115,25 +115,40 @@ class PlayerControlService {
     }
   }
 
+  // بريسات المعادل الجاهزة (10 نطاقات: 60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000 هرتز)
+  static const Map<String, List<double>> equalizerPresets = {
+    'off': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    'rock': [5, 4, 2, 0, -1, 0, 2, 4, 5, 5],
+    'pop': [-1, 2, 4, 3, 0, -1, -1, 2, 3, 3],
+    'movie': [4, 3, 2, 1, 0, 1, 2, 3, 3, 4],
+    'classical': [3, 2, 0, 0, -1, -1, 0, 2, 3, 4],
+    'jazz': [2, 1, 0, 1, 2, 2, 1, 1, 2, 3],
+    'speech': [-3, -2, 0, 3, 5, 5, 4, 2, 0, -1],
+  };
+
   // ---------- تطبيق إعدادات الصوت ----------
   Future<void> applyAudioSettings() async {
     final s = settingsProvider;
     final native = player.platform as NativePlayer;
 
-    // --- إصلاح مستوى الصوت المنخفض جداً ---
+    // --- مستوى الصوت (0-100%) فقط، بلا أي علاقة بالتعزيز ---
     double baseVolume = state.volumeLevel;
     if (baseVolume < 0.05) baseVolume = 0.5;
-
-    double boost = s.defaultAudioBoost / 100.0;
-    if (boost < 0.5) boost = 0.5;
-
-    // player.setVolume يتوقع قيمة بين 0 و 200 (نطاق mpv)
-    player.setVolume((baseVolume * 100 * boost).clamp(0.0, 200.0));
+    player.setVolume((baseVolume * 100).clamp(0.0, 100.0));
     // ---------------------------------------
 
     await native.setProperty('audio-delay', (s.audioDelayMs / 1000.0).toStringAsFixed(3));
+    // ReplayGain مدعومة بشكل أصلي فـ mpv (كتقرا بيانات الملف نفسها)، أدق
+    // من محاولة تصحيحها يدويًا بمرشح صوتي.
+    await native.setProperty('replaygain', s.replayGain ? 'track' : 'no');
 
     final List<String> filters = [];
+
+    // التعزيز (100%-300%) مستقل كليًا عن مستوى الصوت، مطبّق كمرشح صوتي حقيقي
+    // بدل الاعتماد على volume الأصلي لـ mpv (اللي محدود عادة بـ 130%).
+    if (state.audioBoost > 1.01) {
+      filters.add('volume=${state.audioBoost.toStringAsFixed(2)}');
+    }
 
     if (s.audioBalance.abs() > 0.01) {
       final left = (1.0 - s.audioBalance).clamp(0.0, 1.0);
@@ -141,24 +156,52 @@ class PlayerControlService {
       filters.add('pan=stereo|c0=$left*c0|c1=$right*c1');
     }
 
-    if (s.audioOutputMode == 'mono') {
-      filters.add('stereotools=mode=mono');
-    } else if (s.audioOutputMode == 'surround') {
-      filters.add('surround');
+    switch (s.audioOutputMode) {
+      case 'mono':
+        filters.add('stereotools=mode=mono');
+        break;
+      case 'left':
+        filters.add('pan=stereo|c0=c0|c1=c0');
+        break;
+      case 'right':
+        filters.add('pan=stereo|c0=c1|c1=c1');
+        break;
+      case 'downmix51':
+        filters.add('pan=stereo|c0=0.5*FL+0.5*FC+0.3*BL+0.3*LFE|c1=0.5*FR+0.5*FC+0.3*BR+0.3*LFE');
+        break;
+      case 'surround':
+        filters.add('surround');
+        break;
+      case 'passthrough':
+      case 'stereo':
+      default:
+        break;
     }
 
     if (s.bassBoost) {
       filters.add('superequalizer=1.2:1.1:1.05:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0:1.0');
     }
 
-    final eq = s.equalizerBands;
+    if (s.surroundSound) {
+      filters.add('surround');
+    }
+
+    // المعادل الرسومي: البريست المختار (غير "مخصص") كيغلب على النطاقات
+    // اليدوية؛ "مخصص" كيستعمل القيم اللي ضبطها المستخدم يدويًا.
+    final eq = s.equalizerPreset == 'custom'
+        ? s.equalizerBands
+        : (equalizerPresets[s.equalizerPreset] ?? equalizerPresets['off']!);
     if (eq.any((v) => v.abs() > 0.01)) {
       final gains = eq.map((v) => v.toStringAsFixed(1)).join(':');
       filters.add('firequalizer=gain=$gains');
     }
 
-    if (s.surroundSound) {
-      filters.add('surround');
+    if (s.normalizeVolume) {
+      filters.add('dynaudnorm');
+    }
+
+    if (s.skipSilence) {
+      filters.add('silenceremove=start_periods=1:start_duration=0.3:start_threshold=-40dB:detection=peak');
     }
 
     if (filters.isNotEmpty) {
@@ -262,6 +305,7 @@ class PlayerControlService {
       state.volumeLevel = 0.5;
       await savePersistedVolume();
     }
+    state.audioBoost = (settingsProvider.defaultAudioBoost / 100.0).clamp(1.0, 3.0);
     state.notifyListeners();
   }
 
@@ -533,12 +577,18 @@ class PlayerControlService {
   }
 
   void onVolumeChanged(double newLevel) {
-    state.volumeLevel = newLevel.clamp(0.0, 2.0);
-    double boost = settingsProvider.defaultAudioBoost / 100.0;
-    if (boost < 0.5) boost = 0.5;
-    player.setVolume((state.volumeLevel * 100 * boost).clamp(0.0, 200.0));
+    state.volumeLevel = newLevel.clamp(0.0, 1.0);
+    player.setVolume((state.volumeLevel * 100).clamp(0.0, 100.0));
     state.notifyListeners();
     savePersistedVolume();
+  }
+
+  // تعزيز الصوت (100%-300%) مستقل تمامًا عن مستوى الصوت العادي،
+  // مطبّق كمرشح صوتي حقيقي (انظر applyAudioSettings) وليس عبر setVolume.
+  void setAudioBoost(double factor) {
+    state.audioBoost = factor.clamp(1.0, 3.0);
+    state.notifyListeners();
+    applyAudioSettings();
   }
 
   void toggleMute() {

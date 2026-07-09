@@ -3094,47 +3094,161 @@ abstract class AppLocalizations {
   /// **'فشل التنزيل: {error}'**
   String downloadFailed(Object error);
 
-  /// No description provided for @outputSection.
+  /// No description provided for @audioBoostLabel.
   ///
   /// In ar, this message translates to:
-  /// **'الإخراج'**
-  String get outputSection;
+  /// **'تعزيز الصوت'**
+  String get audioBoostLabel;
 
-  /// No description provided for @languageSectionAudio.
+  /// No description provided for @equalizerPresetLabel.
   ///
   /// In ar, this message translates to:
-  /// **'اللغة المفضلة للصوت'**
-  String get languageSectionAudio;
+  /// **'البريست'**
+  String get equalizerPresetLabel;
 
-  /// No description provided for @defaultLabel.
+  /// No description provided for @presetOff.
   ///
   /// In ar, this message translates to:
-  /// **'افتراضي'**
-  String get defaultLabel;
+  /// **'بلا'**
+  String get presetOff;
 
-  /// No description provided for @presetLabel.
+  /// No description provided for @presetRock.
   ///
   /// In ar, this message translates to:
-  /// **'الإعداد المسبق'**
-  String get presetLabel;
+  /// **'روك'**
+  String get presetRock;
 
-  /// No description provided for @normalizeVolume.
+  /// No description provided for @presetPop.
   ///
   /// In ar, this message translates to:
-  /// **'تطبيع مستوى الصوت'**
-  String get normalizeVolume;
+  /// **'بوب'**
+  String get presetPop;
+
+  /// No description provided for @presetMovie.
+  ///
+  /// In ar, this message translates to:
+  /// **'أفلام'**
+  String get presetMovie;
+
+  /// No description provided for @presetClassical.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلاسيكي'**
+  String get presetClassical;
+
+  /// No description provided for @presetJazz.
+  ///
+  /// In ar, this message translates to:
+  /// **'جاز'**
+  String get presetJazz;
+
+  /// No description provided for @presetSpeech.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلام'**
+  String get presetSpeech;
+
+  /// No description provided for @presetCustom.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخصص'**
+  String get presetCustom;
+
+  /// No description provided for @normalizeVolumeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسوية الصوت'**
+  String get normalizeVolumeLabel;
 
   /// No description provided for @normalizeVolumeDesc.
   ///
   /// In ar, this message translates to:
-  /// **'توحيد مستوى الصوت بين المقاطع'**
+  /// **'توحيد مستوى الصوت تلقائياً بين المقاطع'**
   String get normalizeVolumeDesc;
+
+  /// No description provided for @skipSilenceLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي الصمت'**
+  String get skipSilenceLabel;
+
+  /// No description provided for @skipSilenceDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي فترات الصمت تلقائياً أثناء التشغيل'**
+  String get skipSilenceDesc;
+
+  /// No description provided for @replayGainLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'ReplayGain'**
+  String get replayGainLabel;
+
+  /// No description provided for @replayGainDesc.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضبط مستوى الصوت حسب بيانات الملف الأصلية'**
+  String get replayGainDesc;
+
+  /// No description provided for @outputSectionLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المخرج'**
+  String get outputSectionLabel;
+
+  /// No description provided for @outputStereo.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستيريو'**
+  String get outputStereo;
+
+  /// No description provided for @outputMono.
+  ///
+  /// In ar, this message translates to:
+  /// **'أحادي'**
+  String get outputMono;
+
+  /// No description provided for @outputLeft.
+  ///
+  /// In ar, this message translates to:
+  /// **'القناة اليسرى'**
+  String get outputLeft;
+
+  /// No description provided for @outputRight.
+  ///
+  /// In ar, this message translates to:
+  /// **'القناة اليمنى'**
+  String get outputRight;
+
+  /// No description provided for @output51Downmix.
+  ///
+  /// In ar, this message translates to:
+  /// **'دمج 5.1'**
+  String get output51Downmix;
+
+  /// No description provided for @outputPassthrough.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمرير مباشر'**
+  String get outputPassthrough;
+
+  /// No description provided for @preferredAudioSectionLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللغة المفضلة'**
+  String get preferredAudioSectionLabel;
 
   /// No description provided for @autoOption.
   ///
   /// In ar, this message translates to:
   /// **'تلقائي'**
   String get autoOption;
+
+  /// No description provided for @playbackSectionLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'التشغيل'**
+  String get playbackSectionLabel;
 
   /// No description provided for @sampleRate.
   ///
@@ -3147,6 +3261,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'عمق البت'**
   String get bitDepth;
+
+  /// No description provided for @restorePreviousVolume.
+  ///
+  /// In ar, this message translates to:
+  /// **'استعادة مستوى الصوت السابق'**
+  String get restorePreviousVolume;
+
+  /// No description provided for @graphicEqualizerPanelTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المعادل الرسومي (10 نطاقات)'**
+  String get graphicEqualizerPanelTitle;
+
+  /// No description provided for @channelsCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} قنوات'**
+  String channelsCount(Object count);
 }
 
 class _AppLocalizationsDelegate

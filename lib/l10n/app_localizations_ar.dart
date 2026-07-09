@@ -1588,29 +1588,97 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get outputSection => 'الإخراج';
+  String get audioBoostLabel => 'تعزيز الصوت';
 
   @override
-  String get languageSectionAudio => 'اللغة المفضلة للصوت';
+  String get equalizerPresetLabel => 'البريست';
 
   @override
-  String get defaultLabel => 'افتراضي';
+  String get presetOff => 'بلا';
 
   @override
-  String get presetLabel => 'الإعداد المسبق';
+  String get presetRock => 'روك';
 
   @override
-  String get normalizeVolume => 'تطبيع مستوى الصوت';
+  String get presetPop => 'بوب';
 
   @override
-  String get normalizeVolumeDesc => 'توحيد مستوى الصوت بين المقاطع';
+  String get presetMovie => 'أفلام';
+
+  @override
+  String get presetClassical => 'كلاسيكي';
+
+  @override
+  String get presetJazz => 'جاز';
+
+  @override
+  String get presetSpeech => 'كلام';
+
+  @override
+  String get presetCustom => 'مخصص';
+
+  @override
+  String get normalizeVolumeLabel => 'تسوية الصوت';
+
+  @override
+  String get normalizeVolumeDesc => 'توحيد مستوى الصوت تلقائياً بين المقاطع';
+
+  @override
+  String get skipSilenceLabel => 'تخطي الصمت';
+
+  @override
+  String get skipSilenceDesc => 'تخطي فترات الصمت تلقائياً أثناء التشغيل';
+
+  @override
+  String get replayGainLabel => 'ReplayGain';
+
+  @override
+  String get replayGainDesc => 'ضبط مستوى الصوت حسب بيانات الملف الأصلية';
+
+  @override
+  String get outputSectionLabel => 'المخرج';
+
+  @override
+  String get outputStereo => 'ستيريو';
+
+  @override
+  String get outputMono => 'أحادي';
+
+  @override
+  String get outputLeft => 'القناة اليسرى';
+
+  @override
+  String get outputRight => 'القناة اليمنى';
+
+  @override
+  String get output51Downmix => 'دمج 5.1';
+
+  @override
+  String get outputPassthrough => 'تمرير مباشر';
+
+  @override
+  String get preferredAudioSectionLabel => 'اللغة المفضلة';
 
   @override
   String get autoOption => 'تلقائي';
+
+  @override
+  String get playbackSectionLabel => 'التشغيل';
 
   @override
   String get sampleRate => 'معدل العينة';
 
   @override
   String get bitDepth => 'عمق البت';
+
+  @override
+  String get restorePreviousVolume => 'استعادة مستوى الصوت السابق';
+
+  @override
+  String get graphicEqualizerPanelTitle => 'المعادل الرسومي (10 نطاقات)';
+
+  @override
+  String channelsCount(Object count) {
+    return '$count قنوات';
+  }
 }

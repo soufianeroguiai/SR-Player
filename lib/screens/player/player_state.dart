@@ -12,6 +12,7 @@ class PlayerUIState extends ChangeNotifier {
   ActiveMenu currentMenu = ActiveMenu.none;
 
   double volumeLevel = 1.0;
+  double audioBoost = 1.0; // 1.0 = 100% (بدون تعزيز) إلى 3.0 = 300%، مستقل تماماً عن volumeLevel
   double audioDelay = 0.0;
   double speed = 1.0;
   double subtitleSync = 0.0;

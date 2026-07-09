@@ -1588,40 +1588,108 @@ class AppLocalizationsFr extends AppLocalizations {
   String get externalSubtitleLabel => 'Sous-titre externe';
 
   @override
-  String get searchOnlineSubtitles => 'Rechercher des sous-titres en ligne';
+  String get searchOnlineSubtitles => 'بحث عن ترجمة أونلاين';
 
   @override
-  String get noSubtitlesFound => 'Aucun sous-titre trouvé';
+  String get noSubtitlesFound => 'لم يتم العثور على ترجمة';
 
   @override
   String downloadFailed(Object error) {
-    return 'Échec du téléchargement : $error';
+    return 'فشل التنزيل: $error';
   }
 
   @override
-  String get outputSection => 'Sortie';
+  String get audioBoostLabel => 'تعزيز الصوت';
 
   @override
-  String get languageSectionAudio => 'Langue audio préférée';
+  String get equalizerPresetLabel => 'البريست';
 
   @override
-  String get defaultLabel => 'Défaut';
+  String get presetOff => 'بلا';
 
   @override
-  String get presetLabel => 'Préréglage';
+  String get presetRock => 'روك';
 
   @override
-  String get normalizeVolume => 'Normaliser le volume';
+  String get presetPop => 'بوب';
 
   @override
-  String get normalizeVolumeDesc => 'Garder le volume constant';
+  String get presetMovie => 'أفلام';
 
   @override
-  String get autoOption => 'Auto';
+  String get presetClassical => 'كلاسيكي';
 
   @override
-  String get sampleRate => 'Taux d\'échantillonnage';
+  String get presetJazz => 'جاز';
 
   @override
-  String get bitDepth => 'Profondeur de bits';
+  String get presetSpeech => 'كلام';
+
+  @override
+  String get presetCustom => 'مخصص';
+
+  @override
+  String get normalizeVolumeLabel => 'تسوية الصوت';
+
+  @override
+  String get normalizeVolumeDesc => 'توحيد مستوى الصوت تلقائياً بين المقاطع';
+
+  @override
+  String get skipSilenceLabel => 'تخطي الصمت';
+
+  @override
+  String get skipSilenceDesc => 'تخطي فترات الصمت تلقائياً أثناء التشغيل';
+
+  @override
+  String get replayGainLabel => 'ReplayGain';
+
+  @override
+  String get replayGainDesc => 'ضبط مستوى الصوت حسب بيانات الملف الأصلية';
+
+  @override
+  String get outputSectionLabel => 'المخرج';
+
+  @override
+  String get outputStereo => 'ستيريو';
+
+  @override
+  String get outputMono => 'أحادي';
+
+  @override
+  String get outputLeft => 'القناة اليسرى';
+
+  @override
+  String get outputRight => 'القناة اليمنى';
+
+  @override
+  String get output51Downmix => 'دمج 5.1';
+
+  @override
+  String get outputPassthrough => 'تمرير مباشر';
+
+  @override
+  String get preferredAudioSectionLabel => 'اللغة المفضلة';
+
+  @override
+  String get autoOption => 'تلقائي';
+
+  @override
+  String get playbackSectionLabel => 'التشغيل';
+
+  @override
+  String get sampleRate => 'معدل العينة';
+
+  @override
+  String get bitDepth => 'عمق البت';
+
+  @override
+  String get restorePreviousVolume => 'استعادة مستوى الصوت السابق';
+
+  @override
+  String get graphicEqualizerPanelTitle => 'المعادل الرسومي (10 نطاقات)';
+
+  @override
+  String channelsCount(Object count) {
+    return '$count قنوات';
+  }
 }
