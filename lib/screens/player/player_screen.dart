@@ -1404,33 +1404,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     );
   }
 
-  // ------------------------------------------------------
-  //  dispose المعدّلة: تمنع إتلاف المشغّل في وضع Mini Player
-  // ------------------------------------------------------
   @override
   void dispose() {
     _service.savePositionOnExit();
-    final provider = context.read<PlayerProvider>();
-
-    if (provider.isMini) {
-      // في وضع Mini Player، نبقي المشغّل حيًّا، وننظف فقط ما يلزم
-      _state.removeListener(_onStateChanged);
-      _sensorSubscription?.cancel();
-      WidgetsBinding.instance.removeObserver(this);
-      PipService.isInPipMode.removeListener(_onPipModeChanged);
-      _brightnessNotifier.dispose();
-      _seekMsNotifier.dispose();
-      _hideTimer?.cancel();
-      _saveTimer?.cancel();
-      _fitOverlayTimer?.cancel();
-      _sleepTimer?.cancel();
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      super.dispose();
-      return;
-    }
-
-    // وإلا فهو خروج نهائي – تنظيف كامل
     if (_state.smartEnhance) {
       SmartEnhanceService.disable(
         _player,
@@ -1456,7 +1432,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    provider.closeMiniPlayer(); // يوقف المشغّل و PiP
+    final provider = context.read<PlayerProvider>();
+    if (!provider.isMini) {
+      _player.dispose();
+      provider.closeMiniPlayer();
+    }
     super.dispose();
   }
 }

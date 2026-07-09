@@ -8,7 +8,9 @@ class PipService {
   static bool _listenerAttached = false;
 
   /// تعكس آخر حالة PiP أبلغ عنها أندرويد فعلياً عبر
-  /// onPictureInPictureModeChanged.
+  /// onPictureInPictureModeChanged. يجب الاستماع إليها بدل افتراض
+  /// أن enter() نجحت دائماً، لأن أندرويد قد يرفض الطلب (مثلاً إذا
+  /// كانت الميزة معطّلة في إعدادات النظام).
   static final ValueNotifier<bool> isInPipMode = ValueNotifier(false);
 
   static void _ensureListener() {
@@ -25,18 +27,10 @@ class PipService {
     _ensureListener();
     try {
       await _channel.invokeMethod('enterPip');
+      // لا نُحدِّث isInPipMode هنا يدوياً؛ الحالة الموثوقة تصل عبر
+      // onPipModeChanged من Android بعد لحظات قصيرة من نجاح الطلب.
     } catch (e) {
       debugPrint('فشل الدخول إلى وضع PiP: $e');
-    }
-  }
-
-  /// الخروج من وضع PiP برمجيًا (يُغلق نافذة PiP النظامية).
-  static Future<void> exit() async {
-    try {
-      await _channel.invokeMethod('exitPip');
-      // سيتم تحديث isInPipMode عبر المستمع عند الخروج الفعلي
-    } catch (e) {
-      debugPrint('فشل الخروج من PiP: $e');
     }
   }
 }
