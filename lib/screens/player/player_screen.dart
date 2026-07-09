@@ -203,7 +203,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final t = AppLocalizations.of(context)!;
     _state.fitMode = VideoFitMode.values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
     _state.fitOverlayText = modeName(_state.fitMode, t);
-    // تبديل وضع الملاءمة كيصفّي أي تكبير/سحب تفاعلي كان مفعّل بإصبعين.
     _state.zoomScale = 1.0;
     _state.panOffset = Offset.zero;
     _fitOverlayTimer?.cancel();
@@ -797,11 +796,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     : _state.currentMenu == ActiveMenu.audio
                         ? AudioSettingsPanel(
                             player: _player,
-                            service: _service,
                             volumeLevel: _state.volumeLevel,
-                            audioBoost: _state.audioBoost,
                             onVolumeChanged: _service.onVolumeChanged,
-                            onAudioBoostChanged: _service.setAudioBoost,
                             audioTracks: _state.audioTracks,
                             currentAudioTrack: _player.state.track.audio,
                             onTrackSelected: (track) => _player.setAudioTrack(track),
@@ -1000,9 +996,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final controlsVisible = _state.showControls && !_state.isLocked && _state.currentMenu == ActiveMenu.none;
 
-    // كنفعّلو الدخول التلقائي للشاشة المصغرة عبر زر الرجوع غير إلا المستخدم
-    // فعّل إعداد "الشاشة المصغرة تلقائياً" صراحة والفيديو كيتصفّح. غير هكاك
-    // زر الرجوع خاصو يخرج من المشغل بشكل عادي (ويوقف الصوت).
     final shouldAutoPip = !_state.isLocked &&
         _settingsProvider.autoPipOnBackground &&
         _state.isPlaying;
@@ -1377,10 +1370,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         },
                         onToggleFit: _toggleFit,
                         onToggleLock: _toggleLock,
-                        onPip: () async => PipService.enter(),
-                        onMinimize: () {
+                        onPip: () {
                           final provider = context.read<PlayerProvider>();
-                          provider.minimize();
+                          provider.minimizeAndStartPipIfNeeded();
                           Navigator.pop(context);
                         },
                         chapters: _state.chapters,

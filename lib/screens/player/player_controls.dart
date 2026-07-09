@@ -339,7 +339,6 @@ class PlayerBottomBar extends StatefulWidget {
   final VoidCallback onToggleFit;
   final VoidCallback onToggleLock;
   final VoidCallback onPip;
-  final VoidCallback? onMinimize; // زر التصغير الجديد
   final List<({String title, Duration start})> chapters;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
@@ -362,7 +361,6 @@ class PlayerBottomBar extends StatefulWidget {
     required this.onToggleFit,
     required this.onToggleLock,
     required this.onPip,
-    this.onMinimize,
     this.chapters = const [],
     this.onPrevious,
     this.onNext,
@@ -555,10 +553,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
             SizedBox(
               height: 52,
               child: Row(children: [
-                // زر القفل + زر التصغير (بجانب بعض)
                 _BottomBtn(icon: Symbols.lock_rounded, onTap: widget.onToggleLock, size: 22),
-                if (widget.onMinimize != null)
-                  _BottomBtn(icon: Symbols.picture_in_picture_alt_rounded, onTap: widget.onMinimize!, size: 22),
                 const Spacer(),
                 if (widget.onPrevious != null)
                   _BottomBtn(icon: Symbols.skip_previous_rounded, onTap: widget.onPrevious!, size: 28),
@@ -576,7 +571,6 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                 if (widget.onNext != null)
                   _BottomBtn(icon: Symbols.skip_next_rounded, onTap: widget.onNext!, size: 28),
                 const Spacer(),
-                // زر الفيت والبيب فأقصى اليمين
                 _BottomBtn(icon: Symbols.picture_in_picture_rounded, onTap: widget.onPip, size: 22),
                 _BottomBtn(icon: Symbols.aspect_ratio_rounded, onTap: widget.onToggleFit, size: 22),
               ]),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../models/video_item.dart';
+import '../services/pip_service.dart';
 
 class PlayerProvider extends ChangeNotifier {
   Player? _player;
@@ -9,6 +10,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _isMini = false;
   VideoItem? _currentVideo;
   bool _isPlaying = false;
+  _AppLifecycleListener? _lifecycleListener;
 
   Player? get player => _player;
   VideoController? get controller => _controller;
@@ -44,15 +46,35 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// زر واحد: يدخل Mini Player ثم يفعّل PiP تلقائياً عند الخروج للتطبيقات الأخرى
+  void minimizeAndStartPipIfNeeded() {
+    minimize();
+
+    _lifecycleListener?.dispose();
+    _lifecycleListener = _AppLifecycleListener(
+      onPause: () {
+        if (!PipService.isInPipMode.value && _player?.state.playing == true) {
+          PipService.enter();
+        }
+      },
+      onDetach: () {
+        if (!PipService.isInPipMode.value && _player?.state.playing == true) {
+          PipService.enter();
+        }
+      },
+    );
+  }
+
   void closeMiniPlayer() {
     _isPlaying = false;
     _player?.stop();
 
     try {
       _player?.dispose();
-    } catch (_) {
-      // تجاهل الخطأ في حال تم تدمير المشغل مسبقاً في شاشة العرض
-    }
+    } catch (_) {}
+
+    _lifecycleListener?.dispose();
+    _lifecycleListener = null;
 
     _player = null;
     _controller = null;
@@ -67,6 +89,27 @@ class PlayerProvider extends ChangeNotifier {
     try {
       _player?.dispose();
     } catch (_) {}
+    _lifecycleListener?.dispose();
     super.dispose();
+  }
+}
+
+// مراقب دورة حياة التطبيق لتفعيل PiP عند الخروج
+class _AppLifecycleListener with WidgetsBindingObserver {
+  final VoidCallback onPause;
+  final VoidCallback onDetach;
+
+  _AppLifecycleListener({required this.onPause, required this.onDetach}) {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) onPause();
+    if (state == AppLifecycleState.detached) onDetach();
+  }
+
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
   }
 }
