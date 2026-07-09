@@ -796,8 +796,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     : _state.currentMenu == ActiveMenu.audio
                         ? AudioSettingsPanel(
                             player: _player,
+                            service: _service,
                             volumeLevel: _state.volumeLevel,
+                            audioBoost: _state.audioBoost,
                             onVolumeChanged: _service.onVolumeChanged,
+                            onAudioBoostChanged: _service.setAudioBoost,
                             audioTracks: _state.audioTracks,
                             currentAudioTrack: _player.state.track.audio,
                             onTrackSelected: (track) => _player.setAudioTrack(track),
