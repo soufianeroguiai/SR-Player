@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/video_item.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../providers/player_provider.dart'; // ← استيراد PlayerProvider
+import '../../providers/player_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/settings_screen.dart';
 import '../info_screen.dart';
@@ -99,7 +99,6 @@ class _HomeScreenState extends State<HomeScreen>
     await context.read<LibraryProvider>().loadRecent();
   }
 
-  // ← الدالة المعدّلة: تفتح الفيديو عبر PlayerProvider بدلاً من Navigator.push
   Future<void> _openPlayer(VideoItem video) async {
     await context.read<LibraryProvider>().addRecent(video.path);
     if (!mounted) return;
@@ -476,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Icon(Icons.play_arrow_rounded, color: cs.onPrimaryContainer),
           onPressed: () {
             if (_selectedVideos.isNotEmpty) {
-              _openPlayer(firstVideo);  // ← يستخدم الدالة المعدلة
+              _openPlayer(firstVideo);
               setState(() => _selectedVideos.clear());
             }
           },

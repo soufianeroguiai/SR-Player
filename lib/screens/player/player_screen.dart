@@ -999,27 +999,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final controlsVisible = _state.showControls && !_state.isLocked && _state.currentMenu == ActiveMenu.none;
 
-    // تعديل PopScope لتصغير المشغل بدلاً من إغلاقه
     return PopScope(
-      canPop: false, // نمنع الرجوع الافتراضي للنظام
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           final provider = context.read<PlayerProvider>();
 
-          // إذا كان هناك قوائم مفتوحة داخل المشغل، أغلقها أولاً
           if (_state.currentMenu != ActiveMenu.none || _state.showQuickActions) {
             _state.resetMenu();
             return;
           }
 
-          // فك القفل إذا كان مفعلاً
           if (_state.isLocked) {
             _state.isLocked = false;
             _state.notifyListeners();
             return;
           }
 
-          // بدلاً من Navigator.pop، نقوم بتصغير الشاشة
           provider.minimizeAndStartPipIfNeeded();
         }
       },
@@ -1258,7 +1254,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       child: RepaintBoundary(
                         child: PlayerTopBar(
                         videoName: widget.video.name,
-                        // زر الرجوع في الشريط العلوي يجب أن يصغر المشغل أيضاً
                         onBack: () {
                           final provider = context.read<PlayerProvider>();
                           provider.minimizeAndStartPipIfNeeded();

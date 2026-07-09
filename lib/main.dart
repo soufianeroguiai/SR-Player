@@ -8,10 +8,8 @@ import 'theme/app_theme.dart';
 import 'providers/settings_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/player_provider.dart';
-import 'widgets/mini_player.dart';
+import 'screens/root_screen.dart';
 import 'app/permission_gate.dart';
-import 'screens/home/home_screen.dart';
-import 'screens/player/player_screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -82,42 +80,6 @@ class SPlayerApp extends StatelessWidget {
       ],
       home: const PermissionGate(
         child: RootScreen(),
-      ),
-    );
-  }
-}
-
-/// الشاشة الجذرية التي تحتوي على التطبيق الأساسي + طبقة المشغل
-class RootScreen extends StatelessWidget {
-  const RootScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // الطبقة السفلية: التطبيق الأساسي (الرئيسية، البحث، المكتبة...)
-          const HomeScreen(),
-
-          // الطبقة العلوية: مشغل الفيديو
-          Consumer<PlayerProvider>(
-            builder: (context, provider, child) {
-              if (provider.isHidden || provider.currentVideo == null) {
-                return const SizedBox.shrink();
-              }
-
-              if (provider.isMini) {
-                return MiniPlayer(
-                  onTap: () {
-                    provider.maximize(); // العودة للحجم الكامل
-                  },
-                );
-              }
-
-              return PlayerScreen(video: provider.currentVideo!);
-            },
-          ),
-        ],
       ),
     );
   }
