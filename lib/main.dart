@@ -14,9 +14,14 @@ import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   FlutterError.onError = (details) => FlutterError.presentError(details);
+  await _bootstrap();
+}
 
+/// كل منطق التهيئة الفعلي، معزول فدالة مستقلة حتى يمكن استدعاؤه من جديد
+/// عند الضغط على "إعادة المحاولة" فـ [ErrorApp] بدل استدعاء main() نفسها
+/// (استدعاء نقطة الدخول من داخل التطبيق غير صحيح مفاهيمياً ولا ضروري).
+Future<void> _bootstrap() async {
   try {
     MediaKit.ensureInitialized();
   } catch (e) {
@@ -126,7 +131,7 @@ class ErrorApp extends StatelessWidget {
                     textAlign: TextAlign.center),
                 const SizedBox(height: 32),
                 ElevatedButton.icon(
-                  onPressed: () => main(),
+                  onPressed: () => _bootstrap(),
                   icon: const Icon(Icons.refresh),
                   label: Text(t.retryButton),
                 ),

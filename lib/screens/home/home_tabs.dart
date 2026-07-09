@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/video_item.dart';
+import '../../providers/library_provider.dart';
 import '../../widgets/video_card.dart';
 
 class LibraryTab extends StatelessWidget {
@@ -14,6 +15,8 @@ class LibraryTab extends StatelessWidget {
   final Set<VideoItem> selectedVideos;
   final void Function(VideoItem) onSelectionToggle;
   final AppLocalizations t;
+  final LibraryError errorType;
+  final VoidCallback? onRetry;
 
   const LibraryTab({
     super.key,
@@ -25,12 +28,46 @@ class LibraryTab extends StatelessWidget {
     this.selectedVideos = const {},
     required this.onSelectionToggle,
     required this.t,
+    this.errorType = LibraryError.none,
+    this.onRetry,
   });
 
   @override
   Widget build(BuildContext context) {
     if (loading && videos.isEmpty) {
       return const Center(child: CircularProgressIndicator());
+    }
+    // نعرض رسالة الخطأ الفعلي (إذن مرفوض أو فشل المسح) بدل الرسالة العامة
+    // "ماكايناش فيديوهات" التي كانت تظهر فهاذ الحالات وتُخفي السبب الحقيقي.
+    if (videos.isEmpty && errorType != LibraryError.none) {
+      final isPermission = errorType == LibraryError.permissionDenied;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isPermission ? Symbols.no_photography_rounded : Symbols.error_outline_rounded,
+                size: 56,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isPermission ? t.permissionsRequiredBody : t.scanFailedMessage,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Symbols.refresh_rounded),
+                label: Text(isPermission ? t.grantPermissionsButton : t.retryButton),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     if (videos.isEmpty) {
       return EmptyState(t.noVideosFound, Symbols.video_library_rounded, t);

@@ -43,6 +43,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get grantPermissionsButton => 'Accorder les autorisations';
 
   @override
+  String get scanFailedMessage =>
+      'Impossible de charger les vidéos. Tirez vers le bas ou appuyez pour réessayer.';
+
+  @override
   String get skipButton => 'Ignorer';
 
   @override

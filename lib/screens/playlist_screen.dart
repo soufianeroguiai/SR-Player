@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
+import '../providers/player_provider.dart';
 import '../widgets/video_card.dart';
 import '../l10n/app_localizations.dart';
-import 'player/player_screen.dart';
 
 class PlaylistScreen extends StatelessWidget {
   final List<String> playlist;
@@ -35,8 +35,10 @@ class PlaylistScreen extends StatelessWidget {
               itemCount: videos.length,
               itemBuilder: (_, i) => VideoCard(
                 video: videos[i],
-                onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => PlayerScreen(video: videos[i]))),
+                onTap: () {
+                  context.read<PlayerProvider>().openVideo(videos[i]);
+                  Navigator.pop(context);
+                },
                 onMoreTap: null,
               ),
             ),

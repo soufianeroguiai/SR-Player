@@ -43,6 +43,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grantPermissionsButton => 'Grant permissions';
 
   @override
+  String get scanFailedMessage =>
+      'Couldn\'t load videos. Pull down or tap to retry.';
+
+  @override
   String get skipButton => 'Skip';
 
   @override

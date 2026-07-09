@@ -792,6 +792,8 @@ class _HomeScreenState extends State<HomeScreen>
                   selectedVideos: _selectedVideos,
                   onSelectionToggle: _toggleSelection,
                   t: t,
+                  errorType: lib.errorType,
+                  onRetry: _refreshLibrary,
                 ),
               ),
               _buildFoldersTab(lib, settings, t),

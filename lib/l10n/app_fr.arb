@@ -9,6 +9,7 @@
   "permissionsRequiredTitle": "Autorisations requises",
   "permissionsRequiredBody": "L'application a besoin de l'autorisation d'accès aux médias pour afficher les vidéos.",
   "grantPermissionsButton": "Accorder les autorisations",
+  "scanFailedMessage": "Impossible de charger les vidéos. Tirez vers le bas ou appuyez pour réessayer.",
   "skipButton": "Ignorer",
   "favoritesTitle": "Favoris",
   "noFavoriteVideos": "Aucune vidéo favorite",

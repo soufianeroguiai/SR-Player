@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';  // تم التصحيح إلى l10n
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
+import '../providers/player_provider.dart';
 import '../widgets/video_card.dart';
-import 'player/player_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -51,8 +51,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               itemCount: videos.length,
               itemBuilder: (_, i) => VideoCard(
                 video: videos[i],
-                onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => PlayerScreen(video: videos[i]))),
+                onTap: () {
+                  // نفتح الفيديو عبر PlayerProvider بدل Navigator.push حتى يُعرض
+                  // المشغّل داخل نفس Stack الخاص بـ RootScreen (وليس كـ Route منفصل).
+                  // هذا ضروري لكي تعمل ميزة التصغير/PiP وزر الرجوع بشكل صحيح،
+                  // لأن منطق التصغير في PlayerScreen يفترض عدم وجود Route مضغوط فوقه.
+                  context.read<PlayerProvider>().openVideo(videos[i]);
+                  Navigator.pop(context);
+                },
                 onMoreTap: null,
               ),
             ),

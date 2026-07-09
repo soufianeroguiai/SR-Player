@@ -43,6 +43,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get grantPermissionsButton => 'منح الصلاحيات';
 
   @override
+  String get scanFailedMessage =>
+      'تعذّر تحميل الفيديوهات. اسحب للأسفل أو اضغط لإعادة المحاولة.';
+
+  @override
   String get skipButton => 'تخطي';
 
   @override

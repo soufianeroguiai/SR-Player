@@ -9,6 +9,7 @@
   "permissionsRequiredTitle": "Permissions required",
   "permissionsRequiredBody": "The app needs media access permission to display videos.",
   "grantPermissionsButton": "Grant permissions",
+  "scanFailedMessage": "Couldn't load videos. Pull down or tap to retry.",
   "skipButton": "Skip",
   "favoritesTitle": "Favorites",
   "noFavoriteVideos": "No favorite videos",

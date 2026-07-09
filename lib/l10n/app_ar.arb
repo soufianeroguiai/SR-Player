@@ -10,6 +10,7 @@
   "permissionsRequiredTitle": "الصلاحيات مطلوبة",
   "permissionsRequiredBody": "يحتاج التطبيق إلى إذن الوصول إلى الوسائط لعرض الفيديوهات.",
   "grantPermissionsButton": "منح الصلاحيات",
+  "scanFailedMessage": "تعذّر تحميل الفيديوهات. اسحب للأسفل أو اضغط لإعادة المحاولة.",
   "skipButton": "تخطي",
   "favoritesTitle": "المفضلة",
   "noFavoriteVideos": "لا توجد فيديوهات مفضلة",

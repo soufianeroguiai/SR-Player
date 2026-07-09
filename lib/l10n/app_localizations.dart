@@ -154,6 +154,12 @@ abstract class AppLocalizations {
   /// **'منح الصلاحيات'**
   String get grantPermissionsButton;
 
+  /// No description provided for @scanFailedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحميل الفيديوهات. اسحب للأسفل أو اضغط لإعادة المحاولة.'**
+  String get scanFailedMessage;
+
   /// No description provided for @skipButton.
   ///
   /// In ar, this message translates to:

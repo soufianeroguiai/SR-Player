@@ -9,6 +9,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
 import '../models/video_item.dart';
 
+/// نوع الخطأ الأخير الذي وقع أثناء فهرسة المكتبة.
+/// يُستخدم فالواجهة باش نعرضو رسالة وزر مناسبين (طلب إذن أو إعادة محاولة)
+/// بدل ما نعرضو فقط "ماكايناش فيديوهات" فكل الحالات.
+enum LibraryError { none, permissionDenied, scanFailed }
+
 class LibraryProvider extends ChangeNotifier {
   List<VideoItem> _videos = [];
   List<String> _recentPaths = [];
@@ -17,6 +22,7 @@ class LibraryProvider extends ChangeNotifier {
   List<String> _playlistPaths = [];
   bool _loading = false;
   String? _error;
+  LibraryError _errorType = LibraryError.none;
 
   final Map<String, int> _positions = {};
   Map<String, List<int>> _bookmarks = {};
@@ -35,6 +41,7 @@ class LibraryProvider extends ChangeNotifier {
   List<String> get playlistPaths => _playlistPaths;
   bool get loading => _loading;
   String? get error => _error;
+  LibraryError get errorType => _errorType;
 
   // كل تغيير فالحالة كيلغي الكاش، باش "videos" ما يعاودش يبني اللائحة
   // غير إلا تغير شيء فعلاً (بدل ما كان كيبنيها من جديد فكل استدعاء).
@@ -332,6 +339,7 @@ class LibraryProvider extends ChangeNotifier {
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth && !ps.hasAccess) {
         _error = 'لم يتم منح الإذن للوصول إلى الوسائط.';
+        _errorType = LibraryError.permissionDenied;
         _loading = false;
         notifyListeners();
         return;
@@ -370,6 +378,7 @@ class LibraryProvider extends ChangeNotifier {
       await _loadAllSavedPositions();
     } catch (e) {
       _error = 'فشل المسح: $e';
+      _errorType = LibraryError.scanFailed;
     }
 
     _loading = false;
