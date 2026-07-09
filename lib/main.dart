@@ -80,28 +80,44 @@ class SPlayerApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: Builder(
-        builder: (context) {
-          return Stack(
-            children: [
-              const PermissionGate(child: HomeScreen()),
-              MiniPlayer(
-                onTap: () {
-                  final provider = context.read<PlayerProvider>();
-                  if (provider.currentVideo != null) {
-                    provider.restore();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlayerScreen(video: provider.currentVideo!),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          );
-        },
+      home: const PermissionGate(
+        child: RootScreen(),
+      ),
+    );
+  }
+}
+
+/// الشاشة الجذرية التي تحتوي على التطبيق الأساسي + طبقة المشغل
+class RootScreen extends StatelessWidget {
+  const RootScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // الطبقة السفلية: التطبيق الأساسي (الرئيسية، البحث، المكتبة...)
+          const HomeScreen(),
+
+          // الطبقة العلوية: مشغل الفيديو
+          Consumer<PlayerProvider>(
+            builder: (context, provider, child) {
+              if (provider.isHidden || provider.currentVideo == null) {
+                return const SizedBox.shrink();
+              }
+
+              if (provider.isMini) {
+                return MiniPlayer(
+                  onTap: () {
+                    provider.maximize(); // العودة للحجم الكامل
+                  },
+                );
+              }
+
+              return PlayerScreen(video: provider.currentVideo!);
+            },
+          ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../providers/player_provider.dart';
+import '../services/pip_service.dart'; // 👈 استيراد خدمة PiP
 
 class MiniPlayer extends StatefulWidget {
   final VoidCallback onTap;
@@ -26,28 +27,49 @@ class _MiniPlayerState extends State<MiniPlayer> {
     final miniWidth = screenSize.width * 0.4;
     final miniHeight = miniWidth * 0.6;
 
-    return Positioned(
-      left: _position.dx.clamp(0.0, screenSize.width - miniWidth),
-      top: _position.dy.clamp(0.0, screenSize.height - miniHeight - kToolbarHeight),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Draggable(
-          feedback: Material(
-            color: Colors.transparent,
-            child: _buildMiniPlayer(miniWidth, miniHeight, provider),
+    // 👈 استمع لحالة PiP الخاصة بنظام التشغيل
+    return ValueListenableBuilder<bool>(
+      valueListenable: PipService.isInPipMode,
+      builder: (context, isSystemPip, child) {
+        // إذا كان التطبيق في وضع PiP الخارجي، املأ الشاشة بدون حواف أو أزرار
+        if (isSystemPip) {
+          return Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: Video(
+                controller: provider.controller!,
+                fit: BoxFit.contain,
+                controls: NoVideoControls,
+              ),
+            ),
+          );
+        }
+
+        // الوضع الطبيعي داخل التطبيق (مصغر وقابل للسحب)
+        return Positioned(
+          left: _position.dx.clamp(0.0, screenSize.width - miniWidth),
+          top: _position.dy.clamp(0.0, screenSize.height - miniHeight - kToolbarHeight),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: Draggable(
+              feedback: Material(
+                color: Colors.transparent,
+                child: _buildMiniPlayer(miniWidth, miniHeight, provider),
+              ),
+              childWhenDragging: const SizedBox.shrink(),
+              onDragEnd: (details) {
+                setState(() {
+                  _position = Offset(
+                    details.offset.dx.clamp(0.0, screenSize.width - miniWidth),
+                    details.offset.dy.clamp(0.0, screenSize.height - miniHeight - kToolbarHeight),
+                  );
+                });
+              },
+              child: _buildMiniPlayer(miniWidth, miniHeight, provider),
+            ),
           ),
-          childWhenDragging: const SizedBox.shrink(),
-          onDragEnd: (details) {
-            setState(() {
-              _position = Offset(
-                details.offset.dx.clamp(0.0, screenSize.width - miniWidth),
-                details.offset.dy.clamp(0.0, screenSize.height - miniHeight - kToolbarHeight),
-              );
-            });
-          },
-          child: _buildMiniPlayer(miniWidth, miniHeight, provider),
-        ),
-      ),
+        );
+      },
     );
   }
 

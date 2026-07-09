@@ -8,6 +8,7 @@ class PlayerProvider extends ChangeNotifier {
   Player? _player;
   VideoController? _controller;
   bool _isMini = false;
+  bool _isHidden = true; // 👈 حالة إخفاء المشغل تماماً
   VideoItem? _currentVideo;
   bool _isPlaying = false;
   _AppLifecycleListener? _lifecycleListener;
@@ -15,6 +16,7 @@ class PlayerProvider extends ChangeNotifier {
   Player? get player => _player;
   VideoController? get controller => _controller;
   bool get isMini => _isMini;
+  bool get isHidden => _isHidden; // 👈 getter للحالة
   VideoItem? get currentVideo => _currentVideo;
   bool get isPlaying => _isPlaying;
 
@@ -23,6 +25,16 @@ class PlayerProvider extends ChangeNotifier {
       _player = Player();
       _controller = VideoController(_player!);
     }
+    notifyListeners();
+  }
+
+  // 👈 الدالة الجديدة: استدعِها عند الضغط على فيديو بدلاً من Navigator.push
+  void openVideo(VideoItem video) {
+    _currentVideo = video;
+    _isMini = false;
+    _isHidden = false;
+    initPlayer();
+    // هنا يمكنك أيضاً بدء تشغيل الفيديو تلقائياً عن طريق استدعاء player.open(...) الخ
     notifyListeners();
   }
 
@@ -38,6 +50,12 @@ class PlayerProvider extends ChangeNotifier {
 
   void minimize() {
     _isMini = true;
+    notifyListeners();
+  }
+
+  // 👈 دالة جديدة لجعل المشغل بالحجم الكامل مرة أخرى
+  void maximize() {
+    _isMini = false;
     notifyListeners();
   }
 
@@ -65,7 +83,10 @@ class PlayerProvider extends ChangeNotifier {
     );
   }
 
-  void closeMiniPlayer() {
+  // 👈 الدالة الجديدة: إغلاق المشغل تماماً وإخفاؤه
+  void closePlayer() {
+    _isHidden = true;
+    _isMini = false;
     _isPlaying = false;
     _player?.stop();
 
@@ -78,9 +99,13 @@ class PlayerProvider extends ChangeNotifier {
 
     _player = null;
     _controller = null;
-    _isMini = false;
     _currentVideo = null;
     notifyListeners();
+  }
+
+  // الدالة القديمة (ما زالت موجودة للتوافق) – يمكنك الاستغناء عنها أو إبقائها
+  void closeMiniPlayer() {
+    closePlayer(); // توجيهها إلى closePlayer الجديدة
   }
 
   @override

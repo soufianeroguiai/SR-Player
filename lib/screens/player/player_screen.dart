@@ -999,24 +999,28 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final controlsVisible = _state.showControls && !_state.isLocked && _state.currentMenu == ActiveMenu.none;
 
-    final shouldAutoPip = !_state.isLocked &&
-        _settingsProvider.autoPipOnBackground &&
-        _state.isPlaying;
-
+    // تعديل PopScope لتصغير المشغل بدلاً من إغلاقه
     return PopScope(
-      canPop: !_state.isLocked && !shouldAutoPip,
-      onPopInvokedWithResult: (didPop, result) async {
+      canPop: false, // نمنع الرجوع الافتراضي للنظام
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
+          final provider = context.read<PlayerProvider>();
+
+          // إذا كان هناك قوائم مفتوحة داخل المشغل، أغلقها أولاً
           if (_state.currentMenu != ActiveMenu.none || _state.showQuickActions) {
             _state.resetMenu();
             return;
           }
+
+          // فك القفل إذا كان مفعلاً
           if (_state.isLocked) {
             _state.isLocked = false;
             _state.notifyListeners();
             return;
           }
-          if (shouldAutoPip) await PipService.enter();
+
+          // بدلاً من Navigator.pop، نقوم بتصغير الشاشة
+          provider.minimizeAndStartPipIfNeeded();
         }
       },
       child: Scaffold(
@@ -1254,7 +1258,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       child: RepaintBoundary(
                         child: PlayerTopBar(
                         videoName: widget.video.name,
-                        onBack: () => Navigator.pop(context),
+                        // زر الرجوع في الشريط العلوي يجب أن يصغر المشغل أيضاً
+                        onBack: () {
+                          final provider = context.read<PlayerProvider>();
+                          provider.minimizeAndStartPipIfNeeded();
+                        },
                         onAudioMenu: () {
                           _state.currentMenu = _state.currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
                           _state.showQuickActions = false;
@@ -1376,7 +1384,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         onPip: () {
                           final provider = context.read<PlayerProvider>();
                           provider.minimizeAndStartPipIfNeeded();
-                          Navigator.pop(context);
                         },
                         chapters: _state.chapters,
                         onPrevious: _service.playPrevious,
@@ -1434,6 +1441,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final provider = context.read<PlayerProvider>();
     if (!provider.isMini) {
+      _player.stop();
       _player.dispose();
       provider.closeMiniPlayer();
     }
