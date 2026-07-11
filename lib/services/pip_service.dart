@@ -33,4 +33,18 @@ class PipService {
       debugPrint('فشل الدخول إلى وضع PiP: $e');
     }
   }
+
+  /// نُبلِغ الجانب الأصلي (Kotlin) هل يوجد فيديو قيد التشغيل حالياً أم لا.
+  /// أندرويد يستدعي onUserLeaveHint() فور خروج المستخدم من التطبيق مباشرة
+  /// (بدون أي تأخير)، ولا يقدر ينتظر رد من Dart فتلك اللحظة بالذات - لذلك
+  /// لازم نُحدِّث هاذ العلَم على الجانب الأصلي مسبقاً فـ كل مرة تتغيّر فيها
+  /// حالة التشغيل، حتى يكون جاهزاً وقت الحاجة.
+  static Future<void> setEligible(bool eligible) async {
+    _ensureListener();
+    try {
+      await _channel.invokeMethod('setPipEligible', eligible);
+    } catch (e) {
+      debugPrint('فشل تحديث أهلية PiP: $e');
+    }
+  }
 }

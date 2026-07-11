@@ -12,6 +12,13 @@ class MainActivity : FlutterActivity() {
     private val pipChannelName = "com.splayer.app/pip"
     private var pipChannel: MethodChannel? = null
 
+    // يعكس ما إذا كان هناك فيديو قيد التشغيل حالياً فـ Flutter، يُحدَّث
+    // باستمرار من Dart عبر setPipEligible فكل مرة تتغيّر فيها حالة
+    // التشغيل. نحتاجه هنا محلياً لأن onUserLeaveHint() يُستدعى من طرف
+    // أندرويد مباشرة (بدون أي تأخير) ولا يقدر ينتظر رد Async قادم من Dart
+    // فتلك اللحظة بالذات.
+    private var pipEligible = false
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, pipChannelName)
@@ -19,6 +26,10 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "enterPip" -> {
                     result.success(enterPipMode())
+                }
+                "setPipEligible" -> {
+                    pipEligible = call.arguments as? Boolean ?: false
+                    result.success(null)
                 }
                 else -> result.notImplemented()
             }
@@ -34,6 +45,19 @@ class MainActivity : FlutterActivity() {
             return enterPictureInPictureMode(params)
         }
         return false
+    }
+
+    // هذه هي اللحظة الصحيحة لطلب الدخول لـ PiP على أندرويد: تُستدعى فوراً
+    // ولحظة خروج المستخدم من التطبيق (زر الرئيسية، التبديل بين التطبيقات،
+    // إيماءة الرجوع...) - قبل أي إيقاف مؤقت فعلي للنشاط (onPause). سابقاً
+    // كان الاعتماد فقط على إشعار متأخر قادم من Flutter بعد اكتشاف
+    // AppLifecycleState.paused، وهو ما يصل غالباً بعد أن يكون أندرويد قد
+    // بدأ الانتقال للخلفية فعلاً، فيرفض طلب الدخول لـ PiP أو يتجاهله.
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (pipEligible) {
+            enterPipMode()
+        }
     }
 
     override fun onPictureInPictureModeChanged(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -12,6 +13,27 @@ class PlayerProvider extends ChangeNotifier {
   VideoItem? _currentVideo;
   bool _isPlaying = false;
   _AppLifecycleListener? _lifecycleListener;
+  StreamSubscription<bool>? _playingSubscription;
+
+  PlayerProvider() {
+    // مهم: منذ ما صرنا نُفعّل PiP الحقيقي مباشرة من onUserLeaveHint() على
+    // الجانب الأصلي (أندرويد)، صار بالإمكان دخول PiP وقت مشاهدة الفيديو
+    // بملء الشاشة (isMini لازال false) بمجرد الضغط على زر الرئيسية، بدون
+    // المرور أبداً بـ minimize()/minimizeAndStartPipIfNeeded(). لو بقينا
+    // معتمدين فقط على isMini لتحديد ما يُعرض، فـ RootScreen غايبقى يعرض
+    // PlayerScreen الكامل (بكل عناصر التحكم الكبيرة) مضغوطاً داخل نافذة
+    // PiP الصغيرة، وهذا خطأ بصري. لهذا نستمع هنا لحالة PiP الحقيقية
+    // القادمة من أندرويد ونُزامن isMini معها فوراً بمجرد دخول PiP فعلياً،
+    // بغض النظر عن كيف تم تفعيله.
+    PipService.isInPipMode.addListener(_onSystemPipModeChanged);
+  }
+
+  void _onSystemPipModeChanged() {
+    if (PipService.isInPipMode.value && !_isMini) {
+      _isMini = true;
+      notifyListeners();
+    }
+  }
 
   Player? get player => _player;
   VideoController? get controller => _controller;
@@ -24,6 +46,14 @@ class PlayerProvider extends ChangeNotifier {
     if (_player == null) {
       _player = Player();
       _controller = VideoController(_player!);
+      // نستمع لتيار حالة التشغيل الحقيقي من media_kit ونُبلِغ الجانب
+      // الأصلي (Android) بأهلية PiP باستمرار، حتى يكون جاهزاً وقت
+      // onUserLeaveHint() بدل انتظار رد من Dart فتلك اللحظة بالذات.
+      _playingSubscription = _player!.stream.playing.listen((playing) {
+        _isPlaying = playing;
+        PipService.setEligible(playing);
+        notifyListeners();
+      });
     }
     notifyListeners();
   }
@@ -85,6 +115,10 @@ class PlayerProvider extends ChangeNotifier {
     _isPlaying = false;
     _player?.stop();
 
+    _playingSubscription?.cancel();
+    _playingSubscription = null;
+    PipService.setEligible(false);
+
     try {
       _player?.dispose();
     } catch (_) {}
@@ -105,6 +139,8 @@ class PlayerProvider extends ChangeNotifier {
   @override
   void dispose() {
     _player?.stop();
+    _playingSubscription?.cancel();
+    PipService.isInPipMode.removeListener(_onSystemPipModeChanged);
     try {
       _player?.dispose();
     } catch (_) {}
