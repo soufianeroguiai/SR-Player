@@ -83,7 +83,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
-      provider.restore();
+      // نؤجّل provider.restore() لما بعد إتمام هاذ الإطار (frame) لأن استدعاء
+      // notifyListeners() بشكل متزامن من داخل initState (وهي أصلاً نتيجة
+      // notifyListeners سابقة من الشاشة الرئيسية) مخالف لقواعد Flutter
+      // ("setState/markNeedsBuild called during build") ويمكن يسبب سلوكاً
+      // غير مستقر فحالات معينة.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) provider.restore();
+      });
     } else {
       _player = Player();
       _controller = VideoController(_player);
