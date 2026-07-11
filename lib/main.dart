@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,23 +15,12 @@ import 'widgets/mini_player.dart';
 import 'app/permission_gate.dart';
 import 'l10n/app_localizations.dart';
 
-/// مفتاح تنقّل عام حتى نقدر نرجع لأول شاشة (RootScreen) من أي مكان فالتطبيق
-/// - نحتاجه فـ MiniPlayer العامة: إيلا كان المستخدم فشاشة الإعدادات مثلاً
-/// وضغط على المشغّل المصغّر باش يكبّرو، خاصنا نرجعو أولاً لـ RootScreen
-/// (اللي فيه PlayerScreen) قبل ما نكبّر، وإلا التكبير غايوقع فالخلفية بلا
-/// ما يبان.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// سجلّ الأخطاء العام: نجمّع فيه أي استثناء غير ملتقَط (سواء أثناء البناء
-/// أو داخل Future/Timer/callback) باش نعرضو مباشرة فوق الواجهة. فـ release
-/// mode، فلاتر عادةً ما يعرضش الشاشة الحمراء ولا يوقف التطبيق - الخطأ
-/// كيختفي بصمت فـ logcat اللي ما عندناش وصول ليه من الهاتف. هاذ الحل كيبان
-/// مباشرة فالتطبيق نفسه.
 final ValueNotifier<List<String>> globalErrorLog = ValueNotifier<List<String>>([]);
 
 void _logGlobalError(Object error, StackTrace? stack) {
   final entry = '$error\n${stack ?? ''}';
-  // كنحتفظو بآخر 5 أخطاء فقط باش ما يتقلش السجلّ بلا حدود.
   final updated = [...globalErrorLog.value, entry];
   globalErrorLog.value = updated.length > 5 ? updated.sublist(updated.length - 5) : updated;
 }
@@ -52,9 +42,6 @@ void main() {
   });
 }
 
-/// كل منطق التهيئة الفعلي، معزول فدالة مستقلة حتى يمكن استدعاؤه من جديد
-/// عند الضغط على "إعادة المحاولة" فـ [ErrorApp] بدل استدعاء main() نفسها
-/// (استدعاء نقطة الدخول من داخل التطبيق غير صحيح مفاهيمياً ولا ضروري).
 Future<void> _bootstrap() async {
   try {
     MediaKit.ensureInitialized();
@@ -125,10 +112,6 @@ class SPlayerApp extends StatelessWidget {
         return Stack(
           children: [
             if (child != null) child,
-            // المشغّل المصغّر أصبح هنا على مستوى التطبيق كله (فوق أي Route)
-            // بدل داخل RootScreen فقط. سابقاً كان أي Navigator.push (فتح
-            // الإعدادات مثلاً) يغطي الشاشة بالكامل ويُخفي المشغّل المصغّر
-            // بصرياً رغم أنه لم يُغلق فعلياً. الآن يبقى طافياً فوق أي شاشة.
             const _GlobalMiniPlayer(),
             const _GlobalErrorOverlay(),
           ],
@@ -138,8 +121,6 @@ class SPlayerApp extends StatelessWidget {
   }
 }
 
-/// غلاف بسيط يعرض MiniPlayer على مستوى التطبيق، ويهتم بالرجوع لـ
-/// RootScreen عند الضغط على المشغّل المصغّر من أي شاشة أخرى غير الرئيسية.
 class _GlobalMiniPlayer extends StatelessWidget {
   const _GlobalMiniPlayer();
 
@@ -147,8 +128,6 @@ class _GlobalMiniPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     return MiniPlayer(
       onTap: () {
-        // نرجع أولاً لأول شاشة (RootScreen) - وإلا كبّرنا المشغّل والمستخدم
-        // مازال واقف فشاشة الإعدادات مثلاً، فما غايبانش التكبير.
         rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
         context.read<PlayerProvider>().maximize();
       },
@@ -156,10 +135,6 @@ class _GlobalMiniPlayer extends StatelessWidget {
   }
 }
 
-/// شريط أسفل الشاشة يظهر تلقائياً عند وقوع أي استثناء، مع نص الخطأ كاملاً
-/// وزر نسخ. يبقى فوق أي شاشة (بما فيها المشغّل) لأنه مضاف عبر
-/// MaterialApp.builder، وهو معزول تماماً عن أي Provider حتى ما يتأثرش
-/// بأي مشكلة فالشجرة الرئيسية.
 class _GlobalErrorOverlay extends StatelessWidget {
   const _GlobalErrorOverlay();
 
