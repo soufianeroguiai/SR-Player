@@ -8,7 +8,7 @@ class PlayerProvider extends ChangeNotifier {
   Player? _player;
   VideoController? _controller;
   bool _isMini = false;
-  bool _isHidden = true; // 👈 حالة إخفاء المشغل تماماً
+  bool _isHidden = true;
   VideoItem? _currentVideo;
   bool _isPlaying = false;
   _AppLifecycleListener? _lifecycleListener;
@@ -16,7 +16,7 @@ class PlayerProvider extends ChangeNotifier {
   Player? get player => _player;
   VideoController? get controller => _controller;
   bool get isMini => _isMini;
-  bool get isHidden => _isHidden; // 👈 getter للحالة
+  bool get isHidden => _isHidden;
   VideoItem? get currentVideo => _currentVideo;
   bool get isPlaying => _isPlaying;
 
@@ -28,13 +28,11 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 👈 الدالة الجديدة: استدعِها عند الضغط على فيديو بدلاً من Navigator.push
   void openVideo(VideoItem video) {
     _currentVideo = video;
     _isMini = false;
     _isHidden = false;
     initPlayer();
-    // هنا يمكنك أيضاً بدء تشغيل الفيديو تلقائياً عن طريق استدعاء player.open(...) الخ
     notifyListeners();
   }
 
@@ -53,7 +51,6 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 👈 دالة جديدة لجعل المشغل بالحجم الكامل مرة أخرى
   void maximize() {
     _isMini = false;
     notifyListeners();
@@ -64,7 +61,6 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// زر واحد: يدخل Mini Player ثم يفعّل PiP تلقائياً عند الخروج للتطبيقات الأخرى
   void minimizeAndStartPipIfNeeded() {
     minimize();
 
@@ -83,7 +79,6 @@ class PlayerProvider extends ChangeNotifier {
     );
   }
 
-  // 👈 الدالة الجديدة: إغلاق المشغل تماماً وإخفاؤه
   void closePlayer() {
     _isHidden = true;
     _isMini = false;
@@ -103,9 +98,8 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // الدالة القديمة (ما زالت موجودة للتوافق) – يمكنك الاستغناء عنها أو إبقائها
   void closeMiniPlayer() {
-    closePlayer(); // توجيهها إلى closePlayer الجديدة
+    closePlayer();
   }
 
   @override
@@ -119,7 +113,6 @@ class PlayerProvider extends ChangeNotifier {
   }
 }
 
-// مراقب دورة حياة التطبيق لتفعيل PiP عند الخروج
 class _AppLifecycleListener with WidgetsBindingObserver {
   final VoidCallback onPause;
   final VoidCallback onDetach;

@@ -48,10 +48,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   late final PlayerControlService _service;
   late final LibraryProvider _libraryProvider;
   late final SettingsProvider _settingsProvider;
-  // نخزّن مرجع PlayerProvider هنا لأن استدعاء context.read() داخل dispose()
-  // غير آمن فـ Flutter (الـ context يصبح "deactivated" فتلك اللحظة) ويرمي
-  // استثناء يمنع إتمام التصغير/الإغلاق، وهذا كان السبب الحقيقي وراء توقف
-  // زر الرجوع (سواء من الواجهة أو زر الهاتف) عن العمل.
   late final PlayerProvider _playerProvider;
 
   Timer? _hideTimer;
@@ -83,11 +79,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
-      // نؤجّل provider.restore() لما بعد إتمام هاذ الإطار (frame) لأن استدعاء
-      // notifyListeners() بشكل متزامن من داخل initState (وهي أصلاً نتيجة
-      // notifyListeners سابقة من الشاشة الرئيسية) مخالف لقواعد Flutter
-      // ("setState/markNeedsBuild called during build") ويمكن يسبب سلوكاً
-      // غير مستقر فحالات معينة.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) provider.restore();
       });

@@ -5,7 +5,8 @@ import '../providers/player_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/pip_service.dart';
 import '../widgets/subtitle_renderer.dart';
-// تأكد من استيراد الكلاس SubtitleEntry من مساره الصحيح لديك (مثلاً من services أو models)
+// تأكد من صحة مسار استيراد SubtitleEntry حسب هيكل مشروعك
+import '../services/subtitle_service.dart'; 
 
 class MiniPlayer extends StatefulWidget {
   final VoidCallback onTap;
@@ -19,7 +20,7 @@ class MiniPlayer extends StatefulWidget {
 class _MiniPlayerState extends State<MiniPlayer> {
   Offset _position = const Offset(16, 100);
   
-  // 👈 متغيرات جديدة للتحكم الديناميكي بالحجم
+  // متغيرات للتحكم الديناميكي بالحجم
   double? _width;
   double _baseWidth = 0;
 
@@ -32,23 +33,32 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
     final screenSize = MediaQuery.of(context).size;
 
-    // 1. تعيين العرض الافتراضي لأول مرة فقط (مثلاً 50% من الشاشة)
+    // 1. تعيين العرض الافتراضي لأول مرة (50% من عرض الشاشة)
     _width ??= screenSize.width * 0.50;
 
-    // 2. الحفاظ على أبعاد الفيديو (16:9)
+    // 2. حماية: إذا تم تدوير الشاشة وأصبح العرض المحفوظ أكبر من الشاشة، نرجعه للحجم الافتراضي
+    if (_width! >= screenSize.width - 16) {
+      _width = screenSize.width * 0.50;
+    }
+
+    // 3. الحفاظ على أبعاد الفيديو (نسبة 16:9)
     final height = _width! * (9 / 16);
 
-    // 3. منع المشغل من الخروج خارج حواف الشاشة أثناء التحريك أو التكبير
+    // 4. حماية: حساب أقصى مساحة آمنة لتجنب الأخطاء (Crash) عند دوران الشاشة
+    final maxDx = (screenSize.width - _width!).clamp(0.0, double.infinity);
+    final maxDy = (screenSize.height - height - kToolbarHeight).clamp(0.0, double.infinity);
+
+    // 5. منع المشغل من الخروج خارج حواف الشاشة
     _position = Offset(
-      _position.dx.clamp(0.0, screenSize.width - _width!),
-      _position.dy.clamp(0.0, screenSize.height - height - kToolbarHeight),
+      _position.dx.clamp(0.0, maxDx),
+      _position.dy.clamp(0.0, maxDy),
     );
 
     return ValueListenableBuilder<bool>(
       valueListenable: PipService.isInPipMode,
       builder: (context, isSystemPip, child) {
         
-        // وضع PiP النظام
+        // 🔹 وضع "صورة داخل صورة" (PiP) الخاص بالنظام الخارجي
         if (isSystemPip) {
           return Positioned.fill(
             child: Container(
@@ -62,25 +72,25 @@ class _MiniPlayerState extends State<MiniPlayer> {
           );
         }
 
-        // الوضع المصغر التفاعلي داخل التطبيق
+        // 🔹 الوضع المصغر التفاعلي داخل التطبيق
         return Positioned(
           left: _position.dx,
           top: _position.dy,
           child: GestureDetector(
-            onTap: widget.onTap, // التكبير واستعادة الشاشة الكاملة عند الضغط
+            onTap: widget.onTap, // استعادة الشاشة الكاملة عند الضغط
             
-            // 👈 بدء السحب أو التكبير
+            // بدء السحب أو التكبير (بإصبعين)
             onScaleStart: (details) {
               _baseWidth = _width!;
             },
             
-            // 👈 تحديث الحركة والحجم
+            // تحديث الحركة والحجم
             onScaleUpdate: (details) {
               setState(() {
-                // 1. تحريك المشغل (بإصبع واحد)
+                // تحريك المشغل
                 _position += details.focalPointDelta;
 
-                // 2. تكبير/تصغير المشغل (بإصبعين - Pinch)
+                // تكبير/تصغير المشغل بقرصة الأصابع (Pinch)
                 if (details.scale != 1.0) {
                   _width = (_baseWidth * details.scale).clamp(
                     150.0, // الحد الأدنى للعرض
@@ -100,6 +110,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
     final player = provider.player;
     if (player == null) return const SizedBox.shrink();
 
+    // جلب إعدادات الترجمة لتتحدث حياً مع المشغل المصغر
     final subtitleSettings = context.watch<SettingsProvider>().subtitleSettings;
 
     return Container(
@@ -126,6 +137,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 controller: provider.controller!,
                 fit: BoxFit.cover,
                 controls: NoVideoControls,
+                // إخفاء الترجمة الافتراضية للنظام لتجنب التداخل
                 subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
               ),
             ),
@@ -139,8 +151,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   if (text.trim().isEmpty) return const SizedBox.shrink();
 
                   return SubtitleRenderer(
-                    // ملاحظة: تأكد من تمرير SubtitleEntry بطريقتك الصحيحة
-                    currentEntry: null, // عدّل هذا السطر ليتوافق مع كلاس SubtitleEntry الخاص بك، أو استخدم النص مباشرة
+                    currentEntry: SubtitleEntry(
+                      start: Duration.zero,
+                      end: const Duration(hours: 1),
+                      text: text,
+                    ),
                     settings: subtitleSettings,
                     videoRect: Rect.fromLTWH(0, 0, width, height),
                     videoSize: Size(width, height),
@@ -151,13 +166,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
               ),
             ),
 
-            // 3. الأزرار (تشغيل وإغلاق)
+            // 3. طبقة الأزرار (تشغيل/إيقاف وإغلاق)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withValues(alpha: 0.2), // تظليل خفيف جداً
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    // زر التشغيل/الإيقاف
                     StreamBuilder<bool>(
                       stream: player.stream.playing,
                       initialData: player.state.playing,
@@ -176,6 +192,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
                         );
                       },
                     ),
+                    
+                    // زر الإغلاق النهائي
                     Material(
                       color: Colors.transparent,
                       child: IconButton(
@@ -188,14 +206,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
               ),
             ),
 
-            // 👈 4. مقبض التكبير/التصغير بإصبع واحد (في الزاوية السفلية اليمنى)
+            // 4. مقبض التكبير/التصغير بإصبع واحد (زاوية سفلية يمنى)
             Positioned(
               bottom: 0,
               right: 0,
               child: GestureDetector(
                 onPanUpdate: (details) {
                   setState(() {
-                    // سحب الزاوية يكبر أو يصغر العرض (والطول يتغير تلقائياً بسبب النسبة 16:9)
+                    // السحب لتغيير العرض (والطول يتغير تلقائياً للنسبة 16:9)
                     _width = (_width! + details.delta.dx).clamp(
                       150.0,
                       MediaQuery.of(context).size.width - _position.dx - 16,
@@ -205,11 +223,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 child: Container(
                   width: 30,
                   height: 30,
-                  color: Colors.transparent, // منطقة شفافة لالتقاط اللمس
+                  color: Colors.transparent, // لالتقاط اللمس بسهولة
                   alignment: Alignment.bottomRight,
                   padding: const EdgeInsets.all(4),
                   child: const Icon(
-                    Icons.open_in_full_rounded, // أيقونة التوسيع
+                    Icons.open_in_full_rounded,
                     color: Colors.white70,
                     size: 16,
                   ),
