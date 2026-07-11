@@ -4,8 +4,9 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../providers/player_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/pip_service.dart';
-import '../widgets/subtitle_renderer.dart';
+import '../services/subtitle_parser.dart';
 import '../services/subtitle_service.dart';
+import '../widgets/subtitle_renderer.dart';
 
 class MiniPlayer extends StatefulWidget {
   final VoidCallback onTap;
@@ -51,6 +52,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
       valueListenable: PipService.isInPipMode,
       builder: (context, isSystemPip, child) {
         if (isSystemPip) {
+          // وضع PiP الحقيقي (نافذة أندرويد الصغيرة): نعتمد كلياً على عارض
+          // mpv الأصلي (نفس ما تفعله الشاشة الكاملة أصلاً حين تكون الترجمة
+          // ASS/SSA)، لأن حجم النافذة هنا صغير جداً وغير مضمون الأبعاد،
+          // وعارض mpv يتكفّل بترتيب الترجمة تلقائياً مهما كان الحجم.
           return Positioned.fill(
             child: Container(
               color: Colors.black,
@@ -91,10 +96,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
   }
 
   Widget _buildMiniPlayer(double width, double height, PlayerProvider provider, BuildContext context) {
-    final player = provider.player;
-    if (player == null) return const SizedBox.shrink();
+    if (provider.player == null) return const SizedBox.shrink();
 
     final subtitleSettings = context.watch<SettingsProvider>().subtitleSettings;
+    final videoSize = Size(width, height);
+    // فـ BoxFit.cover الفيديو يملأ الحاوية بالكامل دائماً (مع قص أي زيادة)،
+    // فمستطيل الترجمة يطابق حدود الحاوية نفسها تماماً - لا حاجة لحساب
+    // letterboxing كما فالشاشة الكاملة.
+    final videoRect = Rect.fromLTWH(0, 0, width, height);
 
     return Container(
       width: width,
@@ -114,42 +123,70 @@ class _MiniPlayerState extends State<MiniPlayer> {
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Video(
-                controller: provider.controller!,
-                fit: BoxFit.cover,
-                controls: NoVideoControls,
-                subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
-              ),
+            // نقرأ نفس قرار "عارض mpv مقابل عارض Flutter" الذي تحسبه
+            // الشاشة الكاملة (PlayerScreen._shouldUseFlutterRenderer)
+            // وتُبلِغه إلى PlayerProvider، حتى لا نُعطِّل عارض mpv هنا فيما
+            // الشاشة الكاملة تعتمد عليه (كانت هذه هي المشكلة سابقاً).
+            ValueListenableBuilder<bool>(
+              valueListenable: provider.useNativeSubtitleRendering,
+              builder: (context, useNative, _) {
+                return Positioned.fill(
+                  child: Video(
+                    controller: provider.controller!,
+                    fit: BoxFit.cover,
+                    controls: NoVideoControls,
+                    subtitleViewConfiguration: SubtitleViewConfiguration(visible: useNative),
+                  ),
+                );
+              },
             ),
 
-            Positioned.fill(
-              child: StreamBuilder<List<String>>(
-                stream: player.stream.subtitle,
-                builder: (context, snapshot) {
-                  final text = snapshot.data?.join('\n') ?? '';
-                  if (text.trim().isEmpty) return const SizedBox.shrink();
-                  return SubtitleRenderer(
-                    currentEntry: SubtitleEntry(start: Duration.zero, end: const Duration(hours: 1), text: text),
-                    settings: subtitleSettings,
-                    videoRect: Rect.fromLTWH(0, 0, width, height),
-                    videoSize: Size(width, height),
-                    screenSize: Size(width, height),
-                    safeArea: EdgeInsets.zero,
-                  );
-                },
-              ),
+            // عارض Flutter المخصَّص: يُستخدم فقط حين لا يكون عارض mpv
+            // نشطاً، ويقرأ **نفس المصدر بالضبط** (PlayerProvider.rawSubtitleText)
+            // مع نفس دالة التنظيف (SubtitleParser.clean) ونفس الإعدادات
+            // الحية (SettingsProvider) التي تستخدمها الشاشة الكاملة - فأي
+            // تعديل على الترجمة (الخط، الحجم، اللون، الموضع...) ينعكس هنا
+            // لحظياً بالضبط كما فالشاشة الكاملة.
+            ValueListenableBuilder<bool>(
+              valueListenable: provider.useNativeSubtitleRendering,
+              builder: (context, useNative, _) {
+                if (useNative) return const SizedBox.shrink();
+                return ValueListenableBuilder<String?>(
+                  valueListenable: provider.rawSubtitleText,
+                  builder: (context, rawText, __) {
+                    final text = SubtitleParser.clean(
+                      rawText,
+                      ignoreAssEffects: subtitleSettings.ignoreAssEffects,
+                    );
+                    if (text.trim().isEmpty) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: SubtitleRenderer(
+                        currentEntry: SubtitleEntry(
+                          start: Duration.zero,
+                          end: const Duration(hours: 1),
+                          text: text,
+                        ),
+                        settings: subtitleSettings,
+                        videoRect: videoRect,
+                        videoSize: videoSize,
+                        screenSize: videoSize,
+                        safeArea: EdgeInsets.zero,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
 
             Align(
               alignment: Alignment.center,
               child: StreamBuilder<bool>(
-                stream: player.stream.playing,
-                initialData: player.state.playing,
+                stream: provider.player!.stream.playing,
+                initialData: provider.player!.state.playing,
                 builder: (context, snapshot) {
                   final isPlaying = snapshot.data ?? false;
                   return GestureDetector(
-                    onTap: () => isPlaying ? player.pause() : player.play(),
+                    onTap: () => isPlaying ? provider.player!.pause() : provider.player!.play(),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
