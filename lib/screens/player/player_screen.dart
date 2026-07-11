@@ -48,6 +48,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   late final PlayerControlService _service;
   late final LibraryProvider _libraryProvider;
   late final SettingsProvider _settingsProvider;
+  // نخزّن مرجع PlayerProvider هنا لأن استدعاء context.read() داخل dispose()
+  // غير آمن فـ Flutter (الـ context يصبح "deactivated" فتلك اللحظة) ويرمي
+  // استثناء يمنع إتمام التصغير/الإغلاق، وهذا كان السبب الحقيقي وراء توقف
+  // زر الرجوع (سواء من الواجهة أو زر الهاتف) عن العمل.
+  late final PlayerProvider _playerProvider;
 
   Timer? _hideTimer;
   Timer? _saveTimer;
@@ -74,6 +79,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _state = PlayerUIState();
 
     final provider = context.read<PlayerProvider>();
+    _playerProvider = provider;
     if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
@@ -1434,7 +1440,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    final provider = context.read<PlayerProvider>();
+    final provider = _playerProvider;
     if (!provider.isMini) {
       _player.stop();
       _player.dispose();
