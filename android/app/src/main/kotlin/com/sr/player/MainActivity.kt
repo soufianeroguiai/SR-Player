@@ -1,9 +1,11 @@
 package com.sr.player
 
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -31,10 +33,35 @@ class MainActivity : FlutterActivity() {
                     pipEligible = call.arguments as? Boolean ?: false
                     result.success(null)
                 }
+                "startPlaybackService" -> {
+                    val title = call.arguments as? String ?: "SR Player"
+                    startPlaybackService(title)
+                    result.success(null)
+                }
+                "stopPlaybackService" -> {
+                    stopPlaybackService()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
         pipChannel = channel
+    }
+
+    // نبدأ الخدمة الأمامية حتى يبقى الصوت شغّالاً بعد قفل الشاشة (أندرويد
+    // يوقف العمليات فالخلفية بدون خدمة أمامية بعد مدة قصيرة من القفل).
+    private fun startPlaybackService(title: String) {
+        val intent = Intent(this, PlaybackService::class.java).apply {
+            putExtra(PlaybackService.EXTRA_TITLE, title)
+        }
+        ContextCompat.startForegroundService(this, intent)
+    }
+
+    private fun stopPlaybackService() {
+        val intent = Intent(this, PlaybackService::class.java).apply {
+            action = PlaybackService.ACTION_STOP
+        }
+        ContextCompat.startForegroundService(this, intent)
     }
 
     private fun enterPipMode(): Boolean {

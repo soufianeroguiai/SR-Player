@@ -4,6 +4,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../models/video_item.dart';
 import '../services/pip_service.dart';
+import '../services/background_playback_service.dart';
 
 class PlayerProvider extends ChangeNotifier {
   Player? _player;
@@ -44,9 +45,21 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _onSystemPipModeChanged() {
-    if (PipService.isInPipMode.value && !_isMini) {
-      _isMini = true;
-      notifyListeners();
+    if (PipService.isInPipMode.value) {
+      // دخول PiP فعلياً (بغض النظر عن السبب) - نُزامن isMini معه.
+      if (!_isMini) {
+        _isMini = true;
+        notifyListeners();
+      }
+    } else {
+      // المستخدم رجع للتطبيق من نافذة PiP الحقيقية (بالضغط على زر
+      // التكبير مثلاً). كانت هذه الحالة ناقصة سابقاً: isMini كان يبقى
+      // true للأبد، فيبان المشغّل المصغّر داخل التطبيق بدل الشاشة الكاملة
+      // رغم أن نية المستخدم بالضغط على "تكبير" كانت الرجوع للشاشة الكاملة.
+      if (_isMini) {
+        _isMini = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -67,6 +80,14 @@ class PlayerProvider extends ChangeNotifier {
       _playingSubscription = _player!.stream.playing.listen((playing) {
         _isPlaying = playing;
         PipService.setEligible(playing);
+        // خدمة أمامية تُبقي الصوت شغّالاً بعد قفل الشاشة - نُشغّلها فقط
+        // أثناء التشغيل الفعلي (وليس طيلة مدة فتح المشغّل) لتفادي استهلاك
+        // بطارية غير ضروري وقت الإيقاف المؤقت.
+        if (playing) {
+          BackgroundPlaybackService.start(_currentVideo?.name ?? 'SR Player');
+        } else {
+          BackgroundPlaybackService.stop();
+        }
         notifyListeners();
       });
       // مصدر الترجمة الوحيد المشترك بين الشاشة الكاملة والمصغّرة - يبقى
@@ -149,6 +170,7 @@ class PlayerProvider extends ChangeNotifier {
     _subtitleSubscription = null;
     rawSubtitleText.value = null;
     PipService.setEligible(false);
+    BackgroundPlaybackService.stop();
 
     try {
       _player?.dispose();
@@ -172,6 +194,7 @@ class PlayerProvider extends ChangeNotifier {
     _player?.stop();
     _playingSubscription?.cancel();
     _subtitleSubscription?.cancel();
+    BackgroundPlaybackService.stop();
     rawSubtitleText.dispose();
     useNativeSubtitleRendering.dispose();
     PipService.isInPipMode.removeListener(_onSystemPipModeChanged);
