@@ -14,6 +14,21 @@ class PlayerProvider extends ChangeNotifier {
   bool _isPlaying = false;
   _AppLifecycleListener? _lifecycleListener;
   StreamSubscription<bool>? _playingSubscription;
+  StreamSubscription<List<String>>? _subtitleSubscription;
+
+  /// نص الترجمة الخام (غير منظَّف) القادم مباشرة من mpv. هذا هو **المصدر
+  /// المشترك الوحيد** للترجمة بين الشاشة الكاملة والشاشة المصغّرة، لأنه
+  /// يعيش داخل PlayerProvider الذي لا يُدمَّر أبداً عند التصغير (بعكس
+  /// PlayerControlService الخاص بـ PlayerScreen الذي يُدمَّر مع الشاشة).
+  /// كل عارض (شاشة كاملة أو مصغّرة) يُطبِّق SubtitleParser.clean() بنفس
+  /// الإعدادات الحية من SettingsProvider، فتكون النتيجة مطابقة تماماً
+  /// ومحدَّثة لحظياً فالحالتين.
+  final ValueNotifier<String?> rawSubtitleText = ValueNotifier<String?>(null);
+
+  /// true إذا كان يجب استخدام عارض mpv الأصلي للترجمة (ASS/SSA مع تأثيرات)
+  /// بدل عارض فلاتر المخصَّص. تُحدَّثها PlayerScreen كل مرة تتغيّر فيها،
+  /// وتقرؤها الشاشة المصغّرة أيضاً حتى يتطابق السلوك تماماً.
+  final ValueNotifier<bool> useNativeSubtitleRendering = ValueNotifier<bool>(false);
 
   PlayerProvider() {
     // مهم: منذ ما صرنا نُفعّل PiP الحقيقي مباشرة من onUserLeaveHint() على
@@ -54,6 +69,11 @@ class PlayerProvider extends ChangeNotifier {
         PipService.setEligible(playing);
         notifyListeners();
       });
+      // مصدر الترجمة الوحيد المشترك بين الشاشة الكاملة والمصغّرة - يبقى
+      // حياً طالما الفيديو مفتوح، بغض النظر عن حالة isMini.
+      _subtitleSubscription = _player!.stream.subtitle.listen((lines) {
+        rawSubtitleText.value = lines.isNotEmpty ? lines.join('\n') : null;
+      });
     }
     notifyListeners();
   }
@@ -74,6 +94,14 @@ class PlayerProvider extends ChangeNotifier {
   void updatePlayingState(bool playing) {
     _isPlaying = playing;
     notifyListeners();
+  }
+
+  /// تستدعيها PlayerScreen كل مرة تُعيد فيها حساب قرار "عارض فلاتر مقابل
+  /// عارض mpv الأصلي" حتى تقرأ الشاشة المصغّرة نفس القرار بالضبط.
+  void updateUseNativeSubtitleRendering(bool value) {
+    if (useNativeSubtitleRendering.value != value) {
+      useNativeSubtitleRendering.value = value;
+    }
   }
 
   void minimize() {
@@ -117,6 +145,9 @@ class PlayerProvider extends ChangeNotifier {
 
     _playingSubscription?.cancel();
     _playingSubscription = null;
+    _subtitleSubscription?.cancel();
+    _subtitleSubscription = null;
+    rawSubtitleText.value = null;
     PipService.setEligible(false);
 
     try {
@@ -140,6 +171,9 @@ class PlayerProvider extends ChangeNotifier {
   void dispose() {
     _player?.stop();
     _playingSubscription?.cancel();
+    _subtitleSubscription?.cancel();
+    rawSubtitleText.dispose();
+    useNativeSubtitleRendering.dispose();
     PipService.isInPipMode.removeListener(_onSystemPipModeChanged);
     try {
       _player?.dispose();
