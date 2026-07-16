@@ -29,7 +29,7 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 /// مباشرة فالتطبيق نفسه.
 final ValueNotifier<List<String>> globalErrorLog = ValueNotifier<List<String>>([]);
 
-void _logGlobalError(Object error, StackTrace? stack) {
+void logGlobalError(Object error, StackTrace? stack) {
   final entry = '$error\n${stack ?? ''}';
   // كنحتفظو بآخر 5 أخطاء فقط باش ما يتقلش السجلّ بلا حدود.
   final updated = [...globalErrorLog.value, entry];
@@ -41,15 +41,15 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
-      _logGlobalError(details.exception, details.stack);
+      logGlobalError(details.exception, details.stack);
     };
     PlatformDispatcher.instance.onError = (error, stack) {
-      _logGlobalError(error, stack);
+      logGlobalError(error, stack);
       return true;
     };
     await _bootstrap();
   }, (error, stack) {
-    _logGlobalError(error, stack);
+    logGlobalError(error, stack);
   });
 }
 

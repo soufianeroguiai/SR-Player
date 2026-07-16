@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../main.dart' show logGlobalError;
 
 /// يتحكم بخدمة أمامية (Foreground Service) على أندرويد، دورها الوحيد هو
 /// إبقاء الصوت شغّالاً بعد قفل الشاشة. بدون خدمة أمامية، أندرويد (خصوصاً
@@ -20,8 +21,9 @@ class BackgroundPlaybackService {
     _isRunning = true;
     try {
       await _channel.invokeMethod('startPlaybackService', title);
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('فشل بدء خدمة التشغيل الأمامية: $e');
+      logGlobalError('فشل بدء خدمة التشغيل الأمامية (البقاء شغّالاً بعد قفل الشاشة): $e', st);
       _isRunning = false;
     }
   }
