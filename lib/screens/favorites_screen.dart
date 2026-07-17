@@ -34,6 +34,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final lib = context.watch<LibraryProvider>();
+    final currentVideoPath = context.watch<PlayerProvider>().currentVideo?.path;
     final videos = lib.allVideos.where((v) => _favorites.contains(v.path)).toList();
 
     return Scaffold(
@@ -51,6 +52,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               itemCount: videos.length,
               itemBuilder: (_, i) => VideoCard(
                 video: videos[i],
+                isPlaying: videos[i].path == currentVideoPath,
                 onTap: () {
                   // نفتح الفيديو عبر PlayerProvider بدل Navigator.push حتى يُعرض
                   // المشغّل داخل نفس Stack الخاص بـ RootScreen (وليس كـ Route منفصل).

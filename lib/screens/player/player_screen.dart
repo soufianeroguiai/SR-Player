@@ -16,10 +16,12 @@ import '../../providers/settings_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../services/pip_service.dart';
 import '../../services/subtitle_service.dart';
+import '../../services/subtitle_parser.dart';
 import '../../services/player_control_service.dart';
 import '../../widgets/color_adjustment_panel.dart';
 import '../../widgets/video_thumbnail_loader.dart';
 import '../../widgets/subtitle_renderer.dart';
+import '../../widgets/playing_indicator.dart';
 import '../../services/smart_enhance_service.dart';
 import '../../services/video_layout_calculator.dart';
 import '../../l10n/app_localizations.dart';
@@ -48,6 +50,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   late final PlayerControlService _service;
   late final LibraryProvider _libraryProvider;
   late final SettingsProvider _settingsProvider;
+  // نخزّن مرجع PlayerProvider هنا لأن استدعاء context.read() داخل dispose()
+  // غير آمن فـ Flutter (الـ context يصبح "deactivated" فتلك اللحظة) ويرمي
+  // استثناء يمنع إتمام التصغير/الإغلاق، وهذا كان السبب الحقيقي وراء توقف
+  // زر الرجوع (سواء من الواجهة أو زر الهاتف) عن العمل.
   late final PlayerProvider _playerProvider;
 
   Timer? _hideTimer;
@@ -79,6 +85,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
+      // نؤجّل provider.restore() لما بعد إتمام هاذ الإطار (frame) لأن استدعاء
+      // notifyListeners() بشكل متزامن من داخل initState (وهي أصلاً نتيجة
+      // notifyListeners سابقة من الشاشة الرئيسية) مخالف لقواعد Flutter
+      // ("setState/markNeedsBuild called during build") ويمكن يسبب سلوكاً
+      // غير مستقر فحالات معينة.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) provider.restore();
       });
@@ -996,6 +1007,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final subtitleSettings = s.subtitleSettings;
     final lib = context.watch<LibraryProvider>();
     final useFlutterRenderer = _shouldUseFlutterRenderer();
+    // نُبلِغ PlayerProvider بنفس القرار حتى تستخدمه الشاشة المصغّرة بعد
+    // التصغير وتتطابق معها تماماً.
+    _playerProvider.updateUseNativeSubtitleRendering(!useFlutterRenderer);
 
     if (PipService.isInPipMode.value) {
       return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
@@ -1070,9 +1084,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
 
                   ValueListenableBuilder<String?>(
-                    valueListenable: _state.currentSubtitleText,
-                    builder: (context, text, _) {
-                      if (!_shouldUseFlutterRenderer() || text == null || text.trim().isEmpty) {
+                    valueListenable: _playerProvider.rawSubtitleText,
+                    builder: (context, rawText, _) {
+                      final text = SubtitleParser.clean(
+                        rawText,
+                        ignoreAssEffects: subtitleSettings.ignoreAssEffects,
+                      );
+                      if (!useFlutterRenderer || text.trim().isEmpty) {
                         return const SizedBox.shrink();
                       }
                       final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
@@ -1445,55 +1463,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       provider.closeMiniPlayer();
     }
     super.dispose();
-  }
-}
-
-class PlayingIndicator extends StatefulWidget {
-  const PlayingIndicator({super.key});
-
-  @override
-  State<PlayingIndicator> createState() => _PlayingIndicatorState();
-}
-
-class _PlayingIndicatorState extends State<PlayingIndicator> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
-      ..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(3, (index) {
-        return AnimatedBuilder(
-          animation: _ctrl,
-          builder: (context, child) {
-            final height = 6.0 + (index == 1 ? 10.0 * _ctrl.value : 8.0 * (1 - _ctrl.value));
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 1.5),
-              width: 3.0,
-              height: height,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            );
-          },
-        );
-      }),
-    );
   }
 }
 

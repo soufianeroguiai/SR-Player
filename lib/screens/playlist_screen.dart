@@ -15,6 +15,7 @@ class PlaylistScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final lib = context.watch<LibraryProvider>();
+    final currentVideoPath = context.watch<PlayerProvider>().currentVideo?.path;
     final videos = playlist
         .map((path) => lib.allVideos.where((v) => v.path == path).firstOrNull)
         .whereType<VideoItem>()
@@ -35,6 +36,7 @@ class PlaylistScreen extends StatelessWidget {
               itemCount: videos.length,
               itemBuilder: (_, i) => VideoCard(
                 video: videos[i],
+                isPlaying: videos[i].path == currentVideoPath,
                 onTap: () {
                   context.read<PlayerProvider>().openVideo(videos[i]);
                   Navigator.pop(context);

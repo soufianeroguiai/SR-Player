@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/video_item.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/player_provider.dart';
 import '../../widgets/video_card.dart';
 
 class LibraryTab extends StatelessWidget {
@@ -74,6 +76,7 @@ class LibraryTab extends StatelessWidget {
     }
 
     final bool selectionMode = selectedVideos.isNotEmpty;
+    final currentVideoPath = context.watch<PlayerProvider>().currentVideo?.path;
 
     return gridView
         ? GridView.builder(
@@ -86,6 +89,7 @@ class LibraryTab extends StatelessWidget {
               return VideoGridCard(
                 video: v,
                 isSelected: selectedVideos.contains(v),
+                isPlaying: v.path == currentVideoPath,
                 onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v),
                 onMoreTap: () => onMore(v),
                 onLongPress: () => onSelectionToggle(v),
@@ -99,6 +103,7 @@ class LibraryTab extends StatelessWidget {
               return VideoCard(
                 video: v,
                 isSelected: selectedVideos.contains(v),
+                isPlaying: v.path == currentVideoPath,
                 onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v),
                 onMoreTap: () => onMore(v),
                 onLongPress: () => onSelectionToggle(v),
@@ -153,6 +158,7 @@ class RecentTab extends StatelessWidget {
     if (items.isEmpty) return EmptyState(t.noRecentVideos, Symbols.history_rounded, t);
 
     final bool selectionMode = selectedVideos.isNotEmpty;
+    final currentVideoPath = context.watch<PlayerProvider>().currentVideo?.path;
 
     return Column(children: [
       Padding(
@@ -181,6 +187,7 @@ class RecentTab extends StatelessWidget {
                   return VideoGridCard(
                     video: v,
                     isSelected: selectedVideos.contains(v),
+                    isPlaying: v.path == currentVideoPath,
                     onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v.path),
                     onLongPress: () => onSelectionToggle(v),
                   );
@@ -193,6 +200,7 @@ class RecentTab extends StatelessWidget {
                   return VideoCard(
                     video: v,
                     isSelected: selectedVideos.contains(v),
+                    isPlaying: v.path == currentVideoPath,
                     onTap: selectionMode ? () => onSelectionToggle(v) : () => onOpen(v.path),
                     onLongPress: () => onSelectionToggle(v),
                   );

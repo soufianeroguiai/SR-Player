@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/video_item.dart';
 import '../providers/library_provider.dart';
 import 'video_thumbnail_loader.dart';
+import 'playing_indicator.dart';
 
 class VideoCard extends StatelessWidget {
   final VideoItem video;
@@ -11,6 +12,7 @@ class VideoCard extends StatelessWidget {
   final VoidCallback? onMoreTap;
   final VoidCallback? onLongPress;
   final bool isSelected;
+  final bool isPlaying;
 
   const VideoCard({
     super.key,
@@ -19,6 +21,7 @@ class VideoCard extends StatelessWidget {
     this.onMoreTap,
     this.onLongPress,
     this.isSelected = false,
+    this.isPlaying = false,
   });
 
   @override
@@ -54,6 +57,14 @@ class VideoCard extends StatelessWidget {
                     bottom: 0, left: 0, right: 0,
                     child: _ResumeProgressBar(video: video),
                   ),
+                  if (isPlaying)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.45),
+                        alignment: Alignment.center,
+                        child: const PlayingIndicator(color: Colors.white),
+                      ),
+                    ),
                   if (isSelected)
                     Positioned(
                       top: 4, right: 4,
@@ -90,6 +101,7 @@ class VideoGridCard extends StatelessWidget {
   final VoidCallback? onMoreTap;
   final VoidCallback? onLongPress;
   final bool isSelected;
+  final bool isPlaying;
 
   const VideoGridCard({
     super.key,
@@ -98,6 +110,7 @@ class VideoGridCard extends StatelessWidget {
     this.onMoreTap,
     this.onLongPress,
     this.isSelected = false,
+    this.isPlaying = false,
   });
 
   @override
@@ -132,6 +145,14 @@ class VideoGridCard extends StatelessWidget {
                   bottom: 0, left: 0, right: 0,
                   child: _ResumeProgressBar(video: video),
                 ),
+                if (isPlaying)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.45),
+                      alignment: Alignment.center,
+                      child: const PlayingIndicator(color: Colors.white),
+                    ),
+                  ),
                 if (isSelected)
                   Positioned(
                     top: 6, right: 6,
