@@ -12,10 +12,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/video_item.dart';
+import '../models/playlist.dart';
 import '../providers/library_provider.dart';
 import '../providers/settings_provider.dart';
 import 'subtitle_service.dart';
-import 'subtitle_parser.dart';
 import 'smart_enhance_service.dart';
 import 'video_info_service.dart';
 import '../screens/player/player_state.dart';
@@ -410,14 +410,9 @@ class PlayerControlService {
         applyPreferredAudioLanguage();
       }));
 
-      _playerSubscriptions.add(player.stream.subtitle.listen((lines) {
-        final rawText = lines.isNotEmpty ? lines.join('\n') : null;
-        final cleanText = SubtitleParser.clean(
-          rawText,
-          ignoreAssEffects: settingsProvider.subtitleSettings.ignoreAssEffects,
-        );
-        state.updateSubtitleText(cleanText);
-      }));
+      // ملاحظة: تيار الترجمة (player.stream.subtitle) صار يُتابَع مركزياً
+      // من PlayerProvider.rawSubtitleText بدل هنا، حتى يبقى حياً ويطابق
+      // ما يظهر فالشاشة المصغّرة أيضاً بعد التصغير (انظر player_provider.dart).
 
       _playerSubscriptions.add(player.stream.videoParams.listen((params) {
         state.videoParams = params;
@@ -826,8 +821,18 @@ class PlayerControlService {
     }
   }
 
+  /// إضافة سريعة (بلا اختيار قائمة) - تُستخدم أول قائمة موجودة، أو تُنشأ
+  /// قائمة افتراضية "قائمتي" إذا لم تكن هناك أي قائمة بعد. لاختيار قائمة
+  /// معيّنة، الطريقة الموصى بها هي عبر قائمة "إضافة لقائمة تشغيل" فقائمة
+  /// خيارات الفيديو (تعرض كل القوائم + خيار إنشاء جديدة).
   Future<void> addToPlaylist() async {
-    final added = await libraryProvider.addToPlaylist(video.path);
+    Playlist target;
+    if (libraryProvider.playlists.isEmpty) {
+      target = await libraryProvider.createPlaylist('قائمتي');
+    } else {
+      target = libraryProvider.playlists.first;
+    }
+    final added = await libraryProvider.addToPlaylist(target.id, video.path);
     if (context.mounted) {
       final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
