@@ -47,6 +47,35 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر تحميل الفيديوهات. اسحب للأسفل أو اضغط لإعادة المحاولة.';
 
   @override
+  String get createNewPlaylistOption => 'إنشاء قائمة جديدة';
+
+  @override
+  String get noPlaylistsYetMessage => 'لا توجد قوائم تشغيل بعد';
+
+  @override
+  String get renamePlaylistTitle => 'إعادة تسمية القائمة';
+
+  @override
+  String get deletePlaylistTitle => 'حذف القائمة';
+
+  @override
+  String deletePlaylistConfirmMessage(Object name) {
+    return 'هل تريد حذف القائمة \"$name\"؟';
+  }
+
+  @override
+  String get newPlaylistNameHint => 'اسم القائمة';
+
+  @override
+  String get createPlaylistTitle => 'قائمة تشغيل جديدة';
+
+  @override
+  String get addToPlaylistSheetTitle => 'إضافة إلى قائمة تشغيل';
+
+  @override
+  String get removeFromPlaylist => 'إزالة من القائمة';
+
+  @override
   String get skipButton => 'تخطي';
 
   @override

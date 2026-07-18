@@ -47,6 +47,35 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load videos. Pull down or tap to retry.';
 
   @override
+  String get createNewPlaylistOption => 'Create New Playlist';
+
+  @override
+  String get noPlaylistsYetMessage => 'No playlists yet';
+
+  @override
+  String get renamePlaylistTitle => 'Rename Playlist';
+
+  @override
+  String get deletePlaylistTitle => 'Delete Playlist';
+
+  @override
+  String deletePlaylistConfirmMessage(Object name) {
+    return 'Delete playlist \"$name\"?';
+  }
+
+  @override
+  String get newPlaylistNameHint => 'Playlist name';
+
+  @override
+  String get createPlaylistTitle => 'New Playlist';
+
+  @override
+  String get addToPlaylistSheetTitle => 'Add to Playlist';
+
+  @override
+  String get removeFromPlaylist => 'Remove from Playlist';
+
+  @override
   String get skipButton => 'Skip';
 
   @override

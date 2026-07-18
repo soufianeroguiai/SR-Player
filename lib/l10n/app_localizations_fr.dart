@@ -47,6 +47,35 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de charger les vidéos. Tirez vers le bas ou appuyez pour réessayer.';
 
   @override
+  String get createNewPlaylistOption => 'Créer une nouvelle playlist';
+
+  @override
+  String get noPlaylistsYetMessage => 'Aucune playlist pour le moment';
+
+  @override
+  String get renamePlaylistTitle => 'Renommer la playlist';
+
+  @override
+  String get deletePlaylistTitle => 'Supprimer la playlist';
+
+  @override
+  String deletePlaylistConfirmMessage(Object name) {
+    return 'Supprimer la playlist « $name » ?';
+  }
+
+  @override
+  String get newPlaylistNameHint => 'Nom de la playlist';
+
+  @override
+  String get createPlaylistTitle => 'Nouvelle playlist';
+
+  @override
+  String get addToPlaylistSheetTitle => 'Ajouter à la playlist';
+
+  @override
+  String get removeFromPlaylist => 'Retirer de la playlist';
+
+  @override
   String get skipButton => 'Ignorer';
 
   @override

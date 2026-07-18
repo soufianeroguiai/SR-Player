@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
 import '../models/video_item.dart';
+import '../models/playlist.dart';
 
 /// نوع الخطأ الأخير الذي وقع أثناء فهرسة المكتبة.
 /// يُستخدم فالواجهة باش نعرضو رسالة وزر مناسبين (طلب إذن أو إعادة محاولة)
@@ -19,7 +20,7 @@ class LibraryProvider extends ChangeNotifier {
   List<String> _recentPaths = [];
   Set<String> _hiddenPaths = {};
   Set<String> _favoritePaths = {};
-  List<String> _playlistPaths = [];
+  List<Playlist> _playlists = [];
   bool _loading = false;
   String? _error;
   LibraryError _errorType = LibraryError.none;
@@ -38,7 +39,7 @@ class LibraryProvider extends ChangeNotifier {
   List<String> get recentPaths => _recentPaths;
   Set<String> get hiddenPaths => _hiddenPaths;
   Set<String> get favoritePaths => _favoritePaths;
-  List<String> get playlistPaths => _playlistPaths;
+  List<Playlist> get playlists => _playlists;
   bool get loading => _loading;
   String? get error => _error;
   LibraryError get errorType => _errorType;
@@ -187,43 +188,109 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool isInPlaylist(String path) => _playlistPaths.contains(path);
+  bool isInPlaylist(String path) => _playlists.any((pl) => pl.videoPaths.contains(path));
+
+  /// القوائم التي تحتوي على هذا الفيديو (تُستخدم لإظهار علامة ✓ فقائمة
+  /// الاختيار عند "إضافة لقائمة تشغيل").
+  List<Playlist> playlistsContaining(String path) =>
+      _playlists.where((pl) => pl.videoPaths.contains(path)).toList();
+
+  Playlist? playlistById(String id) {
+    try {
+      return _playlists.firstWhere((pl) => pl.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> loadPlaylist() async {
     final p = await SharedPreferences.getInstance();
-    _playlistPaths = p.getStringList('playlist_paths') ?? [];
+    final stored = p.getString('playlists_v2');
+
+    if (stored != null) {
+      try {
+        final list = jsonDecode(stored) as List;
+        _playlists = list.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
+        notifyListeners();
+        return;
+      } catch (_) {
+        // بيانات تالفة - نكمل على الترحيل/البداية من الصفر تحت.
+      }
+    }
+
+    // ترحيل تلقائي: القائمة القديمة (نسخة واحدة عامة) كانت مخزَّنة تحت
+    // المفتاح 'playlist_paths'. إذا كانت موجودة وغير فارغة، نحوّلها لقائمة
+    // مسمّاة "قائمتي" مرة واحدة فقط، حتى لا يفقد المستخدم فيديوهاته
+    // المحفوظة سابقاً بعد هذا التحديث.
+    final oldPaths = p.getStringList('playlist_paths') ?? [];
+    if (oldPaths.isNotEmpty) {
+      _playlists = [
+        Playlist(id: _newPlaylistId(), name: 'قائمتي', videoPaths: oldPaths),
+      ];
+      await _savePlaylists();
+      await p.remove('playlist_paths');
+    } else {
+      _playlists = [];
+    }
     notifyListeners();
   }
 
-  Future<bool> addToPlaylist(String path) async {
-    if (_playlistPaths.contains(path)) return false;
-    _playlistPaths.add(path);
+  Future<void> _savePlaylists() async {
     final p = await SharedPreferences.getInstance();
-    await p.setStringList('playlist_paths', _playlistPaths);
+    final encoded = jsonEncode(_playlists.map((pl) => pl.toJson()).toList());
+    await p.setString('playlists_v2', encoded);
+  }
+
+  String _newPlaylistId() => DateTime.now().microsecondsSinceEpoch.toString();
+
+  Future<Playlist> createPlaylist(String name) async {
+    final playlist = Playlist(id: _newPlaylistId(), name: name.trim());
+    _playlists.add(playlist);
+    await _savePlaylists();
+    notifyListeners();
+    return playlist;
+  }
+
+  Future<void> renamePlaylist(String id, String newName) async {
+    final playlist = playlistById(id);
+    if (playlist == null || newName.trim().isEmpty) return;
+    playlist.name = newName.trim();
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  Future<void> deletePlaylist(String id) async {
+    _playlists.removeWhere((pl) => pl.id == id);
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  Future<bool> addToPlaylist(String playlistId, String videoPath) async {
+    final playlist = playlistById(playlistId);
+    if (playlist == null) return false;
+    if (playlist.videoPaths.contains(videoPath)) return false;
+    playlist.videoPaths.add(videoPath);
+    await _savePlaylists();
     notifyListeners();
     return true;
   }
 
-  Future<void> removeFromPlaylist(String path) async {
-    _playlistPaths.remove(path);
-    final p = await SharedPreferences.getInstance();
-    await p.setStringList('playlist_paths', _playlistPaths);
+  Future<void> removeFromPlaylist(String playlistId, String videoPath) async {
+    final playlist = playlistById(playlistId);
+    if (playlist == null) return;
+    playlist.videoPaths.remove(videoPath);
+    await _savePlaylists();
     notifyListeners();
   }
 
-  Future<void> clearPlaylist() async {
-    _playlistPaths.clear();
-    final p = await SharedPreferences.getInstance();
-    await p.remove('playlist_paths');
-    notifyListeners();
-  }
-
-  void reorderPlaylist(int oldIndex, int newIndex) {
+  Future<void> reorderPlaylistItems(String playlistId, int oldIndex, int newIndex) async {
+    final playlist = playlistById(playlistId);
+    if (playlist == null) return;
     if (newIndex > oldIndex) newIndex -= 1;
-    final path = _playlistPaths.removeAt(oldIndex);
-    _playlistPaths.insert(newIndex, path);
+    final path = playlist.videoPaths.removeAt(oldIndex);
+    playlist.videoPaths.insert(newIndex, path);
     notifyListeners();
-    SharedPreferences.getInstance().then((p) => p.setStringList('playlist_paths', _playlistPaths));
+    await _savePlaylists();
   }
 
   Future<void> loadCachedVideos() async {

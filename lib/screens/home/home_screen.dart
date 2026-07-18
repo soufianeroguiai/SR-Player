@@ -16,6 +16,8 @@ import '../settings/settings_screen.dart';
 import '../info_screen.dart';
 import '../favorites_screen.dart';
 import '../playlist_screen.dart';
+import '../playlists_screen.dart';
+import '../recent_screen.dart';
 import 'home_tabs.dart';
 import 'home_search_delegate.dart';
 
@@ -225,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen>
                         icon: Icons.queue_music_rounded,
                         iconOut: Icons.queue_music_rounded,
                         label: t.playlistLabel,
-                        count: lib.playlistPaths.length,
+                        count: lib.playlists.length,
                         color: cs.primary,
                         cs: cs,
                         onTap: () {
@@ -233,8 +235,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => PlaylistScreen(
-                                      playlist: lib.playlistPaths)));
+                                  builder: (_) => const PlaylistsScreen()));
                         },
                       ),
                       Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
@@ -250,8 +251,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => PlaylistScreen(
-                                      playlist: lib.recentPaths)));
+                                  builder: (_) => const RecentScreen()));
                         },
                       ),
                     ],
@@ -941,16 +941,12 @@ class _HomeScreenState extends State<HomeScreen>
                   icon: lib.isInPlaylist(video.path)
                       ? Icons.playlist_add_check_rounded
                       : Icons.playlist_add_rounded,
-                  title: lib.isInPlaylist(video.path) ? t.alreadyInPlaylist : t.addToPlaylist,
+                  title: t.addToPlaylist,
                   iconBg: cs.tertiaryContainer,
                   iconColor: cs.onTertiaryContainer,
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(context);
-                    final added = await lib.addToPlaylist(video.path);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(added ? t.addedToPlaylist : t.alreadyInPlaylistToast)));
-                    }
+                    _showAddToPlaylistSheet(video);
                   }),
               _sheetTile(
                   icon: Icons.drive_file_rename_outline_rounded,
@@ -1125,6 +1121,107 @@ class _HomeScreenState extends State<HomeScreen>
             ? onTap
             : () => ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(t.comingSoon))),
+      ),
+    );
+  }
+
+  void _showAddToPlaylistSheet(VideoItem video) {
+    final t = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Consumer<LibraryProvider>(
+            builder: (context, lib, _) {
+              final playlists = lib.playlists;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text(t.addToPlaylistSheetTitle,
+                              style: Theme.of(context).textTheme.titleMedium)),
+                    ]),
+                  ),
+                  if (playlists.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(t.noPlaylistsYetMessage,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: playlists.length,
+                        itemBuilder: (context, i) {
+                          final pl = playlists[i];
+                          final contains = pl.videoPaths.contains(video.path);
+                          return ListTile(
+                            leading: Icon(contains
+                                ? Icons.check_circle_rounded
+                                : Icons.playlist_play_rounded),
+                            title: Text(pl.name),
+                            subtitle: Text(t.fileCount(pl.videoPaths.length)),
+                            onTap: () async {
+                              if (contains) {
+                                await lib.removeFromPlaylist(pl.id, video.path);
+                              } else {
+                                await lib.addToPlaylist(pl.id, video.path);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.add_rounded),
+                    title: Text(t.createNewPlaylistOption),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _createPlaylistDialog(addVideo: video);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _createPlaylistDialog({VideoItem? addVideo}) {
+    final t = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.createPlaylistTitle),
+        content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: t.newPlaylistNameHint),
+            autofocus: true),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              final playlist = await context.read<LibraryProvider>().createPlaylist(name);
+              if (addVideo != null) {
+                await context.read<LibraryProvider>().addToPlaylist(playlist.id, addVideo.path);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: Text(t.okButton),
+          ),
+        ],
       ),
     );
   }

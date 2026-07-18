@@ -160,6 +160,60 @@ abstract class AppLocalizations {
   /// **'تعذّر تحميل الفيديوهات. اسحب للأسفل أو اضغط لإعادة المحاولة.'**
   String get scanFailedMessage;
 
+  /// No description provided for @createNewPlaylistOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء قائمة جديدة'**
+  String get createNewPlaylistOption;
+
+  /// No description provided for @noPlaylistsYetMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد قوائم تشغيل بعد'**
+  String get noPlaylistsYetMessage;
+
+  /// No description provided for @renamePlaylistTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة تسمية القائمة'**
+  String get renamePlaylistTitle;
+
+  /// No description provided for @deletePlaylistTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف القائمة'**
+  String get deletePlaylistTitle;
+
+  /// No description provided for @deletePlaylistConfirmMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد حذف القائمة \"{name}\"؟'**
+  String deletePlaylistConfirmMessage(Object name);
+
+  /// No description provided for @newPlaylistNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم القائمة'**
+  String get newPlaylistNameHint;
+
+  /// No description provided for @createPlaylistTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة تشغيل جديدة'**
+  String get createPlaylistTitle;
+
+  /// No description provided for @addToPlaylistSheetTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة إلى قائمة تشغيل'**
+  String get addToPlaylistSheetTitle;
+
+  /// No description provided for @removeFromPlaylist.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة من القائمة'**
+  String get removeFromPlaylist;
+
   /// No description provided for @skipButton.
   ///
   /// In ar, this message translates to:
