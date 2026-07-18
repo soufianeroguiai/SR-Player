@@ -890,10 +890,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Widget _buildPlaylistEditor() {
     final t = AppLocalizations.of(context)!;
-    final isCustom = _libraryProvider.playlistPaths.isNotEmpty;
+    // نبحث عن أول قائمة تشغيل مسمّاة يوجد فيها الفيديو الحالي، ونعتبرها
+    // "الطابور" الحالي. إذا لم يكن الفيديو فأي قائمة، نرجع للسلوك القديم
+    // (فيديوهات نفس المجلد).
+    final containingPlaylist = _libraryProvider.playlistsContaining(widget.video.path).firstOrNull;
 
-    final videos = isCustom
-        ? _libraryProvider.playlistPaths
+    final videos = containingPlaylist != null
+        ? containingPlaylist.videoPaths
             .map((path) => _libraryProvider.allVideos.where((v) => v.path == path).firstOrNull)
             .whereType<VideoItem>()
             .toList()
@@ -903,8 +906,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           ..sort((a, b) => a.name.compareTo(b.name));
 
     void remove(String path) {
-      if (isCustom) {
-        _libraryProvider.removeFromPlaylist(path);
+      if (containingPlaylist != null) {
+        _libraryProvider.removeFromPlaylist(containingPlaylist.id, path);
       } else {
         _hiddenFromSession.add(path);
       }
@@ -930,8 +933,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               child: ReorderableListView.builder(
                 itemCount: videos.length,
                 onReorder: (oldIndex, newIndex) {
-                  if (isCustom) {
-                    _libraryProvider.reorderPlaylist(oldIndex, newIndex);
+                  if (containingPlaylist != null) {
+                    _libraryProvider.reorderPlaylistItems(containingPlaylist.id, oldIndex, newIndex);
                     setState(() {});
                   }
                 },
