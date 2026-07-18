@@ -1068,7 +1068,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             return;
           }
 
-          provider.minimizeAndStartPipIfNeeded();
+          // زر الرجوع صار يُخرج من الفيديو مباشرة (يُغلقه تماماً) بدل
+          // التصغير - بما أن زر PiP المخصَّص أصبح هو الطريقة الوحيدة
+          // للتصغير الآن، لم يعد هناك داعٍ لتكرار نفس الوظيفة هنا.
+          // closePlayer() وحدها كافية: RootScreen يستمع لـ isHidden ويعرض
+          // الشاشة الرئيسية تلقائياً، بدون الحاجة لأي Navigator هنا (لأن
+          // PlayerScreen ليست Route مدفوعة أصلاً).
+          provider.closePlayer();
         }
       },
       child: Scaffold(
@@ -1312,7 +1318,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         videoName: _currentVideo.name,
                         onBack: () {
                           final provider = context.read<PlayerProvider>();
-                          provider.minimizeAndStartPipIfNeeded();
+                          provider.closePlayer();
                         },
                         onAudioMenu: () {
                           _state.currentMenu = _state.currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
