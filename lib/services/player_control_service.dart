@@ -25,7 +25,12 @@ import '../l10n/app_localizations.dart';
 class PlayerControlService {
   final Player player;
   final PlayerUIState state;
-  final VideoItem video;
+  // كان final سابقاً - جعلناه قابلاً للتحديث لأن "التالي/السابق" يغيّران
+  // الملف المُشغَّل فعلياً بدون إعادة بناء الشاشة؛ بدون هذا التحديث كانت
+  // دوال أخرى بالخدمة (إضافة للمفضلة، إضافة لقائمة تشغيل، الإشارات
+  // المرجعية) تستمر فالإشارة للفيديو الأصلي القديم رغم تغيّر ما يُشغَّل
+  // فعلياً.
+  VideoItem video;
   final LibraryProvider libraryProvider;
   final SettingsProvider settingsProvider;
   final BuildContext context;
@@ -36,6 +41,10 @@ class PlayerControlService {
   Timer? _sleepTimer;
   final List<StreamSubscription> _playerSubscriptions = [];
 
+  // يُستدعى فور تغيّر الفيديو المُشغَّل فعلياً (بعد التالي/السابق)، حتى
+  // تقدر الواجهة (PlayerScreen) تُحدِّث العنوان وباقي العناصر المرتبطة.
+  void Function(VideoItem newVideo)? onVideoChanged;
+
   PlayerControlService({
     required this.player,
     required this.state,
@@ -43,6 +52,7 @@ class PlayerControlService {
     required this.libraryProvider,
     required this.settingsProvider,
     required this.context,
+    this.onVideoChanged,
   });
 
   void disposeTimers() {
@@ -424,7 +434,7 @@ class PlayerControlService {
       if (!state.showResumeDialog) scheduleHide();
       await loadColorSettings();
       await applyPlayerSettings();
-      buildPlaylistFromFolder();
+      buildPlaybackQueue();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -434,14 +444,26 @@ class PlayerControlService {
     }
   }
 
-  void buildPlaylistFromFolder() {
-    final folder = video.folder;
-    final allVideos = libraryProvider.allVideos
-        .where((v) => v.folder == folder)
-        .toList();
-    allVideos.sort((a, b) => a.name.compareTo(b.name));
-    state.playlistVideos = allVideos;
-    state.currentPlaylistIndex = allVideos.indexWhere((v) => v.path == video.path);
+  /// يبني طابور "التالي/السابق". إذا كان الفيديو الحالي ينتمي لقائمة
+  /// تشغيل مخصَّصة، نتّبع ترتيب تلك القائمة بالضبط (بما فيه أي إعادة
+  /// ترتيب يدوية قام بها المستخدم) - وإلا نرجع للسلوك القديم (فيديوهات
+  /// نفس المجلد مرتبة أبجدياً).
+  void buildPlaybackQueue() {
+    final containingPlaylist = libraryProvider.playlistsContaining(video.path).firstOrNull;
+
+    List<VideoItem> queue;
+    if (containingPlaylist != null) {
+      queue = containingPlaylist.videoPaths
+          .map((path) => libraryProvider.allVideos.where((v) => v.path == path).firstOrNull)
+          .whereType<VideoItem>()
+          .toList();
+    } else {
+      queue = libraryProvider.allVideos.where((v) => v.folder == video.folder).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+    }
+
+    state.playlistVideos = queue;
+    state.currentPlaylistIndex = queue.indexWhere((v) => v.path == video.path);
     if (state.currentPlaylistIndex == -1) state.currentPlaylistIndex = 0;
     state.notifyListeners();
   }
@@ -466,6 +488,11 @@ class PlayerControlService {
       libraryProvider.savePosition(video.path, state.position);
     }
     await player.open(Media(nextVideo.path), play: true);
+    // نُحدِّث الفيديو الحالي بالخدمة حتى تعمل بشكل صحيح كل الدوال الأخرى
+    // المرتبطة به (المفضلة، الإضافة لقائمة تشغيل، الإشارات المرجعية...)
+    // على الفيديو الصحيح المُشغَّل فعلياً الآن، وليس الفيديو القديم الذي
+    // فُتحت به الشاشة أول مرة.
+    video = nextVideo;
     state.currentPlaylistIndex = index;
     state.savedPosition = null;
     state.showResumeDialog = false;
@@ -474,6 +501,8 @@ class PlayerControlService {
     player.setRate(state.speed);
     applyInitialDecoderAndColor();
     await applyPlayerSettings();
+    libraryProvider.addRecent(nextVideo.path);
+    onVideoChanged?.call(nextVideo);
     state.notifyListeners();
   }
 

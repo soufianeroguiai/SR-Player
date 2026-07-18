@@ -56,6 +56,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   // زر الرجوع (سواء من الواجهة أو زر الهاتف) عن العمل.
   late final PlayerProvider _playerProvider;
 
+  // الفيديو المعروض فعلياً حالياً. widget.video يبقى ثابتاً (الفيديو الذي
+  // فُتحت به الشاشة أول مرة)، لكن بعد الضغط على "التالي/السابق" يتغيّر
+  // الملف المُشغَّل فعلياً بدون إعادة بناء الشاشة بالكامل (حتى لا ينقطع
+  // التشغيل) - لذلك نحتاج حقلاً منفصلاً يعكس الفيديو الحقيقي المعروض
+  // الآن، ونستخدمه بدل widget.video فكل مكان يخص "ما يُعرض حالياً"
+  // (العنوان، المفضلة، الإشارات المرجعية، محرر قائمة التشغيل).
+  late VideoItem _currentVideo;
+
   Timer? _hideTimer;
   Timer? _saveTimer;
   Timer? _fitOverlayTimer;
@@ -82,6 +90,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     final provider = context.read<PlayerProvider>();
     _playerProvider = provider;
+    _currentVideo = widget.video;
     if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
@@ -109,6 +118,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       libraryProvider: _libraryProvider,
       settingsProvider: _settingsProvider,
       context: context,
+      onVideoChanged: _onServiceVideoChanged,
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -267,6 +277,27 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
+  // يُستدعى من PlayerControlService فور تبديل الفيديو المُشغَّل فعلياً
+  // (بعد "التالي/السابق"). نُحدِّث كل الحالة المرتبطة بالفيديو المعروض
+  // (العنوان، المفضلة، الترجمة الملاصقة، "الأخيرة" فباقي شاشات التطبيق)
+  // بدون إعادة بناء الشاشة بالكامل، حتى لا ينقطع التشغيل.
+  void _onServiceVideoChanged(VideoItem newVideo) {
+    if (!mounted) return;
+    setState(() {
+      _currentVideo = newVideo;
+      // نُصفّر حالة الترجمة الخارجية القديمة (وليس تفضيل الإظهار/الإخفاء
+      // اليدوي نفسه، فذاك يبقى كما اختاره المستخدم) حتى تُعاد محاولة كشف
+      // ترجمة ملاصقة للفيديو الجديد بدل الاحتفاظ بترجمة الفيديو السابق.
+      _state.hasExternalSubtitle = false;
+      _state.autoSubtitleSelected = false;
+      _state.lastSubtitleEntries = null;
+    });
+    // نُزامن PlayerProvider.currentVideo حتى تعمل بشكل صحيح مؤشرات
+    // "قيد التشغيل" فباقي شاشات التطبيق (المكتبة، المفضلة، القوائم).
+    _playerProvider.setCurrentVideo(newVideo);
+    _loadSubtitleFromAdjacentFile();
+  }
+
   void _applyNativeAssSettings() {
     final sub = _settingsProvider.subtitleSettings;
     final native = _player.platform as NativePlayer;
@@ -280,7 +311,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _shouldUseFlutterRenderer() {
     final sub = _settingsProvider.subtitleSettings;
     if (_state.hasExternalSubtitle && _state.lastSubtitleEntries != null) {
-      final String ext = widget.video.path.split('.').last.toLowerCase();
+      final String ext = _currentVideo.path.split('.').last.toLowerCase();
       if (ext == 'ass' || ext == 'ssa') {
         if (!sub.ignoreAssEffects) return false;
       }
@@ -290,7 +321,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
-    final srtPath = SubtitleService.findSrt(widget.video.path);
+    final srtPath = SubtitleService.findSrt(_currentVideo.path);
     if (srtPath != null) {
       await _loadSrtFile(srtPath, _settingsProvider.subtitleEncoding, silent: true);
       _state.hasExternalSubtitle = true;
@@ -377,7 +408,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _startFromBeginning() {
-    _libraryProvider.clearPosition(widget.video.path);
+    _libraryProvider.clearPosition(_currentVideo.path);
     _player.seek(Duration.zero);
     _player.play();
     _state.showResumeDialog = false;
@@ -805,7 +836,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         },
                         subtitleSync: _state.subtitleSync,
                         onSyncChanged: _onSubtitleSyncChanged,
-                        videoName: widget.video.name,
+                        videoName: _currentVideo.name,
                         onLoadSrt: _loadSrtFile,
                       )
                     : _state.currentMenu == ActiveMenu.audio
@@ -832,7 +863,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           )
                         : _state.currentMenu == ActiveMenu.settings
                             ? PlayerSettingsPanel(
-                                isFavorite: _libraryProvider.isFavorite(widget.video.path),
+                                isFavorite: _libraryProvider.isFavorite(_currentVideo.path),
                                 onToggleFavorite: _service.toggleFavorite,
                                 onAddToPlaylist: _service.addToPlaylist,
                                 onCaptureScreenshot: _service.captureScreenshot,
@@ -842,7 +873,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 onShowInfo: () {
                                   _state.currentMenu = ActiveMenu.none;
                                   _state.notifyListeners();
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => InfoScreen(video: widget.video)));
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => InfoScreen(video: _currentVideo)));
                                 },
                                 onSleepTimer: _showTimerPicker,
                                 onShowSpeedPicker: () {
@@ -869,14 +900,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 onClearRepeat: _service.clearRepeatPoints,
                                 showStats: _state.showStatsOverlay,
                                 onToggleStats: _service.toggleStatsOverlay,
-                                bookmarks: _libraryProvider.getBookmarks(widget.video.path),
-                                onAddBookmark: () => _libraryProvider.addBookmark(widget.video.path, _state.position),
+                                bookmarks: _libraryProvider.getBookmarks(_currentVideo.path),
+                                onAddBookmark: () => _libraryProvider.addBookmark(_currentVideo.path, _state.position),
                                 onJumpToBookmark: (d) {
                                   _player.seek(d);
                                   _state.currentMenu = ActiveMenu.none;
                                   _state.notifyListeners();
                                 },
-                                onRemoveBookmark: (d) => _libraryProvider.removeBookmark(widget.video.path, d),
+                                onRemoveBookmark: (d) => _libraryProvider.removeBookmark(_currentVideo.path, d),
                               )
                             : const SizedBox.shrink(),
               ),
@@ -893,7 +924,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     // نبحث عن أول قائمة تشغيل مسمّاة يوجد فيها الفيديو الحالي، ونعتبرها
     // "الطابور" الحالي. إذا لم يكن الفيديو فأي قائمة، نرجع للسلوك القديم
     // (فيديوهات نفس المجلد).
-    final containingPlaylist = _libraryProvider.playlistsContaining(widget.video.path).firstOrNull;
+    final containingPlaylist = _libraryProvider.playlistsContaining(_currentVideo.path).firstOrNull;
 
     final videos = containingPlaylist != null
         ? containingPlaylist.videoPaths
@@ -901,7 +932,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             .whereType<VideoItem>()
             .toList()
         : _libraryProvider.allVideos
-            .where((v) => v.folder == widget.video.folder && !_hiddenFromSession.contains(v.path))
+            .where((v) => v.folder == _currentVideo.folder && !_hiddenFromSession.contains(v.path))
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
 
@@ -940,7 +971,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 },
                 itemBuilder: (context, index) {
                   final video = videos[index];
-                  final isPlaying = video.path == widget.video.path;
+                  final isPlaying = video.path == _currentVideo.path;
 
                   return ListTile(
                     key: Key(video.path),
@@ -1278,7 +1309,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       top: 0, left: 0, right: 0,
                       child: RepaintBoundary(
                         child: PlayerTopBar(
-                        videoName: widget.video.name,
+                        videoName: _currentVideo.name,
                         onBack: () {
                           final provider = context.read<PlayerProvider>();
                           provider.minimizeAndStartPipIfNeeded();
@@ -1323,8 +1354,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                   _service.toggleHardwareDecoding,
                                 ),
                                 _qaBtn(
-                                  lib.isFavorite(widget.video.path) ? Symbols.favorite_rounded : Symbols.favorite_border,
-                                  lib.isFavorite(widget.video.path) ? Colors.amber : Colors.white70,
+                                  lib.isFavorite(_currentVideo.path) ? Symbols.favorite_rounded : Symbols.favorite_border,
+                                  lib.isFavorite(_currentVideo.path) ? Colors.amber : Colors.white70,
                                   _service.toggleFavorite,
                                 ),
                                 _qaBtn(Symbols.playlist_add_rounded, Colors.white70, _service.addToPlaylist),
