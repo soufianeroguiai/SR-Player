@@ -26,20 +26,31 @@ class SubtitleResult {
       id: json['id'],
       fileName: attrs['release'] ?? attrs['filename'] ?? 'unknown',
       language: attrs['language'] ?? 'unknown',
-      downloadUrl: attrs['files']?.first['file_url'] ?? '',
+      downloadUrl: (attrs['files'] as List?)?.isNotEmpty == true
+          ? attrs['files'][0]['file_url'] ?? ''
+          : '',
       rating: (attrs['ratings']?.toDouble() ?? 0.0),
       downloadCount: attrs['download_count'] ?? 0,
     );
   }
 }
 
+/// يُرمى هذا الاستثناء عندما يحاول المستخدم البحث عن ترجمة أونلاين بدون
+/// أن يكون قد أدخل مفتاح API الخاص به فالإعدادات بعد. الشاشة المستدعية
+/// (player_subtitle_panel.dart) تلتقطه وتعرض رسالة توجّه المستخدم للإعدادات
+/// بدل فشل صامت أو خطأ 401 غير مفهوم.
+class MissingApiKeyException implements Exception {}
+
 class OpenSubtitlesService {
   static const String _baseUrl = 'https://api.opensubtitles.com/api/v1';
-  static const String _apiKey = 'YOUR_API_KEY'; // استبدلها بمفتاحك
 
+  /// مفتاح OpenSubtitles الخاص بالمستخدم - يُمرَّر من SettingsProvider، لأن
+  /// كل مستخدم خاصو يسجّل حساب مجاني على opensubtitles.com ويجيب مفتاحه
+  /// الخاص (الخدمة ما كتسمحش بمفتاح واحد مشترك بين كل المستخدمين).
+  final String apiKey;
   final http.Client _client;
 
-  OpenSubtitlesService({http.Client? client})
+  OpenSubtitlesService({required this.apiKey, http.Client? client})
       : _client = client ?? http.Client();
 
   Future<List<SubtitleResult>> search({
@@ -47,9 +58,11 @@ class OpenSubtitlesService {
     String language = 'ar',
     int limit = 20,
   }) async {
+    if (apiKey.trim().isEmpty) throw MissingApiKeyException();
+
     final uri = Uri.parse('$_baseUrl/subtitles');
     final headers = {
-      'Api-Key': _apiKey,
+      'Api-Key': apiKey,
       'Content-Type': 'application/json',
     };
     final body = json.encode({

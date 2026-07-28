@@ -468,6 +468,16 @@ class PlayerControlService {
     state.notifyListeners();
   }
 
+  /// تشغيل فيديو معيّن من نفس الطابور الحالي (state.playlistVideos) مباشرة -
+  /// تُستخدم من محرِّر قائمة التشغيل (_buildPlaylistEditor) عند الضغط على
+  /// أي عنصر فيها. إذا لم يكن الفيديو موجوداً فالطابور الحالي لأي سبب، لا
+  /// نفعل شيئاً بدل استثناء غير متوقَّع.
+  Future<void> playVideoInQueue(VideoItem target) async {
+    final index = state.playlistVideos.indexWhere((v) => v.path == target.path);
+    if (index == -1 || index == state.currentPlaylistIndex) return;
+    await _playVideoAtIndex(index);
+  }
+
   Future<void> playNext() async {
     if (state.playlistVideos.isEmpty) return;
     int nextIndex = state.currentPlaylistIndex + 1;

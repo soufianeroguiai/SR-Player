@@ -66,7 +66,18 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
 
   Future<void> _showOnlineSearch(BuildContext context) async {
     final t = AppLocalizations.of(context)!;
-    final service = OpenSubtitlesService();
+    final apiKey = context.read<SettingsProvider>().openSubtitlesApiKey;
+
+    // نتحقق من المفتاح قبل حتى ما نفتح الشاشة - بدل ما نعرضو دواره تحميل
+    // (spinner) غايفشل حتماً بخطأ 401 غير مفهوم للمستخدم.
+    if (apiKey.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.openSubtitlesApiKeyMissingMessage)),
+      );
+      return;
+    }
+
+    final service = OpenSubtitlesService(apiKey: apiKey);
 
     showModalBottomSheet(
       context: context,
@@ -78,7 +89,14 @@ class _SubtitleAppearancePanelState extends State<SubtitleAppearancePanel> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+            if (snapshot.hasError) {
+              final isAuthError = snapshot.error.toString().contains('401') ||
+                  snapshot.error is MissingApiKeyException;
+              return Center(
+                child: Text(isAuthError ? t.openSubtitlesApiKeyInvalidMessage : t.noSubtitlesFound),
+              );
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(child: Text(t.noSubtitlesFound));
             }
             final results = snapshot.data!;

@@ -44,6 +44,7 @@ class SettingsProvider extends ChangeNotifier {
   void setDefaultSubtitleSync(double v) { _defaultSubtitleSync = v; notifyListeners(); _save(); }
   void setSubtitleItalic(bool v) { _subtitleItalic = v; notifyListeners(); _save(); }
   void setSubtitleRTL(bool v) { _subtitleRTL = v; notifyListeners(); _save(); }
+  void setOpenSubtitlesApiKey(String v) { _openSubtitlesApiKey = v.trim(); notifyListeners(); _save(); }
 
   bool _autoPlay = true;
   bool get autoPlay => _autoPlay;
@@ -319,6 +320,12 @@ class SettingsProvider extends ChangeNotifier {
   bool _subtitleRTL = false;
   bool get subtitleRTL => _subtitleRTL;
 
+  // مفتاح API الخاص بالمستخدم لخدمة OpenSubtitles (البحث عن ترجمات أونلاين).
+  // فارغ افتراضياً - المستخدم لازم يدخّله يدوياً من الإعدادات لأن كل مستخدم
+  // خاصو مفتاحه الخاص (خدمة OpenSubtitles ما كتسمحش بمفتاح عام مشترك).
+  String _openSubtitlesApiKey = '';
+  String get openSubtitlesApiKey => _openSubtitlesApiKey;
+
   String _sortBy = 'date';
   String get sortBy => _sortBy;
 
@@ -464,6 +471,7 @@ class SettingsProvider extends ChangeNotifier {
     _gestureSensitivity = p.getDouble('gestureSensitivity') ?? 1.0;
     _colorFormat = p.getString('colorFormat') ?? 'yuv';
     _appLanguageCode = p.getString('appLanguageCode') ?? 'system';
+    _openSubtitlesApiKey = p.getString('openSubtitlesApiKey') ?? '';
 
     notifyListeners();
   }
@@ -558,6 +566,7 @@ class SettingsProvider extends ChangeNotifier {
     await p.setDouble('gestureSensitivity', _gestureSensitivity);
     await p.setString('colorFormat', _colorFormat);
     await p.setString('appLanguageCode', _appLanguageCode);
+    await p.setString('openSubtitlesApiKey', _openSubtitlesApiKey);
   }
 
   void resetAll() {

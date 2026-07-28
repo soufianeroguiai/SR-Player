@@ -975,6 +975,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
                   return ListTile(
                     key: Key(video.path),
+                    onTap: isPlaying
+                        ? null
+                        : () {
+                            _service.playVideoInQueue(video);
+                            setState(() => _showPlaylistEditor = false);
+                          },
                     leading: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1437,7 +1443,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           _player.seek(t > _state.duration ? _state.duration : t);
                         },
                         onToggleFit: _toggleFit,
-                        onToggleLock: _toggleLock,
+                        fitMode: _state.fitMode,
                         onPip: () {
                           final provider = context.read<PlayerProvider>();
                           provider.minimizeAndStartPipIfNeeded();

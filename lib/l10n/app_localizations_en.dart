@@ -604,6 +604,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get defaultSyncOption => 'Default sync';
 
   @override
+  String get openSubtitlesApiKeyOption => 'OpenSubtitles API key';
+
+  @override
+  String get openSubtitlesApiKeyDialogHint =>
+      'Required to search subtitles online. Create a free account at opensubtitles.com and get your key from there.';
+
+  @override
+  String get openSubtitlesApiKeyNotSet => 'Not set';
+
+  @override
+  String get openSubtitlesApiKeySet => 'Set';
+
+  @override
+  String get openSubtitlesApiKeyMissingMessage =>
+      'Enter your OpenSubtitles API key in Settings first to search subtitles online';
+
+  @override
+  String get openSubtitlesApiKeyInvalidMessage =>
+      'Invalid API key - check it in Settings';
+
+  @override
   String get scaleModeOption => 'Scale mode';
 
   @override

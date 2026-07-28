@@ -1,8 +1,6 @@
-// FILE: lib/screens/player/player_controls.dart
-
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'dart:async';
+import 'player_fit_mode.dart';
 
 class PlayerTopBar extends StatelessWidget {
   final String videoName;
@@ -187,15 +185,27 @@ class _MarqueeText extends StatefulWidget {
 }
 
 class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
-  late ScrollController _scrollController;
+  late final ScrollController _scrollController;
+  late final AnimationController _controller;
   double _textWidth = 0;
   bool _needsMarquee = false;
-  Timer? _timer;
+
+  // نفس السرعة التقريبية للنسخة القديمة (1.2px كل 30ms = 40px/ثانية)،
+  // لكن هنا مدفوعة بـ Ticker واحد مع repeat() بدل Timer يخلق Animation
+  // جديدة فكل 30ms - أخف بكثير على الـ CPU وأنعم بصرياً لأنها متزامنة مع
+  // معدل تحديث الشاشة (vsync) بدل معدل ثابت مستقل عنه.
+  static const double _pixelsPerSecond = 40;
+  static const double _gap = 40;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _controller = AnimationController(vsync: this)
+      ..addListener(() {
+        if (!_scrollController.hasClients) return;
+        _scrollController.jumpTo(_controller.value * (_textWidth + _gap));
+      });
     WidgetsBinding.instance.addPostFrameCallback(_measure);
   }
 
@@ -213,25 +223,16 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
   }
 
   void _startScroll() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      if (!_scrollController.hasClients) return;
-      final maxScroll = _textWidth;
-      if (_scrollController.offset >= maxScroll) {
-        _scrollController.jumpTo(0.0);
-      } else {
-        _scrollController.animateTo(
-          _scrollController.offset + 1.2,
-          duration: const Duration(milliseconds: 30),
-          curve: Curves.linear,
-        );
-      }
-    });
+    final totalDistance = _textWidth + _gap;
+    final seconds = totalDistance / _pixelsPerSecond;
+    _controller
+      ..duration = Duration(milliseconds: (seconds * 1000).round())
+      ..repeat();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -337,6 +338,7 @@ class PlayerBottomBar extends StatefulWidget {
   final VoidCallback onSkipBack;
   final VoidCallback onSkipForward;
   final VoidCallback onToggleFit;
+  final VideoFitMode fitMode;
   final VoidCallback onToggleLock;
   final VoidCallback onPip;
   final List<({String title, Duration start})> chapters;
@@ -359,6 +361,7 @@ class PlayerBottomBar extends StatefulWidget {
     required this.onSkipBack,
     required this.onSkipForward,
     required this.onToggleFit,
+    required this.fitMode,
     required this.onToggleLock,
     required this.onPip,
     this.chapters = const [],
@@ -572,7 +575,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                   _BottomBtn(icon: Symbols.skip_next_rounded, onTap: widget.onNext!, size: 28),
                 const Spacer(),
                 _BottomBtn(icon: Symbols.picture_in_picture_rounded, onTap: widget.onPip, size: 22),
-                _BottomBtn(icon: Symbols.aspect_ratio_rounded, onTap: widget.onToggleFit, size: 22),
+                _BottomBtn(icon: modeIcon(widget.fitMode), onTap: widget.onToggleFit, size: 22),
               ]),
             ),
           ]),

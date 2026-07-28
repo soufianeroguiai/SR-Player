@@ -603,6 +603,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get defaultSyncOption => 'مزامنة افتراضية';
 
   @override
+  String get openSubtitlesApiKeyOption => 'مفتاح OpenSubtitles';
+
+  @override
+  String get openSubtitlesApiKeyDialogHint =>
+      'مطلوب للبحث عن الترجمات أونلاين. أنشئ حساباً مجانياً على opensubtitles.com واجلب مفتاحك من هناك.';
+
+  @override
+  String get openSubtitlesApiKeyNotSet => 'غير مضبوط';
+
+  @override
+  String get openSubtitlesApiKeySet => 'مضبوط';
+
+  @override
+  String get openSubtitlesApiKeyMissingMessage =>
+      'أدخل مفتاح OpenSubtitles من الإعدادات أولاً للبحث عن ترجمات أونلاين';
+
+  @override
+  String get openSubtitlesApiKeyInvalidMessage =>
+      'مفتاح API غير صحيح - تحقق منه في الإعدادات';
+
+  @override
   String get scaleModeOption => 'طريقة قياس الترجمة';
 
   @override

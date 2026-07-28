@@ -703,7 +703,23 @@ class _HomeScreenState extends State<HomeScreen>
     final lib = context.watch<LibraryProvider>();
     final bool isSelectionMode = _selectedVideos.isNotEmpty;
 
-    return Scaffold(
+    // مهم: التنقّل داخل المجلدات ووضع التحديد المتعدد ما كايستعملوش
+    // Navigator.push (كيتبدّلو غير بحالة داخلية عبر setState)، فما
+    // كاينش أي Route جديدة فوق المكدّس (stack) يقدر النظام يرجع ليها.
+    // بدون هاذ PopScope، زر الرجوع (أو إيماءة الرجوع) فالهاتف كان
+    // كيطبَّق مباشرة على الـ Route الوحيدة الموجودة (RootScreen نفسها)
+    // فيخرج التطبيق كاملاً بدل ما يرجع للمجلدات أو يلغي التحديد.
+    return PopScope(
+      canPop: _browsingFolder == null && !isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isSelectionMode) {
+          setState(() => _selectedVideos.clear());
+        } else if (_browsingFolder != null) {
+          setState(() => _browsingFolder = null);
+        }
+      },
+      child: Scaffold(
       extendBody: true,
       appBar: isSelectionMode
           ? _buildSelectionAppBar()
@@ -834,6 +850,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             )
           : null,
+      ),
     );
   }
 

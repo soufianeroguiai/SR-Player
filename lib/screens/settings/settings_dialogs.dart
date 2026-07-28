@@ -191,6 +191,56 @@ void showSubtitleLanguagePicker(BuildContext ctx, SettingsProvider s) {
   );
 }
 
+void showOpenSubtitlesApiKeyDialog(BuildContext ctx, SettingsProvider s) {
+  final t = AppLocalizations.of(ctx)!;
+  final controller = TextEditingController(text: s.openSubtitlesApiKey);
+  showModalBottomSheet(
+    context: ctx,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
+                child: Text(t.openSubtitlesApiKeyOption, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                child: Text(t.openSubtitlesApiKeyDialogHint,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(hintText: 'API Key'),
+                  autofocus: true,
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
+                  const SizedBox(width: 8),
+                  ElevatedButton(onPressed: () {
+                    s.setOpenSubtitlesApiKey(controller.text);
+                    Navigator.pop(context);
+                  }, child: Text(t.okButton)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 void showSyncDialog(BuildContext ctx, SettingsProvider s) {
   final t = AppLocalizations.of(ctx)!;
   final controller = TextEditingController(text: s.defaultSubtitleSync.toStringAsFixed(1));

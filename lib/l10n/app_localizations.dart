@@ -1264,6 +1264,42 @@ abstract class AppLocalizations {
   /// **'مزامنة افتراضية'**
   String get defaultSyncOption;
 
+  /// No description provided for @openSubtitlesApiKeyOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتاح OpenSubtitles'**
+  String get openSubtitlesApiKeyOption;
+
+  /// No description provided for @openSubtitlesApiKeyDialogHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مطلوب للبحث عن الترجمات أونلاين. أنشئ حساباً مجانياً على opensubtitles.com واجلب مفتاحك من هناك.'**
+  String get openSubtitlesApiKeyDialogHint;
+
+  /// No description provided for @openSubtitlesApiKeyNotSet.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مضبوط'**
+  String get openSubtitlesApiKeyNotSet;
+
+  /// No description provided for @openSubtitlesApiKeySet.
+  ///
+  /// In ar, this message translates to:
+  /// **'مضبوط'**
+  String get openSubtitlesApiKeySet;
+
+  /// No description provided for @openSubtitlesApiKeyMissingMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل مفتاح OpenSubtitles من الإعدادات أولاً للبحث عن ترجمات أونلاين'**
+  String get openSubtitlesApiKeyMissingMessage;
+
+  /// No description provided for @openSubtitlesApiKeyInvalidMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتاح API غير صحيح - تحقق منه في الإعدادات'**
+  String get openSubtitlesApiKeyInvalidMessage;
+
   /// No description provided for @scaleModeOption.
   ///
   /// In ar, this message translates to:

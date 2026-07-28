@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -27,6 +28,22 @@ String modeName(VideoFitMode mode, AppLocalizations t) {
       return t.fill;
     case VideoFitMode.stretch:
       return t.stretch;
+  }
+}
+
+/// نفس التعيين المستعمل فقائمة اختيار وضع الملء فـ player_settings_panel.dart
+/// - مركزي هنا حتى يبقى زر شريط التحكم السفلي (PlayerBottomBar) متطابقاً
+/// دائماً مع نفس الأيقونة، بدل تكرار المنطق فمكانين قد ينفصلا لاحقاً.
+IconData modeIcon(VideoFitMode mode) {
+  switch (mode) {
+    case VideoFitMode.contain:
+      return Symbols.fit_screen_rounded;
+    case VideoFitMode.cover:
+      return Symbols.fullscreen_rounded;
+    case VideoFitMode.fill:
+      return Symbols.aspect_ratio_rounded;
+    case VideoFitMode.stretch:
+      return Symbols.zoom_out_map_rounded;
   }
 }
 
