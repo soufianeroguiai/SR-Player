@@ -1,5 +1,3 @@
-// FILE: lib/providers/library_provider.dart
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,9 +8,6 @@ import 'package:ffmpeg_kit_extended_flutter/ffmpeg_kit_extended_flutter.dart';
 import '../models/video_item.dart';
 import '../models/playlist.dart';
 
-/// نوع الخطأ الأخير الذي وقع أثناء فهرسة المكتبة.
-/// يُستخدم فالواجهة باش نعرضو رسالة وزر مناسبين (طلب إذن أو إعادة محاولة)
-/// بدل ما نعرضو فقط "ماكايناش فيديوهات" فكل الحالات.
 enum LibraryError { none, permissionDenied, scanFailed }
 
 class LibraryProvider extends ChangeNotifier {
@@ -44,8 +39,6 @@ class LibraryProvider extends ChangeNotifier {
   String? get error => _error;
   LibraryError get errorType => _errorType;
 
-  // كل تغيير فالحالة كيلغي الكاش، باش "videos" ما يعاودش يبني اللائحة
-  // غير إلا تغير شيء فعلاً (بدل ما كان كيبنيها من جديد فكل استدعاء).
   @override
   void notifyListeners() {
     _visibleVideosCache = null;
@@ -90,8 +83,6 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 🔖 إشارات مرجعية متعددة داخل نفس الفيديو (بخلاف "استئناف التشغيل"
-  // اللي كيحتفظ بنقطة وحدة فقط)
   List<Duration> getBookmarks(String path) {
     final list = _bookmarks[path] ?? const <int>[];
     return list.map((ms) => Duration(milliseconds: ms)).toList();
@@ -103,7 +94,8 @@ class LibraryProvider extends ChangeNotifier {
     if (raw != null) {
       try {
         final Map<String, dynamic> decoded = json.decode(raw);
-        _bookmarks = decoded.map((k, v) => MapEntry(k, List<int>.from(v as List)));
+        _bookmarks =
+            decoded.map((k, v) => MapEntry(k, List<int>.from(v as List)));
       } catch (_) {
         _bookmarks = {};
       }
@@ -119,7 +111,6 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> addBookmark(String path, Duration position) async {
     final list = _bookmarks.putIfAbsent(path, () => []);
     final ms = position.inMilliseconds;
-    // تجنب إضافة إشارتين قريبتين بزاف من بعضهم (أقل من ثانيتين)
     if (list.any((e) => (e - ms).abs() < 2000)) return;
     list.add(ms);
     list.sort();
@@ -188,10 +179,9 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool isInPlaylist(String path) => _playlists.any((pl) => pl.videoPaths.contains(path));
+  bool isInPlaylist(String path) =>
+      _playlists.any((pl) => pl.videoPaths.contains(path));
 
-  /// القوائم التي تحتوي على هذا الفيديو (تُستخدم لإظهار علامة ✓ فقائمة
-  /// الاختيار عند "إضافة لقائمة تشغيل").
   List<Playlist> playlistsContaining(String path) =>
       _playlists.where((pl) => pl.videoPaths.contains(path)).toList();
 
@@ -210,18 +200,14 @@ class LibraryProvider extends ChangeNotifier {
     if (stored != null) {
       try {
         final list = jsonDecode(stored) as List;
-        _playlists = list.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
+        _playlists = list
+            .map((e) => Playlist.fromJson(e as Map<String, dynamic>))
+            .toList();
         notifyListeners();
         return;
-      } catch (_) {
-        // بيانات تالفة - نكمل على الترحيل/البداية من الصفر تحت.
-      }
+      } catch (_) {}
     }
 
-    // ترحيل تلقائي: القائمة القديمة (نسخة واحدة عامة) كانت مخزَّنة تحت
-    // المفتاح 'playlist_paths'. إذا كانت موجودة وغير فارغة، نحوّلها لقائمة
-    // مسمّاة "قائمتي" مرة واحدة فقط، حتى لا يفقد المستخدم فيديوهاته
-    // المحفوظة سابقاً بعد هذا التحديث.
     final oldPaths = p.getStringList('playlist_paths') ?? [];
     if (oldPaths.isNotEmpty) {
       _playlists = [
@@ -283,7 +269,8 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> reorderPlaylistItems(String playlistId, int oldIndex, int newIndex) async {
+  Future<void> reorderPlaylistItems(
+      String playlistId, int oldIndex, int newIndex) async {
     final playlist = playlistById(playlistId);
     if (playlist == null) return;
     if (newIndex > oldIndex) newIndex -= 1;
@@ -349,17 +336,19 @@ class LibraryProvider extends ChangeNotifier {
         path,
         onComplete: (_) {},
       );
+      if (session == null) return Duration.zero;
       final info = session.getMediaInformation();
-      if (info != null) {
-        final durationStr = info.duration;
-        final seconds = double.tryParse(durationStr ?? '') ?? 0.0;
-        return Duration(milliseconds: (seconds * 1000).round());
-      }
-    } catch (_) {}
-    return Duration.zero;
+      if (info == null) return Duration.zero;
+      final durationStr = info.duration;
+      final seconds = double.tryParse(durationStr ?? '') ?? 0.0;
+      return Duration(milliseconds: (seconds * 1000).round());
+    } catch (_) {
+      return Duration.zero;
+    }
   }
 
-  Future<VideoItem?> _buildVideoItem(AssetEntity asset, String albumName) async {
+  Future<VideoItem?> _buildVideoItem(
+      AssetEntity asset, String albumName) async {
     try {
       final file = await asset.file;
       if (file == null) return null;
@@ -412,7 +401,8 @@ class LibraryProvider extends ChangeNotifier {
         return;
       }
 
-      final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
+      final albums =
+          await PhotoManager.getAssetPathList(type: RequestType.video);
       final List<VideoItem> result = [];
 
       const batchSize = 12;
@@ -431,8 +421,6 @@ class LibraryProvider extends ChangeNotifier {
         }
       }
 
-      // إزالة التكرار: نفس الفيديو قد يظهر في أكثر من ألبوم واحد
-      // (مثلاً "All videos" مع مجلده الأصلي)، فنعتمد المسار كمفتاح فريد.
       final Map<String, VideoItem> deduped = {};
       for (final v in result) {
         deduped[v.path] = v;

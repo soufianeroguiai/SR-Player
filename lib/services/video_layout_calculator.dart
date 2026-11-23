@@ -13,15 +13,12 @@ class VideoLayoutCalculator {
 
     switch (fitMode) {
       case VideoFitMode.stretch:
-        // تمديد كامل مع تشويه النسبة (يملأ الشاشة بدون احترام الأبعاد)
-        return Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
       case VideoFitMode.fill:
+        return Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
       case VideoFitMode.cover:
-        // يحافظ على النسبة ويملأ الشاشة مع قص الأطراف
         return _calculateCover(videoSize, screenSize);
       case VideoFitMode.contain:
       default:
-        // يحافظ على النسبة ويحتوي الفيديو بالكامل داخل الشاشة
         return _calculateContain(videoSize, screenSize);
     }
   }

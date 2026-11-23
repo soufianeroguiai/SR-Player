@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.sr.player"
-        minSdk = 26                     // ✅ تم رفعه إلى 26 لتوافق ffmpeg_kit_extended_flutter
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

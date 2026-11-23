@@ -4,7 +4,6 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for French (`fr`).
 class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
@@ -1666,108 +1665,112 @@ class AppLocalizationsFr extends AppLocalizations {
   String get externalSubtitleLabel => 'Sous-titre externe';
 
   @override
-  String get searchOnlineSubtitles => 'بحث عن ترجمة أونلاين';
+  String get searchOnlineSubtitles => 'Rechercher des sous-titres en ligne';
 
   @override
-  String get noSubtitlesFound => 'لم يتم العثور على ترجمة';
+  String get noSubtitlesFound => 'Aucun sous-titre trouvé';
 
   @override
   String downloadFailed(Object error) {
-    return 'فشل التنزيل: $error';
+    return 'Échec du téléchargement : $error';
   }
 
   @override
-  String get audioBoostLabel => 'تعزيز الصوت';
+  String get audioBoostLabel => 'Amplification audio';
 
   @override
-  String get equalizerPresetLabel => 'البريست';
+  String get equalizerPresetLabel => 'Préréglage';
 
   @override
-  String get presetOff => 'بلا';
+  String get presetOff => 'Désactivé';
 
   @override
-  String get presetRock => 'روك';
+  String get presetRock => 'Rock';
 
   @override
-  String get presetPop => 'بوب';
+  String get presetPop => 'Pop';
 
   @override
-  String get presetMovie => 'أفلام';
+  String get presetMovie => 'Cinéma';
 
   @override
-  String get presetClassical => 'كلاسيكي';
+  String get presetClassical => 'Classique';
 
   @override
-  String get presetJazz => 'جاز';
+  String get presetJazz => 'Jazz';
 
   @override
-  String get presetSpeech => 'كلام';
+  String get presetSpeech => 'Parole';
 
   @override
-  String get presetCustom => 'مخصص';
+  String get presetCustom => 'Personnalisé';
 
   @override
-  String get normalizeVolumeLabel => 'تسوية الصوت';
+  String get normalizeVolumeLabel => 'Normaliser le volume';
 
   @override
-  String get normalizeVolumeDesc => 'توحيد مستوى الصوت تلقائياً بين المقاطع';
+  String get normalizeVolumeDesc =>
+      'Uniformiser automatiquement le volume entre les clips';
 
   @override
-  String get skipSilenceLabel => 'تخطي الصمت';
+  String get skipSilenceLabel => 'Ignorer les silences';
 
   @override
-  String get skipSilenceDesc => 'تخطي فترات الصمت تلقائياً أثناء التشغيل';
+  String get skipSilenceDesc =>
+      'Ignorer automatiquement les passages silencieux pendant la lecture';
 
   @override
   String get replayGainLabel => 'ReplayGain';
 
   @override
-  String get replayGainDesc => 'ضبط مستوى الصوت حسب بيانات الملف الأصلية';
+  String get replayGainDesc =>
+      'Ajuster le volume selon les données du fichier';
 
   @override
-  String get outputSectionLabel => 'المخرج';
+  String get outputSectionLabel => 'Sortie';
 
   @override
-  String get outputStereo => 'ستيريو';
+  String get outputStereo => 'Stéréo';
 
   @override
-  String get outputMono => 'أحادي';
+  String get outputMono => 'Mono';
 
   @override
-  String get outputLeft => 'القناة اليسرى';
+  String get outputLeft => 'Canal gauche';
 
   @override
-  String get outputRight => 'القناة اليمنى';
+  String get outputRight => 'Canal droit';
 
   @override
-  String get output51Downmix => 'دمج 5.1';
+  String get output51Downmix => 'Downmix 5.1';
 
   @override
-  String get outputPassthrough => 'تمرير مباشر';
+  String get outputPassthrough => 'Passthrough';
 
   @override
-  String get preferredAudioSectionLabel => 'اللغة المفضلة';
+  String get preferredAudioSectionLabel => 'Audio préféré';
 
   @override
-  String get autoOption => 'تلقائي';
+  String get autoOption => 'Auto';
 
   @override
-  String get playbackSectionLabel => 'التشغيل';
+  String get playbackSectionLabel => 'Lecture';
 
   @override
-  String get sampleRate => 'معدل العينة';
+  String get sampleRate => 'Fréquence d\'échantillonnage';
 
   @override
-  String get bitDepth => 'عمق البت';
+  String get bitDepth => 'Profondeur de bits';
 
   @override
-  String get restorePreviousVolume => 'استعادة مستوى الصوت السابق';
+  String get restorePreviousVolume => 'Restaurer le volume précédent';
 
   @override
-  String get graphicEqualizerPanelTitle => 'المعادل الرسومي (10 نطاقات)';
+  String get graphicEqualizerPanelTitle =>
+      'Égaliseur graphique (10 bandes)';
 
   @override
   String channelsCount(Object count) {
-    return '$count قنوات';
+    return '$count canaux';
   }
 }

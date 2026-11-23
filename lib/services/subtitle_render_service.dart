@@ -1,7 +1,3 @@
-/// Services/subtitle_render_service.dart
-/// خدمة معالجة نصوص الترجمة (تنظيف، إزالة تأثيرات ASS، دعم RTL)
-/// تُستخدم مرة واحدة عند تحميل الترجمة أو عند ورود نص جديد من المشغل.
-
 class SubtitleRenderService {
   static String processText(
     String rawText, {
@@ -13,23 +9,20 @@ class SubtitleRenderService {
 
     String processed = rawText;
 
-    // 1. تحويل فواصل الأسطر الخاصة بـ ASS إلى \n نظامي
     processed = processed.replaceAll(RegExp(r'\\[Nn]'), '\n');
 
-    // 2. إزالة أكواد ASS (خطوط، تأثيرات، أو كل شيء)
     if (ignoreAssEffects || ignoreAssFonts) {
       processed = _parseAssTags(processed, ignoreAssEffects, ignoreAssFonts);
     }
 
     if (ignoreAssEffects) {
-      // إزالة أي أقواس متبقية (تأثيرات لم تعالجها _parseAssTags)
       processed = processed.replaceAll(RegExp(r'\{.*?\}'), '');
     }
 
-    // 3. إزالة رموز الاتجاه المخفية (Bidi Controls)
+    processed = processed.replaceAll(RegExp(r'\{\s*\}'), '');
+
     processed = processed.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E\u061C]'), '');
 
-    // 4. دعم RTL بإضافة وسم ترتيب Unicode إذا كان النص عربيًا
     if (fullUnicodeRtlSupport && _containsArabic(processed)) {
       processed = '\u2067$processed\u2069';
     }
@@ -37,16 +30,11 @@ class SubtitleRenderService {
     return processed.trim();
   }
 
-  // --- private helpers ---
-
-  /// يعالج أكواد ASS: إما يحذف كل الأقواس (تأثيرات) أو فقط ما يتعلق بالخطوط
   static String _parseAssTags(String text, bool ignoreEffects, bool ignoreFonts) {
     if (ignoreEffects) {
-      // إزالة كل ما بين {} بما في ذلك تأثيرات الحركة والقص...
       return text.replaceAll(RegExp(r'\{[^}]*\}'), '');
     }
 
-    // وضع تجاهل الخطوط فقط (إزالة وسوم معينة دون إزالة الأقواس بالكامل)
     String result = text;
     if (ignoreFonts) {
       result = result
