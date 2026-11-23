@@ -19,6 +19,8 @@ class LibraryTab extends StatelessWidget {
   final AppLocalizations t;
   final LibraryError errorType;
   final VoidCallback? onRetry;
+  final bool seriesView;
+  final ValueChanged<bool> onSeriesViewChanged;
 
   const LibraryTab({
     super.key,
@@ -32,6 +34,8 @@ class LibraryTab extends StatelessWidget {
     required this.t,
     this.errorType = LibraryError.none,
     this.onRetry,
+    this.seriesView = false,
+    required this.onSeriesViewChanged,
   });
 
   @override
@@ -78,8 +82,35 @@ class LibraryTab extends StatelessWidget {
     final bool selectionMode = selectedVideos.isNotEmpty;
     final currentVideoPath = context.watch<PlayerProvider>().currentVideo?.path;
 
-    return gridView
-        ? GridView.builder(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  icon: const Icon(Symbols.video_library_rounded),
+                  label: Text(t.videosTab),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: const Icon(Symbols.live_tv_rounded),
+                  label: Text(t.seriesTab),
+                ),
+              ],
+              selected: {seriesView},
+              onSelectionChanged: (selection) => onSeriesViewChanged(selection.first),
+            ),
+          ),
+        ),
+        Expanded(
+          child: seriesView
+              ? _buildSeriesList(context, selectionMode)
+              : gridView
+                  ? GridView.builder(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 90),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2, childAspectRatio: 0.78, crossAxisSpacing: 10, mainAxisSpacing: 10),
@@ -108,8 +139,157 @@ class LibraryTab extends StatelessWidget {
                 onMoreTap: () => onMore(v),
                 onLongPress: () => onSelectionToggle(v),
               );
-            });
+            }),
+        ),
+      ],
+    );
   }
+
+  Widget _buildSeriesList(BuildContext context, bool selectionMode) {
+    final grouped = <String, _SeriesGroup>{};
+    for (final video in videos) {
+      final episode = _parseEpisode(video);
+      if (episode == null) continue;
+      final key = episode.seriesTitle.toLowerCase();
+      final group = grouped.putIfAbsent(
+        key,
+        () => _SeriesGroup(title: episode.seriesTitle),
+      );
+      group.seasons.putIfAbsent(episode.season, () => []).add(episode);
+    }
+
+    if (grouped.isEmpty) {
+      return EmptyState(t.noSeriesFound, Symbols.live_tv_rounded, t);
+    }
+
+    final series = grouped.values.toList()
+      ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    for (final group in series) {
+      for (final episodes in group.seasons.values) {
+        episodes.sort((a, b) => a.episode.compareTo(b.episode));
+      }
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
+      itemCount: series.length,
+      itemBuilder: (context, index) {
+        final group = series[index];
+        final episodeCount = group.seasons.values.fold<int>(
+          0,
+          (count, episodes) => count + episodes.length,
+        );
+        final seasons = group.seasons.keys.toList()..sort();
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ExpansionTile(
+            leading: const Icon(Symbols.live_tv_rounded),
+            title: Text(group.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text('${seasons.length} ${t.seasonLabel} · $episodeCount ${t.episodeLabel}'),
+            children: [
+              for (final season in seasons)
+                ExpansionTile(
+                  key: PageStorageKey('${group.title}_$season'),
+                  tilePadding: const EdgeInsetsDirectional.only(start: 56, end: 16),
+                  title: Text('${t.seasonLabel} $season'),
+                  children: [
+                    for (final episode in group.seasons[season]!)
+                      _buildEpisodeTile(context, episode, selectionMode),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEpisodeTile(
+    BuildContext context,
+    _SeriesEpisode episode,
+    bool selectionMode,
+  ) {
+    final library = context.watch<LibraryProvider>();
+    final position = library.getCachedPosition(episode.video.path);
+    final durationMs = episode.video.duration.inMilliseconds;
+    final progress = durationMs > 0 && position != null
+        ? (position.inMilliseconds / durationMs).clamp(0.0, 1.0)
+        : 0.0;
+    final watched = durationMs > 0 && progress >= 0.9;
+    final subtitle = watched
+        ? t.watchedStatus
+        : position != null
+            ? '${t.continueLabel} · ${(progress * 100).round()}%'
+            : t.newEpisodeStatus;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      contentPadding: const EdgeInsetsDirectional.only(start: 76, end: 12),
+      leading: Icon(
+        watched ? Symbols.check_circle_rounded : Symbols.play_circle_rounded,
+        color: watched ? colorScheme.tertiary : colorScheme.primary,
+      ),
+      title: Text(episode.video.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(subtitle),
+      trailing: selectionMode
+          ? Icon(selectedVideos.contains(episode.video) ? Icons.check_circle : Icons.circle_outlined)
+          : SizedBox(
+              width: 52,
+              child: position == null
+                  ? null
+                  : LinearProgressIndicator(value: watched ? 1 : progress),
+            ),
+      selected: selectedVideos.contains(episode.video),
+      onTap: selectionMode
+          ? () => onSelectionToggle(episode.video)
+          : () => onOpen(episode.video),
+      onLongPress: () => onSelectionToggle(episode.video),
+    );
+  }
+
+  _SeriesEpisode? _parseEpisode(VideoItem video) {
+    final name = video.name;
+    final match = RegExp(
+      r'^(.*?)[\s._\-\[]*[Ss](\d{1,2})[\s._\-]*[Ee](\d{1,3})(?:[\s._\-\]].*)?$',
+    ).firstMatch(name) ??
+        RegExp(
+          r'^(.*?)[\s._\-\[]+(\d{1,2})[xX](\d{1,3})(?:[\s._\-\]].*)?$',
+        ).firstMatch(name);
+    if (match == null) return null;
+
+    final rawTitle = match.group(1)!.replaceAll(RegExp(r'[._]+'), ' ').trim();
+    final title = rawTitle.replaceAll(RegExp(r'\s+'), ' ');
+    if (title.isEmpty) return null;
+
+    return _SeriesEpisode(
+      seriesTitle: title,
+      season: int.parse(match.group(2)!),
+      episode: int.parse(match.group(3)!),
+      video: video,
+    );
+  }
+}
+
+class _SeriesGroup {
+  final String title;
+  final Map<int, List<_SeriesEpisode>> seasons = {};
+
+  _SeriesGroup({required this.title});
+}
+
+class _SeriesEpisode {
+  final String seriesTitle;
+  final int season;
+  final int episode;
+  final VideoItem video;
+
+  const _SeriesEpisode({
+    required this.seriesTitle,
+    required this.season,
+    required this.episode,
+    required this.video,
+  });
 }
 
 class RecentTab extends StatelessWidget {

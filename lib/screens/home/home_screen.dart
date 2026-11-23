@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin {
   int _currentIndex = 0;
   String? _browsingFolder;
+  bool _seriesView = false;
 
   late AnimationController _tuneController;
   late Animation<double> _tuneAnimation;
@@ -810,6 +811,8 @@ class _HomeScreenState extends State<HomeScreen>
                   t: t,
                   errorType: lib.errorType,
                   onRetry: _refreshLibrary,
+                  seriesView: _seriesView,
+                  onSeriesViewChanged: (value) => setState(() => _seriesView = value),
                 ),
               ),
               _buildFoldersTab(lib, settings, t),

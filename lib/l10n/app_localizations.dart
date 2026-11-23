@@ -1708,6 +1708,54 @@ abstract class AppLocalizations {
   /// **'مكتبة'**
   String get libraryTab;
 
+  /// No description provided for @videosTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفيديوهات'**
+  String get videosTab;
+
+  /// No description provided for @seriesTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'المسلسلات'**
+  String get seriesTab;
+
+  /// No description provided for @noSeriesFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد حلقات يمكن تجميعها'**
+  String get noSeriesFound;
+
+  /// No description provided for @seasonLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'موسم'**
+  String get seasonLabel;
+
+  /// No description provided for @episodeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'حلقة'**
+  String get episodeLabel;
+
+  /// No description provided for @watchedStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت المشاهدة'**
+  String get watchedStatus;
+
+  /// No description provided for @continueLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'متابعة'**
+  String get continueLabel;
+
+  /// No description provided for @newEpisodeStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'جديدة'**
+  String get newEpisodeStatus;
+
   /// No description provided for @myFilesTab.
   ///
   /// In ar, this message translates to:

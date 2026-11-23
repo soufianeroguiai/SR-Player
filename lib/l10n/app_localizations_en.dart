@@ -837,6 +837,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryTab => 'Library';
 
   @override
+  String get videosTab => 'Videos';
+
+  @override
+  String get seriesTab => 'Series';
+
+  @override
+  String get noSeriesFound => 'No episodes found to group';
+
+  @override
+  String get seasonLabel => 'Season';
+
+  @override
+  String get episodeLabel => 'Episodes';
+
+  @override
+  String get watchedStatus => 'Watched';
+
+  @override
+  String get continueLabel => 'Continue';
+
+  @override
+  String get newEpisodeStatus => 'New';
+
+  @override
   String get myFilesTab => 'My Files';
 
   @override

@@ -836,6 +836,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get libraryTab => 'مكتبة';
 
   @override
+  String get videosTab => 'الفيديوهات';
+
+  @override
+  String get seriesTab => 'المسلسلات';
+
+  @override
+  String get noSeriesFound => 'لا توجد حلقات يمكن تجميعها';
+
+  @override
+  String get seasonLabel => 'موسم';
+
+  @override
+  String get episodeLabel => 'حلقة';
+
+  @override
+  String get watchedStatus => 'تمت المشاهدة';
+
+  @override
+  String get continueLabel => 'متابعة';
+
+  @override
+  String get newEpisodeStatus => 'جديدة';
+
+  @override
   String get myFilesTab => 'ملفاتي';
 
   @override
