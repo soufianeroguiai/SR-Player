@@ -1444,6 +1444,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         },
                         onToggleFit: _toggleFit,
                         fitMode: _state.fitMode,
+                        // ✅ التصحيح: تمرير onToggleLock المطلوب
+                        onToggleLock: _toggleLock,
                         onPip: () {
                           final provider = context.read<PlayerProvider>();
                           provider.minimizeAndStartPipIfNeeded();

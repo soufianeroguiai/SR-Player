@@ -895,6 +895,9 @@ class _HomeScreenState extends State<HomeScreen>
           selectedVideos: _selectedVideos,
           onSelectionToggle: _toggleSelection,
           t: t,
+          // ✅ التصحيح: تمرير الباراميترين المطلوبين
+          seriesView: _seriesView,
+          onSeriesViewChanged: (value) => setState(() => _seriesView = value),
         )),
       ]);
     }
