@@ -354,12 +354,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _pickSubtitle() async {
-    final result = await FilePicker.pickFiles(
-        type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
-    if (result?.files.single.path != null) {
-      await _loadSrtFile(result!.files.single.path!, _settingsProvider.subtitleEncoding);
-    }
+  final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
+  if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
+    await _loadSrtFile(result.files.single.path!, _settingsProvider.subtitleEncoding);
   }
+}
 
   void _removeExternalSubtitle() {
     final t = AppLocalizations.of(context)!;

@@ -5,6 +5,7 @@ import '../providers/player_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/pip_service.dart';
 import '../services/subtitle_parser.dart';
+import '../services/subtitle_service.dart';   // ← السطر المضاف (SubtitleEntry)
 import '../widgets/subtitle_renderer.dart';
 
 class MiniPlayer extends StatefulWidget {
@@ -18,7 +19,6 @@ class MiniPlayer extends StatefulWidget {
 
 class _MiniPlayerState extends State<MiniPlayer> {
   Offset _position = const Offset(16, 100);
-
   double? _width;
   double _baseWidth = 0;
 
@@ -30,7 +30,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
     }
 
     final screenSize = MediaQuery.of(context).size;
-
     _width ??= screenSize.width * 0.50;
     if (_width! >= screenSize.width - 16) {
       _width = screenSize.width * 0.50;
@@ -70,10 +69,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
             },
             onScaleUpdate: (details) {
               setState(() {
-                final newX =
-                    (_position.dx + details.focalPointDelta.dx).clamp(0.0, maxDx);
-                final newY =
-                    (_position.dy + details.focalPointDelta.dy).clamp(0.0, maxDy);
+                final newX = (_position.dx + details.focalPointDelta.dx)
+                    .clamp(0.0, maxDx);
+                final newY = (_position.dy + details.focalPointDelta.dy)
+                    .clamp(0.0, maxDy);
                 _position = Offset(newX, newY);
 
                 if (details.scale != 1.0) {

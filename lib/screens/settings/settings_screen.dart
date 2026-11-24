@@ -837,7 +837,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         t.subtitleFolderOption,
                         s.subtitleFolder.isEmpty ? '---' : s.subtitleFolder,
                         () async {
-                      final result = await FilePicker.getDirectoryPath();
+                      final result =
+                          await FilePicker.platform.getDirectoryPath();
                       if (result != null) s.setSubtitleFolder(result);
                     }),
                     _divider(),
@@ -1075,7 +1076,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.read<SettingsProvider>();
     final t = AppLocalizations.of(context)!;
     try {
-      final dirPath = await FilePicker.getDirectoryPath();
+      final dirPath = await FilePicker.platform.getDirectoryPath();
       if (dirPath == null) return;
       final jsonStr =
           const JsonEncoder.withIndent('  ').convert(s.exportToJson());
@@ -1099,9 +1100,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.read<SettingsProvider>();
     final t = AppLocalizations.of(context)!;
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
           type: FileType.custom, allowedExtensions: ['json']);
-      final path = result?.files.single.path;
+      final path = (result != null && result.files.isNotEmpty)
+          ? result.files.single.path
+          : null;
       if (path == null) return;
       final content = await File(path).readAsString();
       final Map<String, dynamic> jsonMap =
@@ -1128,16 +1131,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'value': 'sw', 'label': t.decoderSW},
     ];
     _showSimpleMenu(context, items, s.hwDecoderMode, (v) => s.setHwDecoderMode(v));
-  }
-
-  void _showColorFormatPicker(BuildContext context, SettingsProvider s) {
-    final t = AppLocalizations.of(context)!;
-    final items = [
-      {'value': 'yuv', 'label': t.colorFormatYCbCr},
-      {'value': 'rgb_full', 'label': t.colorFormatRGBFull},
-      {'value': 'rgb_limited', 'label': t.colorFormatRGBLimited},
-    ];
-    _showSimpleMenu(context, items, s.colorFormat, (v) => s.setColorFormat(v));
   }
 
   void _showSimpleMenu(BuildContext context, List<Map<String, String>> items,
@@ -1172,17 +1165,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return t.decoderSW;
       default:
         return t.decoderAuto;
-    }
-  }
-
-  String colorFormatName(String format, AppLocalizations t) {
-    switch (format) {
-      case 'rgb_full':
-        return t.colorFormatRGBFull;
-      case 'rgb_limited':
-        return t.colorFormatRGBLimited;
-      default:
-        return t.colorFormatYCbCr;
     }
   }
 
