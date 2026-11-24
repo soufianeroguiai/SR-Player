@@ -344,7 +344,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   // ✅ الدالة المُصححة — متوافقة مع file_picker 13.x
   Future<void> _pickSubtitle() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
     if (result.isEmpty) return;

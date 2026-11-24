@@ -54,13 +54,13 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Patch android_file_picker Gradle script
+      - name: Patch android_file_picker (fallback)
         run: |
-          FILE=$(find ~/.pub-cache/hosted/pub.dev -path "*/android_file_picker-*/android/build.gradle.kts" | head -n 1)
-          if [ -n "$FILE" ]; then
-            echo "Patching $FILE"
-            sed -i 's/flutter\.compileSdkVersion/35/g; s/flutter\.minSdkVersion/21/g; s/flutter\.targetSdkVersion/35/g; s/flutter\.ndkVersion/"27.0.12077973"/g' "$FILE"
-            sed -i '/extensions\.getByName("flutter")/d; /the<FlutterExtension>()/d' "$FILE"
+          F=$(find "$PUB_CACHE" -path "*android_file_picker-*/android/build.gradle.kts" | head -1)
+          if [ -n "$F" ]; then
+            echo "Patching $F"
+            sed -n '50,65p' "$F"
+            sed -i 's/flutter\.compileSdkVersion/36/g; s/flutter\.targetSdkVersion/36/g; s/flutter\.minSdkVersion/24/g' "$F"
           fi
 
       - name: Analyze Flutter code
