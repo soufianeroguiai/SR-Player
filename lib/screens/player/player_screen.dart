@@ -50,18 +50,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   late final PlayerControlService _service;
   late final LibraryProvider _libraryProvider;
   late final SettingsProvider _settingsProvider;
-  // نخزّن مرجع PlayerProvider هنا لأن استدعاء context.read() داخل dispose()
-  // غير آمن فـ Flutter (الـ context يصبح "deactivated" فتلك اللحظة) ويرمي
-  // استثناء يمنع إتمام التصغير/الإغلاق، وهذا كان السبب الحقيقي وراء توقف
-  // زر الرجوع (سواء من الواجهة أو زر الهاتف) عن العمل.
   late final PlayerProvider _playerProvider;
 
-  // الفيديو المعروض فعلياً حالياً. widget.video يبقى ثابتاً (الفيديو الذي
-  // فُتحت به الشاشة أول مرة)، لكن بعد الضغط على "التالي/السابق" يتغيّر
-  // الملف المُشغَّل فعلياً بدون إعادة بناء الشاشة بالكامل (حتى لا ينقطع
-  // التشغيل) - لذلك نحتاج حقلاً منفصلاً يعكس الفيديو الحقيقي المعروض
-  // الآن، ونستخدمه بدل widget.video فكل مكان يخص "ما يُعرض حالياً"
-  // (العنوان، المفضلة، الإشارات المرجعية، محرر قائمة التشغيل).
   late VideoItem _currentVideo;
 
   Timer? _hideTimer;
@@ -91,14 +81,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final provider = context.read<PlayerProvider>();
     _playerProvider = provider;
     _currentVideo = widget.video;
-    if (provider.currentVideo?.path == widget.video.path && provider.player != null) {
+    if (provider.currentVideo?.path == widget.video.path &&
+        provider.player != null) {
       _player = provider.player!;
       _controller = provider.controller!;
-      // نؤجّل provider.restore() لما بعد إتمام هاذ الإطار (frame) لأن استدعاء
-      // notifyListeners() بشكل متزامن من داخل initState (وهي أصلاً نتيجة
-      // notifyListeners سابقة من الشاشة الرئيسية) مخالف لقواعد Flutter
-      // ("setState/markNeedsBuild called during build") ويمكن يسبب سلوكاً
-      // غير مستقر فحالات معينة.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) provider.restore();
       });
@@ -131,7 +117,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   Future<void> _initAll() async {
     await _service.initSharedPrefs();
-    final bright = (await SharedPreferences.getInstance()).getDouble('player_brightness') ?? 0.7;
+    final bright = (await SharedPreferences.getInstance())
+            .getDouble('player_brightness') ??
+        0.7;
     _brightnessNotifier.value = bright.clamp(0.1, 1.0);
     _state.fitMode = await VideoFitSettings.load();
     _enableSmartRotation();
@@ -164,9 +152,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _sensorSubscription = accelerometerEventStream().listen((event) {
       if (!mounted || _state.isLocked) return;
       if (event.x > 6.0) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
+        SystemChrome.setPreferredOrientations(
+            [DeviceOrientation.landscapeLeft]);
       } else if (event.x < -6.0) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight]);
+        SystemChrome.setPreferredOrientations(
+            [DeviceOrientation.landscapeRight]);
       }
     });
   }
@@ -199,7 +189,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 color: Colors.black.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(t.screenLocked, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              child: Text(t.screenLocked,
+                  style: const TextStyle(color: Colors.white, fontSize: 16)),
             ),
           ),
         ),
@@ -226,7 +217,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _toggleFit() {
     final t = AppLocalizations.of(context)!;
-    _state.fitMode = VideoFitMode.values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
+    _state.fitMode = VideoFitMode
+        .values[(_state.fitMode.index + 1) % VideoFitMode.values.length];
     _state.fitOverlayText = modeName(_state.fitMode, t);
     _state.zoomScale = 1.0;
     _state.panOffset = Offset.zero;
@@ -277,23 +269,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     });
   }
 
-  // يُستدعى من PlayerControlService فور تبديل الفيديو المُشغَّل فعلياً
-  // (بعد "التالي/السابق"). نُحدِّث كل الحالة المرتبطة بالفيديو المعروض
-  // (العنوان، المفضلة، الترجمة الملاصقة، "الأخيرة" فباقي شاشات التطبيق)
-  // بدون إعادة بناء الشاشة بالكامل، حتى لا ينقطع التشغيل.
   void _onServiceVideoChanged(VideoItem newVideo) {
     if (!mounted) return;
     setState(() {
       _currentVideo = newVideo;
-      // نُصفّر حالة الترجمة الخارجية القديمة (وليس تفضيل الإظهار/الإخفاء
-      // اليدوي نفسه، فذاك يبقى كما اختاره المستخدم) حتى تُعاد محاولة كشف
-      // ترجمة ملاصقة للفيديو الجديد بدل الاحتفاظ بترجمة الفيديو السابق.
       _state.hasExternalSubtitle = false;
       _state.autoSubtitleSelected = false;
       _state.lastSubtitleEntries = null;
     });
-    // نُزامن PlayerProvider.currentVideo حتى تعمل بشكل صحيح مؤشرات
-    // "قيد التشغيل" فباقي شاشات التطبيق (المكتبة، المفضلة، القوائم).
     _playerProvider.setCurrentVideo(newVideo);
     _loadSubtitleFromAdjacentFile();
   }
@@ -302,7 +285,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final sub = _settingsProvider.subtitleSettings;
     final native = _player.platform as NativePlayer;
     native.setProperty('sub-ass', sub.improveSsaAss ? 'yes' : 'no');
-    native.setProperty('sub-ass-override', (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
+    native.setProperty('sub-ass-override',
+        (sub.ignoreAssEffects || sub.ignoreAssFonts) ? 'force' : 'scale');
     if (sub.hideWhenNoDialog) {
       native.setProperty('sub-clear-on-seek', 'yes');
     }
@@ -323,18 +307,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
     final srtPath = SubtitleService.findSrt(_currentVideo.path);
     if (srtPath != null) {
-      await _loadSrtFile(srtPath, _settingsProvider.subtitleEncoding, silent: true);
+      await _loadSrtFile(srtPath, _settingsProvider.subtitleEncoding,
+          silent: true);
       _state.hasExternalSubtitle = true;
       _state.notifyListeners();
     }
   }
 
-  Future<void> _loadSrtFile(String path, String encoding, {bool silent = false}) async {
+  Future<void> _loadSrtFile(String path, String encoding,
+      {bool silent = false}) async {
     final t = AppLocalizations.of(context)!;
     try {
       await _player.setSubtitleTrack(SubtitleTrack.no());
       final settings = _settingsProvider.subtitleSettings;
-      final entries = await SubtitleService.load(path, settings: settings, encoding: encoding);
+      final entries = await SubtitleService.load(path,
+          settings: settings, encoding: encoding);
       if (entries.isEmpty) return;
       _state.lastSubtitleEntries = entries;
       await _applySubtitleSyncOffset();
@@ -343,23 +330,28 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _state.showSubtitles = true;
       _state.notifyListeners();
       if (!silent) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.subtitleLoaded)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t.subtitleLoaded)));
       }
     } catch (e) {
       if (!mounted) return;
       if (!silent) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.subtitleLoadFailed(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(t.subtitleLoadFailed(e.toString()))));
       }
     }
   }
 
+  // ✅ الدالة المُصححة — متوافقة مع file_picker 13.x
   Future<void> _pickSubtitle() async {
-  final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom, allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
-  if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
-    await _loadSrtFile(result.files.single.path!, _settingsProvider.subtitleEncoding);
+    final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['srt', 'SRT', 'ssa', 'ass']);
+    if (result.isEmpty) return;
+    final path = result.first.path;
+    if (path == null) return;
+    await _loadSrtFile(path, _settingsProvider.subtitleEncoding);
   }
-}
 
   void _removeExternalSubtitle() {
     final t = AppLocalizations.of(context)!;
@@ -370,13 +362,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _player.setSubtitleTrack(_state.subtitleTracks.first);
     }
     _state.notifyListeners();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.externalSubtitleRemoved)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(t.externalSubtitleRemoved)));
   }
 
   Future<void> _applySubtitleSyncOffset() async {
     final entries = _state.lastSubtitleEntries;
     if (entries == null || entries.isEmpty) return;
-    final offset = Duration(milliseconds: (_state.subtitleSync * 1000).round());
+    final offset =
+        Duration(milliseconds: (_state.subtitleSync * 1000).round());
     final srtContent = StringBuffer();
     for (int i = 0; i < entries.length; i++) {
       final e = entries[i] as SubtitleEntry;
@@ -384,7 +378,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       final end = e.end + offset;
       if (end.isNegative) continue;
       srtContent.writeln('${i + 1}');
-      srtContent.writeln('${_formatSrtTime(start.isNegative ? Duration.zero : start)} --> ${_formatSrtTime(end)}');
+      srtContent.writeln(
+          '${_formatSrtTime(start.isNegative ? Duration.zero : start)} --> ${_formatSrtTime(end)}');
       srtContent.writeln(e.text);
       srtContent.writeln();
     }
@@ -437,11 +432,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               gamma: _state.gamma,
               onChanged: (type, value) {
                 switch (type) {
-                  case 'brightness': _state.brightness = value; break;
-                  case 'contrast': _state.contrast = value; break;
-                  case 'saturation': _state.saturation = value; break;
-                  case 'hue': _state.hue = value; break;
-                  case 'gamma': _state.gamma = value; break;
+                  case 'brightness':
+                    _state.brightness = value;
+                    break;
+                  case 'contrast':
+                    _state.contrast = value;
+                    break;
+                  case 'saturation':
+                    _state.saturation = value;
+                    break;
+                  case 'hue':
+                    _state.hue = value;
+                    break;
+                  case 'gamma':
+                    _state.gamma = value;
+                    break;
                 }
                 _state.notifyListeners();
                 _service.applyColorSetting(type, value);
@@ -457,7 +462,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _showSpeedPicker() {
     final t = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: _state.speed.toStringAsFixed(2));
+    final controller =
+        TextEditingController(text: _state.speed.toStringAsFixed(2));
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -476,7 +482,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+                  border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.5)),
                 ),
                 child: StatefulBuilder(
                   builder: (context, setDialogState) {
@@ -486,10 +496,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 20), onPressed: () => Navigator.pop(context)),
-                            Text(t.playbackSpeed, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             IconButton(
-                              icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
+                                icon: const Icon(Icons.close,
+                                    color: Colors.white70, size: 20),
+                                onPressed: () => Navigator.pop(context)),
+                            Text(t.playbackSpeed,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.refresh,
+                                  color: Colors.white70, size: 20),
                               onPressed: () {
                                 _service.setSpeed(1.0);
                                 controller.text = '1.00';
@@ -501,16 +519,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Text(t.speed, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.speed,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: SliderTheme(
                                 data: SliderThemeData(
                                   trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                                  thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6),
+                                  activeTrackColor:
+                                      Theme.of(context).colorScheme.primary,
                                   inactiveTrackColor: Colors.white24,
-                                  thumbColor: Theme.of(context).colorScheme.primary,
+                                  thumbColor:
+                                      Theme.of(context).colorScheme.primary,
                                 ),
                                 child: Slider(
                                   value: _state.speed.clamp(0.25, 4.0),
@@ -527,30 +550,48 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                             ),
                             SizedBox(
                               width: 50,
-                              child: Text('${_state.speed}x', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 13, fontWeight: FontWeight.bold)),
+                              child: Text('${_state.speed}x',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            Text(t.custom, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.custom,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             SizedBox(
                               width: 80,
                               child: TextField(
                                 controller: controller,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13),
                                 decoration: const InputDecoration(
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white70)),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.white24)),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.white70)),
                                 ),
                                 onSubmitted: (val) {
                                   final sp = double.tryParse(val);
-                                  if (sp != null && sp >= 0.25 && sp <= 4.0) {
+                                  if (sp != null &&
+                                      sp >= 0.25 &&
+                                      sp <= 4.0) {
                                     _service.setSpeed(sp);
                                     setDialogState(() {});
                                   }
@@ -560,13 +601,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                             const Spacer(),
                             ElevatedButton(
                               onPressed: () {
-                                final sp = double.tryParse(controller.text);
-                                if (sp != null && sp >= 0.25 && sp <= 4.0) {
+                                final sp =
+                                    double.tryParse(controller.text);
+                                if (sp != null &&
+                                    sp >= 0.25 &&
+                                    sp <= 4.0) {
                                   _service.setSpeed(sp);
                                   setDialogState(() {});
                                 }
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.primary),
                               child: Text(t.apply),
                             ),
                           ],
@@ -603,21 +649,34 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+                  border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.5)),
                 ),
                 child: StatefulBuilder(
                   builder: (context, setDialogState) {
-                    final controller = TextEditingController(text: _sleepMinutes != null ? '$_sleepMinutes' : '');
+                    final controller = TextEditingController(
+                        text: _sleepMinutes != null ? '$_sleepMinutes' : '');
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 20), onPressed: () => Navigator.pop(context)),
-                            Text(t.sleepTimer, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             IconButton(
-                              icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
+                                icon: const Icon(Icons.close,
+                                    color: Colors.white70, size: 20),
+                                onPressed: () => Navigator.pop(context)),
+                            Text(t.sleepTimer,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.refresh,
+                                  color: Colors.white70, size: 20),
                               onPressed: () {
                                 _sleepTimer?.cancel();
                                 _sleepTimer = null;
@@ -628,46 +687,67 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(t.selectTimeMinutes, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(t.selectTimeMinutes,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: [15, 30, 45, 60, 90, 120].map((mins) => ChoiceChip(
-                            label: Text('$mins'),
-                            selected: _sleepMinutes == mins,
-                            onSelected: (_) {
-                              _sleepTimer?.cancel();
-                              _sleepMinutes = mins;
-                              _sleepTimer = Timer(Duration(minutes: mins), () {
-                                _player.pause();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.sleepTimerStopped)));
-                                }
-                              });
-                              Navigator.pop(context);
-                            },
-                            selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                            backgroundColor: Colors.white.withValues(alpha: 0.1),
-                            labelStyle: const TextStyle(color: Colors.white),
-                          )).toList(),
+                          children: [15, 30, 45, 60, 90, 120]
+                              .map((mins) => ChoiceChip(
+                                    label: Text('$mins'),
+                                    selected: _sleepMinutes == mins,
+                                    onSelected: (_) {
+                                      _sleepTimer?.cancel();
+                                      _sleepMinutes = mins;
+                                      _sleepTimer = Timer(
+                                          Duration(minutes: mins), () {
+                                        _player.pause();
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text(t
+                                                      .sleepTimerStopped)));
+                                        }
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                    selectedColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.3),
+                                    backgroundColor:
+                                        Colors.white.withValues(alpha: 0.1),
+                                    labelStyle: const TextStyle(
+                                        color: Colors.white),
+                                  ))
+                              .toList(),
                         ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Text(t.customMinute, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text(t.customMinute,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
                             const SizedBox(width: 8),
                             SizedBox(
                               width: 60,
                               child: TextField(
                                 controller: controller,
                                 keyboardType: TextInputType.number,
-                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13),
                                 decoration: const InputDecoration(
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white70)),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.white24)),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.white70)),
                                 ),
                               ),
                             ),
@@ -678,14 +758,22 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 if (mins != null && mins > 0) {
                                   _sleepTimer?.cancel();
                                   _sleepMinutes = mins;
-                                  _sleepTimer = Timer(Duration(minutes: mins), () {
+                                  _sleepTimer =
+                                      Timer(Duration(minutes: mins), () {
                                     _player.pause();
-                                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.sleepTimerStopped)));
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content: Text(
+                                                  t.sleepTimerStopped)));
+                                    }
                                   });
                                   Navigator.pop(context);
                                 }
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.primary),
                               child: Text(t.start),
                             ),
                           ],
@@ -740,12 +828,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 const SizedBox(width: 6),
                 Text(
                   t.resumeFrom(_fmt(pos)),
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   t.tapToStartFromBeginning,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10),
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10),
                 ),
               ],
             ),
@@ -779,160 +872,189 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              Container(
-                margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _state.currentMenu == ActiveMenu.subtitles
-                          ? t.subtitleSettings
-                          : _state.currentMenu == ActiveMenu.audio
-                              ? t.audioSettings
-                              : t.more,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        _state.currentMenu = ActiveMenu.none;
-                        _state.notifyListeners();
-                        _service.scheduleHide();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
-                        child: const Icon(Symbols.close_rounded, color: Colors.white, size: 20),
+                Container(
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _state.currentMenu == ActiveMenu.subtitles
+                            ? t.subtitleSettings
+                            : _state.currentMenu == ActiveMenu.audio
+                                ? t.audioSettings
+                                : t.more,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: () {
+                          _state.currentMenu = ActiveMenu.none;
+                          _state.notifyListeners();
+                          _service.scheduleHide();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              shape: BoxShape.circle),
+                          child: const Icon(Symbols.close_rounded,
+                              color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _state.currentMenu == ActiveMenu.subtitles
-                    ? SubtitleAppearancePanel(
-                        subtitleTracks: _state.subtitleTracks,
-                        currentSubtitleTrack: _player.state.track.subtitle,
-                        onTrackSelected: (track) {
-                          if (track is SubtitleTrack) {
-                            _player.setSubtitleTrack(track);
-                          }
-                          _state.showSubtitles = true;
-                          _state.notifyListeners();
-                        },
-                        onPickSubtitle: _pickSubtitle,
-                        onRemoveExternal: _removeExternalSubtitle,
-                        hasExternalSubtitle: _state.hasExternalSubtitle,
-                        showSubtitles: _state.showSubtitles,
-                        onToggleSubtitles: (v) {
-                          _state.showSubtitles = v;
-                          _state.notifyListeners();
-                          if (!v) _player.setSubtitleTrack(SubtitleTrack.no());
-                        },
-                        subtitleSync: _state.subtitleSync,
-                        onSyncChanged: _onSubtitleSyncChanged,
-                        videoName: _currentVideo.name,
-                        onLoadSrt: _loadSrtFile,
-                      )
-                    : _state.currentMenu == ActiveMenu.audio
-                        ? AudioSettingsPanel(
-                            player: _player,
-                            service: _service,
-                            volumeLevel: _state.volumeLevel,
-                            audioBoost: _state.audioBoost,
-                            onVolumeChanged: _service.onVolumeChanged,
-                            onAudioBoostChanged: _service.setAudioBoost,
-                            audioTracks: _state.audioTracks,
-                            currentAudioTrack: _player.state.track.audio,
-                            onTrackSelected: (track) => _player.setAudioTrack(track),
-                            audioDelay: _state.audioDelay,
-                            onAudioDelayChanged: (v) {
-                              _state.audioDelay = v;
-                              _state.notifyListeners();
-                            },
-                            onAudioFilterSettingsChanged: _service.applyPlayerSettings,
-                            onClose: () {
-                              _state.currentMenu = ActiveMenu.none;
-                              _state.notifyListeners();
-                            },
-                          )
-                        : _state.currentMenu == ActiveMenu.settings
-                            ? PlayerSettingsPanel(
-                                isFavorite: _libraryProvider.isFavorite(_currentVideo.path),
-                                onToggleFavorite: _service.toggleFavorite,
-                                onAddToPlaylist: _service.addToPlaylist,
-                                onCaptureScreenshot: _service.captureScreenshot,
-                                onToggleFit: _toggleFit,
-                                onSetFitMode: _setFitMode,
-                                onEnterPip: () async => PipService.enter(),
-                                onShowInfo: () {
-                                  _state.currentMenu = ActiveMenu.none;
-                                  _state.notifyListeners();
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => InfoScreen(video: _currentVideo)));
-                                },
-                                onSleepTimer: _showTimerPicker,
-                                onShowSpeedPicker: () {
-                                  _state.currentMenu = ActiveMenu.none;
-                                  _state.notifyListeners();
-                                  _showSpeedPicker();
-                                },
-                                onToggleRememberPosition: () {
-                                  _settingsProvider.setRememberPosition(!_settingsProvider.rememberPosition);
-                                },
-                                rememberPosition: _settingsProvider.rememberPosition,
-                                currentSpeed: _state.speed,
-                                currentFitMode: modeName(_state.fitMode, t),
-                                fitMode: _state.fitMode,
-                                onClose: () {
-                                  _state.currentMenu = ActiveMenu.none;
-                                  _state.notifyListeners();
-                                },
-                                onOpenPlaylistEditor: openPlaylistEditor,
-                                repeatPointA: _state.repeatPointA,
-                                repeatPointB: _state.repeatPointB,
-                                onSetRepeatA: _service.setRepeatPointA,
-                                onSetRepeatB: _service.setRepeatPointB,
-                                onClearRepeat: _service.clearRepeatPoints,
-                                showStats: _state.showStatsOverlay,
-                                onToggleStats: _service.toggleStatsOverlay,
-                                bookmarks: _libraryProvider.getBookmarks(_currentVideo.path),
-                                onAddBookmark: () => _libraryProvider.addBookmark(_currentVideo.path, _state.position),
-                                onJumpToBookmark: (d) {
-                                  _player.seek(d);
-                                  _state.currentMenu = ActiveMenu.none;
-                                  _state.notifyListeners();
-                                },
-                                onRemoveBookmark: (d) => _libraryProvider.removeBookmark(_currentVideo.path, d),
-                              )
-                            : const SizedBox.shrink(),
-              ),
-            ],
+                Expanded(
+                  child: _state.currentMenu == ActiveMenu.subtitles
+                      ? SubtitleAppearancePanel(
+                          subtitleTracks: _state.subtitleTracks,
+                          currentSubtitleTrack: _player.state.track.subtitle,
+                          onTrackSelected: (track) {
+                            if (track is SubtitleTrack) {
+                              _player.setSubtitleTrack(track);
+                            }
+                            _state.showSubtitles = true;
+                            _state.notifyListeners();
+                          },
+                          onPickSubtitle: _pickSubtitle,
+                          onRemoveExternal: _removeExternalSubtitle,
+                          hasExternalSubtitle: _state.hasExternalSubtitle,
+                          showSubtitles: _state.showSubtitles,
+                          onToggleSubtitles: (v) {
+                            _state.showSubtitles = v;
+                            _state.notifyListeners();
+                            if (!v) {
+                              _player.setSubtitleTrack(SubtitleTrack.no());
+                            }
+                          },
+                          subtitleSync: _state.subtitleSync,
+                          onSyncChanged: _onSubtitleSyncChanged,
+                          videoName: _currentVideo.name,
+                          onLoadSrt: _loadSrtFile,
+                        )
+                      : _state.currentMenu == ActiveMenu.audio
+                          ? AudioSettingsPanel(
+                              player: _player,
+                              service: _service,
+                              volumeLevel: _state.volumeLevel,
+                              audioBoost: _state.audioBoost,
+                              onVolumeChanged: _service.onVolumeChanged,
+                              onAudioBoostChanged: _service.setAudioBoost,
+                              audioTracks: _state.audioTracks,
+                              currentAudioTrack: _player.state.track.audio,
+                              onTrackSelected: (track) =>
+                                  _player.setAudioTrack(track),
+                              audioDelay: _state.audioDelay,
+                              onAudioDelayChanged: (v) {
+                                _state.audioDelay = v;
+                                _state.notifyListeners();
+                              },
+                              onAudioFilterSettingsChanged:
+                                  _service.applyPlayerSettings,
+                              onClose: () {
+                                _state.currentMenu = ActiveMenu.none;
+                                _state.notifyListeners();
+                              },
+                            )
+                          : _state.currentMenu == ActiveMenu.settings
+                              ? PlayerSettingsPanel(
+                                  isFavorite: _libraryProvider
+                                      .isFavorite(_currentVideo.path),
+                                  onToggleFavorite: _service.toggleFavorite,
+                                  onAddToPlaylist: _service.addToPlaylist,
+                                  onCaptureScreenshot:
+                                      _service.captureScreenshot,
+                                  onToggleFit: _toggleFit,
+                                  onSetFitMode: _setFitMode,
+                                  onEnterPip: () async => PipService.enter(),
+                                  onShowInfo: () {
+                                    _state.currentMenu = ActiveMenu.none;
+                                    _state.notifyListeners();
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => InfoScreen(
+                                                video: _currentVideo)));
+                                  },
+                                  onSleepTimer: _showTimerPicker,
+                                  onShowSpeedPicker: () {
+                                    _state.currentMenu = ActiveMenu.none;
+                                    _state.notifyListeners();
+                                    _showSpeedPicker();
+                                  },
+                                  onToggleRememberPosition: () {
+                                    _settingsProvider.setRememberPosition(
+                                        !_settingsProvider.rememberPosition);
+                                  },
+                                  rememberPosition:
+                                      _settingsProvider.rememberPosition,
+                                  currentSpeed: _state.speed,
+                                  currentFitMode:
+                                      modeName(_state.fitMode, t),
+                                  fitMode: _state.fitMode,
+                                  onClose: () {
+                                    _state.currentMenu = ActiveMenu.none;
+                                    _state.notifyListeners();
+                                  },
+                                  onOpenPlaylistEditor: openPlaylistEditor,
+                                  repeatPointA: _state.repeatPointA,
+                                  repeatPointB: _state.repeatPointB,
+                                  onSetRepeatA: _service.setRepeatPointA,
+                                  onSetRepeatB: _service.setRepeatPointB,
+                                  onClearRepeat: _service.clearRepeatPoints,
+                                  showStats: _state.showStatsOverlay,
+                                  onToggleStats: _service.toggleStatsOverlay,
+                                  bookmarks: _libraryProvider
+                                      .getBookmarks(_currentVideo.path),
+                                  onAddBookmark: () =>
+                                      _libraryProvider.addBookmark(
+                                          _currentVideo.path, _state.position),
+                                  onJumpToBookmark: (d) {
+                                    _player.seek(d);
+                                    _state.currentMenu = ActiveMenu.none;
+                                    _state.notifyListeners();
+                                  },
+                                  onRemoveBookmark: (d) =>
+                                      _libraryProvider.removeBookmark(
+                                          _currentVideo.path, d),
+                                )
+                              : const SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
   Widget _buildPlaylistEditor() {
     final t = AppLocalizations.of(context)!;
-    // نبحث عن أول قائمة تشغيل مسمّاة يوجد فيها الفيديو الحالي، ونعتبرها
-    // "الطابور" الحالي. إذا لم يكن الفيديو فأي قائمة، نرجع للسلوك القديم
-    // (فيديوهات نفس المجلد).
-    final containingPlaylist = _libraryProvider.playlistsContaining(_currentVideo.path).firstOrNull;
+    final containingPlaylist = _libraryProvider
+        .playlistsContaining(_currentVideo.path)
+        .firstOrNull;
 
     final videos = containingPlaylist != null
         ? containingPlaylist.videoPaths
-            .map((path) => _libraryProvider.allVideos.where((v) => v.path == path).firstOrNull)
+            .map((path) => _libraryProvider.allVideos
+                .where((v) => v.path == path)
+                .firstOrNull)
             .whereType<VideoItem>()
             .toList()
         : _libraryProvider.allVideos
-            .where((v) => v.folder == _currentVideo.folder && !_hiddenFromSession.contains(v.path))
+            .where((v) =>
+                v.folder == _currentVideo.folder &&
+                !_hiddenFromSession.contains(v.path))
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
 
@@ -954,7 +1076,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              title: Text(t.playlistEditor, style: const TextStyle(fontSize: 16)),
+              title:
+                  Text(t.playlistEditor, style: const TextStyle(fontSize: 16)),
               leading: IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => setState(() => _showPlaylistEditor = false),
@@ -965,7 +1088,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 itemCount: videos.length,
                 onReorder: (oldIndex, newIndex) {
                   if (containingPlaylist != null) {
-                    _libraryProvider.reorderPlaylistItems(containingPlaylist.id, oldIndex, newIndex);
+                    _libraryProvider.reorderPlaylistItems(
+                        containingPlaylist.id, oldIndex, newIndex);
                     setState(() {});
                   }
                 },
@@ -994,10 +1118,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                VideoThumbnailLoader(video: video, width: 80, height: 50),
+                                VideoThumbnailLoader(
+                                    video: video, width: 80, height: 50),
                                 if (isPlaying)
                                   Container(
-                                    color: Colors.black.withValues(alpha: 0.55),
+                                    color:
+                                        Colors.black.withValues(alpha: 0.55),
                                     width: double.infinity,
                                     height: double.infinity,
                                     child: const Center(
@@ -1013,17 +1139,23 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     title: Text(
                       video.name,
                       style: TextStyle(
-                        color: isPlaying ? Theme.of(context).colorScheme.primary : Colors.white,
+                        color: isPlaying
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white,
                         fontSize: 13,
-                        fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isPlaying
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(video.formattedDuration,
-                        style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 11)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white54, size: 20),
                       onPressed: () => remove(video.path),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -1047,15 +1179,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final subtitleSettings = s.subtitleSettings;
     final lib = context.watch<LibraryProvider>();
     final useFlutterRenderer = _shouldUseFlutterRenderer();
-    // نُبلِغ PlayerProvider بنفس القرار حتى تستخدمه الشاشة المصغّرة بعد
-    // التصغير وتتطابق معها تماماً.
     _playerProvider.updateUseNativeSubtitleRendering(!useFlutterRenderer);
 
     if (PipService.isInPipMode.value) {
-      return Scaffold(backgroundColor: Colors.black, body: Video(controller: _controller));
+      return Scaffold(
+          backgroundColor: Colors.black,
+          body: Video(controller: _controller));
     }
 
-    final controlsVisible = _state.showControls && !_state.isLocked && _state.currentMenu == ActiveMenu.none;
+    final controlsVisible = _state.showControls &&
+        !_state.isLocked &&
+        _state.currentMenu == ActiveMenu.none;
 
     return PopScope(
       canPop: false,
@@ -1063,7 +1197,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (!didPop) {
           final provider = context.read<PlayerProvider>();
 
-          if (_state.currentMenu != ActiveMenu.none || _state.showQuickActions) {
+          if (_state.currentMenu != ActiveMenu.none ||
+              _state.showQuickActions) {
             _state.resetMenu();
             return;
           }
@@ -1074,12 +1209,6 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             return;
           }
 
-          // زر الرجوع صار يُخرج من الفيديو مباشرة (يُغلقه تماماً) بدل
-          // التصغير - بما أن زر PiP المخصَّص أصبح هو الطريقة الوحيدة
-          // للتصغير الآن، لم يعد هناك داعٍ لتكرار نفس الوظيفة هنا.
-          // closePlayer() وحدها كافية: RootScreen يستمع لـ isHidden ويعرض
-          // الشاشة الرئيسية تلقائياً، بدون الحاجة لأي Navigator هنا (لأن
-          // PlayerScreen ليست Route مدفوعة أصلاً).
           provider.closePlayer();
         }
       },
@@ -1106,19 +1235,24 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     panOffset: _state.panOffset,
                     onToggleControls: _toggleControls,
                     onVolumeChanged: _service.onVolumeChanged,
-                    onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
-                    onLongPressSpeedStart: _service.startLongPressSpeedBoost,
+                    onPlayPause: () =>
+                        _state.isPlaying ? _player.pause() : _player.play(),
+                    onLongPressSpeedStart:
+                        _service.startLongPressSpeedBoost,
                     onLongPressSpeedEnd: _service.endLongPressSpeedBoost,
                     onLongPressRewindStart: _service.startLongPressRewind,
                     onLongPressRewindEnd: _service.endLongPressRewind,
-                    onZoomPanChanged: (scale, offset) => _service.updateZoomPan(scale: scale, offset: offset),
+                    onZoomPanChanged: (scale, offset) =>
+                        _service.updateZoomPan(
+                            scale: scale, offset: offset),
                     child: Transform(
                       alignment: Alignment.center,
                       transform: Matrix4.identity()
                         ..translate(_state.panOffset.dx, _state.panOffset.dy)
                         ..scale(_state.zoomScale),
                       child: Video(
-                        key: ValueKey('video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
+                        key: ValueKey(
+                            'video_${subtitleSettings.bottomMargin}_${subtitleSettings.horizontalMargin}'),
                         controller: _controller,
                         fit: getBoxFit(_state.fitMode),
                         controls: NoVideoControls,
@@ -1134,13 +1268,18 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     builder: (context, rawText, _) {
                       final text = SubtitleParser.clean(
                         rawText,
-                        ignoreAssEffects: subtitleSettings.ignoreAssEffects,
+                        ignoreAssEffects:
+                            subtitleSettings.ignoreAssEffects,
                       );
                       if (!useFlutterRenderer || text.trim().isEmpty) {
                         return const SizedBox.shrink();
                       }
-                      final videoSize = (_player.state.width != null && _player.state.height != null && _player.state.width! > 0 && _player.state.height! > 0)
-                          ? Size(_player.state.width!.toDouble(), _player.state.height!.toDouble())
+                      final videoSize = (_player.state.width != null &&
+                              _player.state.height != null &&
+                              _player.state.width! > 0 &&
+                              _player.state.height! > 0)
+                          ? Size(_player.state.width!.toDouble(),
+                              _player.state.height!.toDouble())
                           : MediaQuery.of(context).size;
                       final videoRect = VideoLayoutCalculator.calculate(
                         videoSize: videoSize,
@@ -1175,7 +1314,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       top: MediaQuery.of(context).padding.top + 60,
                       left: 12,
                       child: IgnorePointer(
-                        child: _StatsForNerdsPanel(state: _state, player: _player),
+                        child:
+                            _StatsForNerdsPanel(state: _state, player: _player),
                       ),
                     ),
 
@@ -1200,12 +1340,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           },
                           onHorizontalDragUpdate: (details) {
                             _state.lockIconOffset =
-                                (_state.lockIconOffset + details.delta.dx)
-                                    .clamp(0.0, _lockTrackWidth - _lockBtnSize);
+                                (_state.lockIconOffset + details.delta.dx).clamp(
+                                    0.0, _lockTrackWidth - _lockBtnSize);
                             _state.notifyListeners();
                           },
                           onHorizontalDragEnd: (_) {
-                            if (_state.lockIconOffset >= _lockTrackWidth - _lockBtnSize - 8) {
+                            if (_state.lockIconOffset >=
+                                _lockTrackWidth - _lockBtnSize - 8) {
                               _toggleLock();
                             }
                             _state.lockIconOffset = 0.0;
@@ -1223,12 +1364,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                               return Container(
                                 width: _lockTrackWidth,
                                 height: _lockBtnSize + 8,
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.65),
-                                  borderRadius: BorderRadius.circular((_lockBtnSize + 8) / 2),
+                                  borderRadius: BorderRadius.circular(
+                                      (_lockBtnSize + 8) / 2),
                                   border: Border.all(
-                                      color: cs.primary.withValues(alpha: 0.4), width: 1.5),
+                                      color: cs.primary.withValues(alpha: 0.4),
+                                      width: 1.5),
                                 ),
                                 child: Stack(
                                   alignment: Alignment.centerLeft,
@@ -1238,11 +1382,15 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                         left: 0,
                                         top: 0,
                                         bottom: 0,
-                                        width: _state.lockIconOffset + _lockBtnSize,
+                                        width: _state.lockIconOffset +
+                                            _lockBtnSize,
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: cs.primary.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(_lockBtnSize / 2),
+                                            color: cs.primary
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    _lockBtnSize / 2),
                                           ),
                                         ),
                                       ),
@@ -1252,7 +1400,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                             ? t.releaseToOpen
                                             : t.slideToUnlock,
                                         style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.8),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.8),
                                             fontSize: 13),
                                       ),
                                     ),
@@ -1268,14 +1417,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: cs.primary.withValues(alpha: 0.5),
+                                              color: cs.primary
+                                                  .withValues(alpha: 0.5),
                                               blurRadius: 8,
                                             ),
                                           ],
                                         ),
                                         child: Icon(
                                           _state.lockIconOffset >=
-                                                  _lockTrackWidth - _lockBtnSize - 8
+                                                  _lockTrackWidth -
+                                                      _lockBtnSize -
+                                                      8
                                               ? Symbols.lock_open_rounded
                                               : Symbols.lock_rounded,
                                           color: cs.onPrimary,
@@ -1299,7 +1451,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       right: 0,
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(20),
@@ -1318,107 +1471,163 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
                   if (controlsVisible) ...[
                     Positioned(
-                      top: 0, left: 0, right: 0,
+                      top: 0,
+                      left: 0,
+                      right: 0,
                       child: RepaintBoundary(
                         child: PlayerTopBar(
-                        videoName: _currentVideo.name,
-                        onBack: () {
-                          final provider = context.read<PlayerProvider>();
-                          provider.closePlayer();
-                        },
-                        onAudioMenu: () {
-                          _state.currentMenu = _state.currentMenu == ActiveMenu.audio ? ActiveMenu.none : ActiveMenu.audio;
-                          _state.showQuickActions = false;
-                          _state.notifyListeners();
-                        },
-                        onSubtitleMenu: () {
-                          _state.currentMenu = _state.currentMenu == ActiveMenu.subtitles ? ActiveMenu.none : ActiveMenu.subtitles;
-                          _state.showQuickActions = false;
-                          _state.notifyListeners();
-                        },
-                        onQuickActions: () {
-                          _state.showQuickActions = !_state.showQuickActions;
-                          _state.notifyListeners();
-                        },
-                        onSettingsMenu: () {
-                          _state.currentMenu = ActiveMenu.settings;
-                          _state.notifyListeners();
-                        },
-                        isAudioActive: _state.currentMenu == ActiveMenu.audio,
-                        isSubtitleActive: _state.currentMenu == ActiveMenu.subtitles,
-                        isQuickActionsActive: _state.showQuickActions,
-                        quickActionWidgets: _state.showQuickActions
-                            ? [
-                                _qaBtn(Symbols.camera_rounded, Colors.white70, _service.captureScreenshot),
-                                _qaBtn(
-                                  _state.smartEnhance ? Symbols.auto_awesome_rounded : Symbols.auto_awesome_rounded,
-                                  _state.smartEnhance ? Colors.amber : Colors.white70,
-                                  _service.toggleSmartEnhance,
-                                ),
-                                _qaBtn(
-                                  _state.hdrEnabled ? Symbols.hdr_on_rounded : Symbols.hdr_off_rounded,
-                                  _state.hdrEnabled ? Colors.amber : Colors.white70,
-                                  _service.toggleHDREnhancement,
-                                ),
-                                _qaBtn(
-                                  _state.hwEnabled ? Symbols.memory_rounded : Symbols.sd_card_rounded,
-                                  _state.hwEnabled ? Colors.amber : Colors.white70,
-                                  _service.toggleHardwareDecoding,
-                                ),
-                                _qaBtn(
-                                  lib.isFavorite(_currentVideo.path) ? Symbols.favorite_rounded : Symbols.favorite_border,
-                                  lib.isFavorite(_currentVideo.path) ? Colors.amber : Colors.white70,
-                                  _service.toggleFavorite,
-                                ),
-                                _qaBtn(Symbols.playlist_add_rounded, Colors.white70, _service.addToPlaylist),
-                                _qaBtn(Symbols.share_rounded, Colors.white70, _service.shareVideo),
-                                _qaBtn(Symbols.speed_rounded, Colors.white70, () {
-                                  _showSpeedPicker();
-                                  _state.showQuickActions = false;
-                                  _state.notifyListeners();
-                                }),
-                                _qaBtn(
-                                  Symbols.timer_rounded,
-                                  _sleepMinutes != null ? Colors.amber : Colors.white70,
-                                  _showTimerPicker,
-                                ),
-                                _qaBtn(
-                                  Symbols.dark_mode_rounded,
-                                  _state.isNightMode ? Colors.amber : Colors.white70,
-                                  () {
-                                    setState(() {
-                                      _state.isNightMode = !_state.isNightMode;
-                                      if (_state.isNightMode) {
-                                        _state.preNightBrightness = _brightnessNotifier.value;
-                                        _brightnessNotifier.value = 0.05;
-                                      } else {
-                                        _brightnessNotifier.value = _state.preNightBrightness;
-                                      }
-                                    });
-                                    ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessNotifier.value);
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                      content: Text(_state.isNightMode ? t.nightModeOn : t.nightModeOff),
-                                    ));
-                                  },
-                                ),
-                                _qaBtn(
-                                  _state.volumeLevel == 0 ? Symbols.volume_off_rounded : Symbols.volume_up_rounded,
-                                  _state.volumeLevel == 0 ? Colors.amber : Colors.white70,
-                                  _service.toggleMute,
-                                ),
-                                _qaBtn(
-                                  _state.playlistMode == PlaylistMode.single ? Symbols.repeat_one_rounded : Symbols.repeat_rounded,
-                                  _state.playlistMode != PlaylistMode.none ? Colors.amber : Colors.white70,
-                                  _service.toggleRepeat,
-                                ),
-                                _qaBtn(
-                                  Symbols.shuffle_rounded,
-                                  _state.isShuffle ? Colors.amber : Colors.white70,
-                                  _service.toggleShuffle,
-                                ),
-                                _qaBtn(Symbols.palette_rounded, Colors.white70, _showColorAdjustment),
-                              ]
-                            : [],
+                          videoName: _currentVideo.name,
+                          onBack: () {
+                            final provider = context.read<PlayerProvider>();
+                            provider.closePlayer();
+                          },
+                          onAudioMenu: () {
+                            _state.currentMenu =
+                                _state.currentMenu == ActiveMenu.audio
+                                    ? ActiveMenu.none
+                                    : ActiveMenu.audio;
+                            _state.showQuickActions = false;
+                            _state.notifyListeners();
+                          },
+                          onSubtitleMenu: () {
+                            _state.currentMenu =
+                                _state.currentMenu == ActiveMenu.subtitles
+                                    ? ActiveMenu.none
+                                    : ActiveMenu.subtitles;
+                            _state.showQuickActions = false;
+                            _state.notifyListeners();
+                          },
+                          onQuickActions: () {
+                            _state.showQuickActions =
+                                !_state.showQuickActions;
+                            _state.notifyListeners();
+                          },
+                          onSettingsMenu: () {
+                            _state.currentMenu = ActiveMenu.settings;
+                            _state.notifyListeners();
+                          },
+                          isAudioActive:
+                              _state.currentMenu == ActiveMenu.audio,
+                          isSubtitleActive:
+                              _state.currentMenu == ActiveMenu.subtitles,
+                          isQuickActionsActive: _state.showQuickActions,
+                          quickActionWidgets: _state.showQuickActions
+                              ? [
+                                  _qaBtn(Symbols.camera_rounded,
+                                      Colors.white70,
+                                      _service.captureScreenshot),
+                                  _qaBtn(
+                                    _state.smartEnhance
+                                        ? Symbols.auto_awesome_rounded
+                                        : Symbols.auto_awesome_rounded,
+                                    _state.smartEnhance
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleSmartEnhance,
+                                  ),
+                                  _qaBtn(
+                                    _state.hdrEnabled
+                                        ? Symbols.hdr_on_rounded
+                                        : Symbols.hdr_off_rounded,
+                                    _state.hdrEnabled
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleHDREnhancement,
+                                  ),
+                                  _qaBtn(
+                                    _state.hwEnabled
+                                        ? Symbols.memory_rounded
+                                        : Symbols.sd_card_rounded,
+                                    _state.hwEnabled
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleHardwareDecoding,
+                                  ),
+                                  _qaBtn(
+                                    lib.isFavorite(_currentVideo.path)
+                                        ? Symbols.favorite_rounded
+                                        : Symbols.favorite_border,
+                                    lib.isFavorite(_currentVideo.path)
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleFavorite,
+                                  ),
+                                  _qaBtn(Symbols.playlist_add_rounded,
+                                      Colors.white70, _service.addToPlaylist),
+                                  _qaBtn(Symbols.share_rounded,
+                                      Colors.white70, _service.shareVideo),
+                                  _qaBtn(Symbols.speed_rounded,
+                                      Colors.white70, () {
+                                    _showSpeedPicker();
+                                    _state.showQuickActions = false;
+                                    _state.notifyListeners();
+                                  }),
+                                  _qaBtn(
+                                    Symbols.timer_rounded,
+                                    _sleepMinutes != null
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _showTimerPicker,
+                                  ),
+                                  _qaBtn(
+                                    Symbols.dark_mode_rounded,
+                                    _state.isNightMode
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    () {
+                                      setState(() {
+                                        _state.isNightMode =
+                                            !_state.isNightMode;
+                                        if (_state.isNightMode) {
+                                          _state.preNightBrightness =
+                                              _brightnessNotifier.value;
+                                          _brightnessNotifier.value = 0.05;
+                                        } else {
+                                          _brightnessNotifier.value =
+                                              _state.preNightBrightness;
+                                        }
+                                      });
+                                      ScreenBrightness.instance
+                                          .setApplicationScreenBrightness(
+                                              _brightnessNotifier.value);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                        content: Text(_state.isNightMode
+                                            ? t.nightModeOn
+                                            : t.nightModeOff),
+                                      ));
+                                    },
+                                  ),
+                                  _qaBtn(
+                                    _state.volumeLevel == 0
+                                        ? Symbols.volume_off_rounded
+                                        : Symbols.volume_up_rounded,
+                                    _state.volumeLevel == 0
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleMute,
+                                  ),
+                                  _qaBtn(
+                                    _state.playlistMode ==
+                                            PlaylistMode.single
+                                        ? Symbols.repeat_one_rounded
+                                        : Symbols.repeat_rounded,
+                                    _state.playlistMode != PlaylistMode.none
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleRepeat,
+                                  ),
+                                  _qaBtn(
+                                    Symbols.shuffle_rounded,
+                                    _state.isShuffle
+                                        ? Colors.amber
+                                        : Colors.white70,
+                                    _service.toggleShuffle,
+                                  ),
+                                  _qaBtn(Symbols.palette_rounded,
+                                      Colors.white70, _showColorAdjustment),
+                                ]
+                              : [],
                         ),
                       ),
                     ),
@@ -1428,34 +1637,41 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       right: 0,
                       child: RepaintBoundary(
                         child: PlayerBottomBar(
-                        position: _state.position,
-                        duration: _state.duration,
-                        onSeek: (v) => _player.seek(Duration(milliseconds: (v * _state.duration.inMilliseconds).toInt())),
-                        primaryColor: cs.primary,
-                        isPlaying: _state.isPlaying,
-                        onPlayPause: () => _state.isPlaying ? _player.pause() : _player.play(),
-                        onSkipBack: () {
-                          final t = _state.position - Duration(seconds: s.doubleTapSeekSeconds);
-                          _player.seek(t.isNegative ? Duration.zero : t);
-                        },
-                        onSkipForward: () {
-                          final t = _state.position + Duration(seconds: s.doubleTapSeekSeconds);
-                          _player.seek(t > _state.duration ? _state.duration : t);
-                        },
-                        onToggleFit: _toggleFit,
-                        fitMode: _state.fitMode,
-                        // ✅ التصحيح: تمرير onToggleLock المطلوب
-                        onToggleLock: _toggleLock,
-                        onPip: () {
-                          final provider = context.read<PlayerProvider>();
-                          provider.minimizeAndStartPipIfNeeded();
-                        },
-                        chapters: _state.chapters,
-                        onPrevious: _service.playPrevious,
-                        onNext: _service.playNext,
-                        showRemainingTime: s.showRemainingTime,
-                        showElapsedTime: s.showElapsedTime,
-                        showVideoTitle: s.showVideoTitle,
+                          position: _state.position,
+                          duration: _state.duration,
+                          onSeek: (v) => _player.seek(Duration(
+                              milliseconds: (v *
+                                      _state.duration.inMilliseconds)
+                                  .toInt())),
+                          primaryColor: cs.primary,
+                          isPlaying: _state.isPlaying,
+                          onPlayPause: () => _state.isPlaying
+                              ? _player.pause()
+                              : _player.play(),
+                          onSkipBack: () {
+                            final t = _state.position -
+                                Duration(seconds: s.doubleTapSeekSeconds);
+                            _player.seek(t.isNegative ? Duration.zero : t);
+                          },
+                          onSkipForward: () {
+                            final t = _state.position +
+                                Duration(seconds: s.doubleTapSeekSeconds);
+                            _player
+                                .seek(t > _state.duration ? _state.duration : t);
+                          },
+                          onToggleFit: _toggleFit,
+                          fitMode: _state.fitMode,
+                          onToggleLock: _toggleLock,
+                          onPip: () {
+                            final provider = context.read<PlayerProvider>();
+                            provider.minimizeAndStartPipIfNeeded();
+                          },
+                          chapters: _state.chapters,
+                          onPrevious: _service.playPrevious,
+                          onNext: _service.playNext,
+                          showRemainingTime: s.showRemainingTime,
+                          showElapsedTime: s.showElapsedTime,
+                          showVideoTitle: s.showVideoTitle,
                         ),
                       ),
                     ),
@@ -1482,11 +1698,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (_state.smartEnhance) {
       SmartEnhanceService.disable(
         _player,
-        userContrast:   _state.contrast,
+        userContrast: _state.contrast,
         userSaturation: _state.saturation,
         userBrightness: _state.brightness,
-        userGamma:      _state.gamma,
-        userHue:        _state.hue,
+        userGamma: _state.gamma,
+        userHue: _state.hue,
       );
     }
     _state.removeListener(_onStateChanged);
@@ -1546,15 +1762,18 @@ class _StatsForNerdsPanel extends StatelessWidget {
     final isHDR = state.hdrEnabled;
 
     final rows = <String>[
-      t.statsResolution('${width ?? "---"}', '${height ?? "---"}', _resolutionText(width, height)),
+      t.statsResolution('${width ?? "---"}', '${height ?? "---"}',
+          _resolutionText(width, height)),
       t.statsCodec(codec.toUpperCase()),
       if (fps > 0) t.statsFps(fps.toStringAsFixed(2)),
       t.statsHdr(isHDR ? t.yes : t.no),
       t.statsHw(state.hwEnabled ? t.enabled : t.disabled),
       t.statsPosition(_fmt(state.position), _fmt(state.duration)),
       t.statsSpeed(state.speed.toStringAsFixed(2)),
-      if (state.audioDelay != 0) t.statsAudioDelay(state.audioDelay.toStringAsFixed(2)),
-      if (state.subtitleSync != 0) t.statsSubSync(state.subtitleSync.toStringAsFixed(2)),
+      if (state.audioDelay != 0)
+        t.statsAudioDelay(state.audioDelay.toStringAsFixed(2)),
+      if (state.subtitleSync != 0)
+        t.statsSubSync(state.subtitleSync.toStringAsFixed(2)),
     ];
 
     return Directionality(
@@ -1575,7 +1794,10 @@ class _StatsForNerdsPanel extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 1.5),
                     child: Text(
                       r,
-                      style: const TextStyle(color: Colors.greenAccent, fontSize: 11.5, fontFamily: 'monospace'),
+                      style: const TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 11.5,
+                          fontFamily: 'monospace'),
                     ),
                   ))
               .toList(),

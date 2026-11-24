@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -398,7 +399,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _divider(),
                     _switchTile(context, Symbols.brightness_4_rounded,
                         t.reduceBrightnessOption, '',
-                        s.reduceBrightnessOnPause, s.setReduceBrightnessOnPause),
+                        s.reduceBrightnessOnPause,
+                        s.setReduceBrightnessOnPause),
                     _divider(),
                     _switchTile(context, Symbols.stop_rounded,
                         t.stopAfterVideoOption, '', s.stopAfterVideo,
@@ -636,7 +638,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Center(
                       child: TextButton.icon(
                         onPressed: () => s.setAudioDelayMs(0),
-                        icon: Icon(Symbols.restart_alt_rounded, color: cs.primary),
+                        icon: Icon(Symbols.restart_alt_rounded,
+                            color: cs.primary),
                         label: Text(t.resetButton,
                             style: TextStyle(color: cs.primary)),
                       ),
@@ -837,9 +840,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         t.subtitleFolderOption,
                         s.subtitleFolder.isEmpty ? '---' : s.subtitleFolder,
                         () async {
-                      final result =
-                          await FilePicker.platform.getDirectoryPath();
-                      if (result != null) s.setSubtitleFolder(result);
+                      final uri = await FilePicker.pickDirectory();
+                      if (uri == null) return;
+                      s.setSubtitleFolder(uri.toString());
                     }),
                     _divider(),
                     _choiceTile(
@@ -1076,15 +1079,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.read<SettingsProvider>();
     final t = AppLocalizations.of(context)!;
     try {
-      final dirPath = await FilePicker.platform.getDirectoryPath();
-      if (dirPath == null) return;
       final jsonStr =
           const JsonEncoder.withIndent('  ').convert(s.exportToJson());
-      final file = File('$dirPath/sr_player_settings.json');
-      await file.writeAsString(jsonStr);
+      final bytes = Uint8List.fromList(utf8.encode(jsonStr));
+
+      final uri = await FilePicker.saveFile(
+        dialogTitle: t.exportSettingsOption,
+        fileName: 'sr_player_settings.json',
+        bytes: bytes,
+      );
+      if (uri == null) return;
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.exportSuccessMessage(file.path))),
+          SnackBar(content: Text(t.exportSuccessMessage(uri.path))),
         );
       }
     } catch (e) {
@@ -1100,16 +1108,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.read<SettingsProvider>();
     final t = AppLocalizations.of(context)!;
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
           type: FileType.custom, allowedExtensions: ['json']);
-      final path = (result != null && result.files.isNotEmpty)
-          ? result.files.single.path
-          : null;
+      if (result.isEmpty) return;
+      final path = result.first.path;
       if (path == null) return;
+
       final content = await File(path).readAsString();
       final Map<String, dynamic> jsonMap =
           json.decode(content) as Map<String, dynamic>;
       await s.importFromJson(jsonMap);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(t.importSuccessMessage)));
@@ -1145,8 +1154,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final isSelected = e['value'] == currentValue;
               return ListTile(
                 title: Text(e['label']!),
-                trailing:
-                    isSelected ? Icon(Symbols.check_rounded, color: cs.primary) : null,
+                trailing: isSelected
+                    ? Icon(Symbols.check_rounded, color: cs.primary)
+                    : null,
                 onTap: () {
                   onSelected(e['value']!);
                   Navigator.pop(context);
@@ -1863,8 +1873,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Icon(icon, color: cs.onSurfaceVariant, size: 22)),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing:
-          Icon(Symbols.chevron_right_rounded, color: cs.onSurfaceVariant, size: 20),
+      trailing: Icon(Symbols.chevron_right_rounded,
+          color: cs.onSurfaceVariant, size: 20),
       onTap: onTap,
     );
   }

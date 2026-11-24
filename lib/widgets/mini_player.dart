@@ -5,7 +5,7 @@ import '../providers/player_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/pip_service.dart';
 import '../services/subtitle_parser.dart';
-import '../services/subtitle_service.dart';   // ← السطر المضاف (SubtitleEntry)
+import '../services/subtitle_service.dart';
 import '../widgets/subtitle_renderer.dart';
 
 class MiniPlayer extends StatefulWidget {
