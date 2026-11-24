@@ -4,6 +4,34 @@ import '../services/subtitle_service.dart';
 import '../screens/player/subtitle_style_builder.dart';
 import '../services/subtitle_layout_engine.dart';
 
+// ─────────────────────────────────────────────────────────────────────
+// ✅ إصلاح اتجاه الترجمة العربية (RTL):
+// واجهة المشغّل كلها LTR، فكان Flutter يعتبر اتجاه الفقرة LTR، وعندها تنتقل
+// علامات الترقيم في آخر الجملة (! . ؟) إلى بدايتها. الحل: تحديد الاتجاه من
+// أول حرف قوي في النص، وإضافة علامة RLM في طرفي كل سطر عربي.
+// ─────────────────────────────────────────────────────────────────────
+final RegExp _rtlRegExp = RegExp(r'[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]');
+final RegExp _ltrRegExp =
+    RegExp(r'[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]');
+
+/// true = RTL، false = LTR، null = لا توجد أحرف قوية (أرقام/رموز فقط)
+bool? _firstStrongIsRtl(String text) {
+  for (final rune in text.runes) {
+    final ch = String.fromCharCode(rune);
+    if (_rtlRegExp.hasMatch(ch)) return true;
+    if (_ltrRegExp.hasMatch(ch)) return false;
+  }
+  return null;
+}
+
+String _fixBidiLines(String text) {
+  const rlm = '\u200F';
+  return text.split('\n').map((line) {
+    if (line.trim().isEmpty) return line;
+    return _firstStrongIsRtl(line) == true ? '$rlm$line$rlm' : line;
+  }).join('\n');
+}
+
 class SubtitleRenderer extends StatefulWidget {
   final SubtitleEntry? currentEntry;
   final SubtitleSettings settings;
@@ -66,13 +94,18 @@ class _SubtitleRendererState extends State<SubtitleRenderer> {
 
     final textStyle = _cachedTextStyle.copyWith(fontSize: layout.fontSize);
 
+    final isRtl = _firstStrongIsRtl(displayText);
+    final TextDirection textDir = isRtl == null
+        ? Directionality.of(context)
+        : (isRtl ? TextDirection.rtl : TextDirection.ltr);
+
     final textSpan = TextSpan(
-      text: displayText,
+      text: _fixBidiLines(displayText),
       style: textStyle,
     );
 
     Widget textWidget = Directionality(
-      textDirection: Directionality.of(context),
+      textDirection: textDir,
       child: RichText(
         text: textSpan,
         textAlign: layout.textAlign,

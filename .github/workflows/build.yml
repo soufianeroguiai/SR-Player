@@ -60,7 +60,7 @@ jobs:
           F=$(find "$CACHE_DIR" -path "*android_file_picker-*/android/build.gradle.kts" | head -1)
           if [ -n "$F" ]; then
             echo "Patching $F"
-            sed -i 's/flutter\.compileSdkVersion/36/g; s/flutter\.targetSdkVersion/36/g; s/flutter\.minSdkVersion/26/g' "$F"
+            sed -i 's/flutter\.compileSdkVersion/37/g; s/flutter\.targetSdkVersion/36/g; s/flutter\.minSdkVersion/26/g' "$F"
           fi
 
       - name: Analyze Flutter code
