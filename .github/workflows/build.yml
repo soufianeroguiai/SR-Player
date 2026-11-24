@@ -47,7 +47,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/settings.gradle.kts', 'android/build.gradle.kts', 'android/app/build.gradle.kts') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/gradle.properties', 'android/settings.gradle.kts', 'android/build.gradle.kts', 'android/app/build.gradle.kts') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
@@ -56,20 +56,21 @@ jobs:
 
       - name: Patch android_file_picker (fallback)
         run: |
-          F=$(find "$PUB_CACHE" -path "*android_file_picker-*/android/build.gradle.kts" | head -1)
+          CACHE_DIR="${PUB_CACHE:-$HOME/.pub-cache}"
+          F=$(find "$CACHE_DIR" -path "*android_file_picker-*/android/build.gradle.kts" | head -1)
           if [ -n "$F" ]; then
             echo "Patching $F"
-            sed -n '50,65p' "$F"
-            sed -i 's/flutter\.compileSdkVersion/36/g; s/flutter\.targetSdkVersion/36/g; s/flutter\.minSdkVersion/24/g' "$F"
+            sed -i 's/flutter\.compileSdkVersion/36/g; s/flutter\.targetSdkVersion/36/g; s/flutter\.minSdkVersion/26/g' "$F"
           fi
 
       - name: Analyze Flutter code
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
         continue-on-error: true
 
-      - name: Accept licenses (Android SDK)
+      - name: Accept licenses & install Android SDK 36
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build split APKs
         run: flutter build apk --release --split-per-abi

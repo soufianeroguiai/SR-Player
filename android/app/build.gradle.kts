@@ -24,6 +24,12 @@ android {
         versionName = flutter.versionName
     }
 
+    packaging {
+        jniLibs {
+            pickFirsts += listOf("**/libc++_shared.so")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
