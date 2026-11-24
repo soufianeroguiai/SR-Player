@@ -159,10 +159,14 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void closePlayer() {
+    // ✅ حماية من الإغلاق المزدوج: إذا أُغلق المشغّل مسبقاً لا نفعل شيئاً
+    final playerToDispose = _player;
+    _player = null;
+    _controller = null;
+
     _isHidden = true;
     _isMini = false;
     _isPlaying = false;
-    _player?.stop();
 
     _playingSubscription?.cancel();
     _playingSubscription = null;
@@ -172,15 +176,16 @@ class PlayerProvider extends ChangeNotifier {
     PipService.setEligible(false);
     BackgroundPlaybackService.stop();
 
-    try {
-      _player?.dispose();
-    } catch (_) {}
+    if (playerToDispose != null) {
+      // dispose عملية async، لذا try/catch العادي لا يلتقط أخطاءها
+      playerToDispose.stop().catchError((_) {}).whenComplete(() {
+        playerToDispose.dispose().catchError((_) {});
+      });
+    }
 
     _lifecycleListener?.dispose();
     _lifecycleListener = null;
 
-    _player = null;
-    _controller = null;
     _currentVideo = null;
     notifyListeners();
   }
@@ -191,16 +196,16 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _player?.stop();
+    final playerToDispose = _player;
+    _player = null;
+    _controller = null;
     _playingSubscription?.cancel();
     _subtitleSubscription?.cancel();
     BackgroundPlaybackService.stop();
     rawSubtitleText.dispose();
     useNativeSubtitleRendering.dispose();
     PipService.isInPipMode.removeListener(_onSystemPipModeChanged);
-    try {
-      _player?.dispose();
-    } catch (_) {}
+    playerToDispose?.dispose().catchError((_) {});
     _lifecycleListener?.dispose();
     super.dispose();
   }

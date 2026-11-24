@@ -89,10 +89,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         if (mounted) provider.restore();
       });
     } else {
-      _player = Player();
-      _controller = VideoController(_player);
+      // ✅ مشغّل واحد فقط، يملكه PlayerProvider (كان يُنشأ مشغّلان)
       provider.initPlayer();
       provider.setCurrentVideo(widget.video);
+      _player = provider.player!;
+      _controller = provider.controller!;
     }
 
     _libraryProvider = context.read<LibraryProvider>();
@@ -1695,7 +1696,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     _service.savePositionOnExit();
-    if (_state.smartEnhance) {
+    if (_state.smartEnhance && _playerProvider.player != null) {
       SmartEnhanceService.disable(
         _player,
         userContrast: _state.contrast,
@@ -1720,10 +1721,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+    // ✅ PlayerProvider هو المالك الوحيد للمشغّل: لا نستدعي dispose هنا أبداً
+    // (closePlayer تتكفل به وتتجاهل الاستدعاء إن كان المشغّل مغلقاً مسبقاً)
     final provider = _playerProvider;
-    if (!provider.isMini) {
-      _player.stop();
-      _player.dispose();
+    if (!provider.isMini && provider.player != null) {
       provider.closeMiniPlayer();
     }
     super.dispose();
