@@ -280,6 +280,24 @@ class LibraryProvider extends ChangeNotifier {
     await _savePlaylists();
   }
 
+  /// يستبدل ترتيب مسارات قائمة تشغيل بالكامل (يُستخدم لحفظ ترتيب التشغيل
+  /// العشوائي عند تفعيل خيار "حفظ ترتيب التشغيل"). يتجاهل أي مسار غير
+  /// موجود أصلاً فالقائمة حتى لا تُضاف عناصر جديدة بالخطأ.
+  Future<void> setPlaylistOrder(String playlistId, List<String> orderedPaths) async {
+    final playlist = playlistById(playlistId);
+    if (playlist == null) return;
+    final existing = playlist.videoPaths.toSet();
+    final reordered = orderedPaths.where(existing.contains).toList();
+    for (final p in playlist.videoPaths) {
+      if (!reordered.contains(p)) reordered.add(p);
+    }
+    playlist.videoPaths
+      ..clear()
+      ..addAll(reordered);
+    notifyListeners();
+    await _savePlaylists();
+  }
+
   Future<void> loadCachedVideos() async {
     try {
       await _loadAllSavedPositions();

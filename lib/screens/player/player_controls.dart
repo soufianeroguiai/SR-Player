@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../../services/pip_service.dart';
 import 'player_fit_mode.dart';
 
 class PlayerTopBar extends StatelessWidget {
@@ -13,9 +15,13 @@ class PlayerTopBar extends StatelessWidget {
   final bool isSubtitleActive;
   final bool isQuickActionsActive;
   final List<Widget> quickActionWidgets;
+  final bool showClock;
+  final bool showBattery;
 
   const PlayerTopBar({
     super.key,
+    this.showClock = false,
+    this.showBattery = false,
     required this.videoName,
     required this.onBack,
     required this.onAudioMenu,
@@ -54,6 +60,12 @@ class PlayerTopBar extends StatelessWidget {
           ),
 
           const Spacer(),
+
+          if (showClock || showBattery)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: _StatusInfo(showClock: showClock, showBattery: showBattery),
+            ),
 
           _AnimatedIconBtn(
             icon: isQuickActionsActive 
@@ -102,6 +114,61 @@ class PlayerTopBar extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+/// الساعة ومستوى البطارية فالشريط العلوي (خياري "إظهار الساعة" و"إظهار البطارية").
+class _StatusInfo extends StatefulWidget {
+  final bool showClock;
+  final bool showBattery;
+  const _StatusInfo({required this.showClock, required this.showBattery});
+
+  @override
+  State<_StatusInfo> createState() => _StatusInfoState();
+}
+
+class _StatusInfoState extends State<_StatusInfo> {
+  Timer? _timer;
+  DateTime _now = DateTime.now();
+  int _battery = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick();
+    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _tick());
+  }
+
+  Future<void> _tick() async {
+    final level = widget.showBattery ? await PipService.getBatteryLevel() : -1;
+    if (!mounted) return;
+    setState(() {
+      _now = DateTime.now();
+      _battery = level;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const style = TextStyle(color: Colors.white70, fontSize: 12);
+    final time =
+        '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      if (widget.showBattery && _battery >= 0) ...[
+        const Icon(Symbols.battery_full_rounded, color: Colors.white70, size: 16),
+        const SizedBox(width: 2),
+        Text('$_battery%', style: style),
+      ],
+      if (widget.showBattery && _battery >= 0 && widget.showClock)
+        const SizedBox(width: 8),
+      if (widget.showClock) Text(time, style: style),
+    ]);
   }
 }
 
@@ -349,6 +416,7 @@ class PlayerBottomBar extends StatefulWidget {
   final bool showRemainingTime;
   final bool showElapsedTime;
   final bool showVideoTitle;
+  final bool showSeekPreview;
 
   const PlayerBottomBar({
     super.key,
@@ -372,6 +440,7 @@ class PlayerBottomBar extends StatefulWidget {
     this.showRemainingTime = true,
     this.showElapsedTime = true,
     this.showVideoTitle = true,
+    this.showSeekPreview = true,
   });
 
   @override
@@ -451,6 +520,7 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
 
                       return Stack(
                         alignment: Alignment.center,
+                        clipBehavior: Clip.none,
                         children: [
                           SliderTheme(
                             data: SliderThemeData(
@@ -488,6 +558,37 @@ class _PlayerBottomBarState extends State<PlayerBottomBar> {
                               },
                             ),
                           ),
+
+                          // معاينة وقت التقديم أثناء سحب الشريط
+                          if (_isSliding &&
+                              widget.showSeekPreview &&
+                              _tempSliderValue != null &&
+                              widget.duration.inMilliseconds > 0)
+                            Positioned(
+                              left: (sliderPadding + _tempSliderValue! * trackWidth - 28)
+                                  .clamp(0.0, constraints.maxWidth - 56)
+                                  .toDouble(),
+                              bottom: 30,
+                              child: Container(
+                                width: 56,
+                                padding: const EdgeInsets.symmetric(vertical: 3),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  _fmt(Duration(
+                                      milliseconds: (_tempSliderValue! *
+                                              widget.duration.inMilliseconds)
+                                          .round())),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
 
                           if (widget.chapters.isNotEmpty && widget.duration.inMilliseconds > 0)
                             Positioned.fill(

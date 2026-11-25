@@ -1,6 +1,7 @@
 package com.sr.player
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -51,7 +52,16 @@ class PlaybackService : Service() {
     }
 
     private fun buildNotification(title: String): Notification {
+        // الضغط على الإشعار يعيد المستخدم إلى التطبيق.
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val contentIntent = launchIntent?.let {
+            PendingIntent.getActivity(
+                this, 0, it,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
         return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentIntent(contentIntent)
             .setContentTitle(title)
             .setContentText("جارٍ التشغيل")
             .setSmallIcon(android.R.drawable.ic_media_play)

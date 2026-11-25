@@ -552,10 +552,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         t.audioOutputModeOption,
                         audioModeName(s.audioOutputMode, t),
                         () => _showAudioModePicker(context, s)),
-                    _divider(),
-                    _switchTile(context, Symbols.bluetooth_rounded,
-                        t.autoBluetoothOption, '', s.autoSwitchBluetooth,
-                        s.setAutoSwitchBluetooth),
                   ])
                 : const SizedBox(width: double.infinity, height: 0),
           ),

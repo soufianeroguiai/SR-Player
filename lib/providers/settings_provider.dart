@@ -91,7 +91,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get autoRotate => _autoRotate;
   void setAutoRotate(bool v) { _autoRotate = v; notifyListeners(); _save(); }
 
-  bool _autoFullscreen = false;
+  bool _autoFullscreen = true;
   bool get autoFullscreen => _autoFullscreen;
   void setAutoFullscreen(bool v) { _autoFullscreen = v; notifyListeners(); _save(); }
 
@@ -394,7 +394,7 @@ class SettingsProvider extends ChangeNotifier {
     _defaultVideoMode = p.getString('defaultVideoMode') ?? 'contain';
     _rememberVideoMode = p.getBool('rememberVideoMode') ?? true;
     _autoRotate = p.getBool('autoRotate') ?? true;
-    _autoFullscreen = p.getBool('autoFullscreen') ?? false;
+    _autoFullscreen = p.getBool('autoFullscreen') ?? true;
     _keepScreenOn = p.getBool('keepScreenOn') ?? true;
     _gestureVolume = p.getBool('gestureVolume') ?? true;
     _gestureBrightness = p.getBool('gestureBrightness') ?? true;
@@ -584,7 +584,7 @@ class SettingsProvider extends ChangeNotifier {
     _defaultVideoMode = 'contain';
     _rememberVideoMode = true;
     _autoRotate = true;
-    _autoFullscreen = false;
+    _autoFullscreen = true;
     _keepScreenOn = true;
     _gestureVolume = true;
     _gestureBrightness = true;

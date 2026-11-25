@@ -70,6 +70,23 @@ class PlayerProvider extends ChangeNotifier {
   VideoItem? get currentVideo => _currentVideo;
   bool get isPlaying => _isPlaying;
 
+  // يُحدَّد من إعداد autoPipOnBackground (تضبطه PlayerScreen). بدونه كان
+  // Kotlin يدخل PiP تلقائياً كلما كان الفيديو يعمل، حتى لو أوقف المستخدم
+  // الإعداد.
+  bool _autoPipEnabled = false;
+
+  void setAutoPipEnabled(bool v) {
+    if (_autoPipEnabled == v) return;
+    _autoPipEnabled = v;
+    _syncPipEligibility();
+  }
+
+  /// الدخول التلقائي إلى PiP عند مغادرة التطبيق مسموح فقط إذا كان الفيديو
+  /// يعمل، وكان إعداد الدخول التلقائي مفعّلاً أو المشغّل مصغّراً (زر PiP).
+  void _syncPipEligibility() {
+    PipService.setEligible(_isPlaying && (_autoPipEnabled || _isMini));
+  }
+
   void initPlayer() {
     if (_player == null) {
       _player = Player();
@@ -79,7 +96,7 @@ class PlayerProvider extends ChangeNotifier {
       // onUserLeaveHint() بدل انتظار رد من Dart فتلك اللحظة بالذات.
       _playingSubscription = _player!.stream.playing.listen((playing) {
         _isPlaying = playing;
-        PipService.setEligible(playing);
+        _syncPipEligibility();
         // خدمة أمامية تُبقي الصوت شغّالاً بعد قفل الشاشة - نُشغّلها فقط
         // أثناء التشغيل الفعلي (وليس طيلة مدة فتح المشغّل) لتفادي استهلاك
         // بطارية غير ضروري وقت الإيقاف المؤقت.
@@ -127,16 +144,19 @@ class PlayerProvider extends ChangeNotifier {
 
   void minimize() {
     _isMini = true;
+    _syncPipEligibility();
     notifyListeners();
   }
 
   void maximize() {
     _isMini = false;
+    _syncPipEligibility();
     notifyListeners();
   }
 
   void restore() {
     _isMini = false;
+    _syncPipEligibility();
     notifyListeners();
   }
 

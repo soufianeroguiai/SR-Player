@@ -62,6 +62,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   bool _showPlaylistEditor = false;
   final Set<String> _hiddenFromSession = {};
   StreamSubscription<AccelerometerEvent>? _sensorSubscription;
+  StreamSubscription<int>? _volumeKeySub;
+  bool _hasPlayedOnce = false;
+  bool _lastPlaying = false;
+  double? _brightnessBeforePause;
 
   final ValueNotifier<double> _brightnessNotifier = ValueNotifier(0.7);
   final ValueNotifier<double> _seekMsNotifier = ValueNotifier(0.0);
@@ -73,7 +77,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WakelockPlus.enable();
+    final initialSettings = context.read<SettingsProvider>();
+    if (initialSettings.keepScreenOn && initialSettings.preventScreenLock) {
+      WakelockPlus.enable();
+    }
     PipService.isInPipMode.addListener(_onPipModeChanged);
 
     _state = PlayerUIState();
@@ -98,6 +105,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
     _libraryProvider = context.read<LibraryProvider>();
     _settingsProvider = context.read<SettingsProvider>();
+    _playerProvider.setAutoPipEnabled(_settingsProvider.autoPipOnBackground);
+    if (_settingsProvider.volumeKeysSeek) {
+      PipService.setInterceptVolumeKeys(true);
+      _volumeKeySub = PipService.volumeKeyEvents.stream.listen(_onVolumeKey);
+    }
     _service = PlayerControlService(
       player: _player,
       state: _state,
@@ -122,7 +134,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             .getDouble('player_brightness') ??
         0.7;
     _brightnessNotifier.value = bright.clamp(0.1, 1.0);
-    _state.fitMode = await VideoFitSettings.load();
+    final hasSavedFit =
+        (await SharedPreferences.getInstance()).containsKey('video_fit_mode');
+    _state.fitMode = (_settingsProvider.rememberVideoMode && hasSavedFit)
+        ? await VideoFitSettings.load()
+        : _fitModeFromName(_settingsProvider.defaultVideoMode);
+    _state.subtitleSync = _settingsProvider.defaultSubtitleSync;
     _enableSmartRotation();
     await _service.initPlayer();
     _state.addListener(_onStateChanged);
@@ -131,7 +148,140 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _onStateChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _handlePlayingChanged();
+    setState(() {});
+  }
+
+  VideoFitMode _fitModeFromName(String name) {
+    switch (name) {
+      case 'cover':
+        return VideoFitMode.cover;
+      case 'fill':
+        return VideoFitMode.fill;
+      case 'stretch':
+        return VideoFitMode.stretch;
+      default:
+        return VideoFitMode.contain;
+    }
+  }
+
+  /// "خفض السطوع عند التوقف": نخفض سطوع التطبيق عند الإيقاف المؤقت
+  /// ونستعيده عند استئناف التشغيل.
+  void _handlePlayingChanged() {
+    final playing = _state.isPlaying;
+    if (playing == _lastPlaying) return;
+    _lastPlaying = playing;
+    if (playing) {
+      _hasPlayedOnce = true;
+      final saved = _brightnessBeforePause;
+      if (saved != null) {
+        _brightnessBeforePause = null;
+        ScreenBrightness.instance
+            .setApplicationScreenBrightness(saved)
+            .catchError((_) {});
+      }
+    } else if (_hasPlayedOnce &&
+        _settingsProvider.reduceBrightnessOnPause &&
+        _brightnessBeforePause == null) {
+      final current = _brightnessNotifier.value;
+      _brightnessBeforePause = current;
+      ScreenBrightness.instance
+          .setApplicationScreenBrightness(
+              (current * 0.35).clamp(0.05, 1.0).toDouble())
+          .catchError((_) {});
+    }
+  }
+
+  void _seekBy(Duration delta) {
+    var target = _state.position + delta;
+    if (target.isNegative) target = Duration.zero;
+    if (_state.duration > Duration.zero && target > _state.duration) {
+      target = _state.duration;
+    }
+    _player.seek(target);
+  }
+
+  void _onVolumeKey(int direction) {
+    if (_state.isLocked || !_state.initialized) return;
+    _seekBy(Duration(seconds: _settingsProvider.doubleTapSeekSeconds * direction));
+  }
+
+  /// دعم لوحة المفاتيح وذراع الألعاب (الأزرار تصل كأحداث مفاتيح).
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    final s = _settingsProvider;
+    if (!s.keyboardSupport && !s.gamepadSupport) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_state.isLocked || !_state.initialized) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final step = Duration(seconds: s.doubleTapSeekSeconds);
+
+    void togglePlay() => _state.isPlaying ? _player.pause() : _player.play();
+
+    // أزرار مشتركة (أسهم لوحة المفاتيح / D-pad)
+    if (key == LogicalKeyboardKey.arrowRight) {
+      _seekBy(step);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      _seekBy(-step);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _service.onVolumeChanged(_state.volumeLevel + 0.05);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _service.onVolumeChanged(_state.volumeLevel - 0.05);
+      return KeyEventResult.handled;
+    }
+
+    if (s.keyboardSupport && event is KeyDownEvent) {
+      if (key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.mediaPlayPause) {
+        togglePlay();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyM) {
+        _service.toggleMute();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyF) {
+        _toggleFit();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.mediaTrackNext) {
+        _service.playNext();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.mediaTrackPrevious) {
+        _service.playPrevious();
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (s.gamepadSupport && event is KeyDownEvent) {
+      if (key == LogicalKeyboardKey.gameButtonA) {
+        togglePlay();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.gameButtonRight1) {
+        _service.playNext();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.gameButtonLeft1) {
+        _service.playPrevious();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.gameButtonX) {
+        _toggleFit();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   void _onPipModeChanged() => setState(() {});
@@ -149,7 +299,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   void _enableSmartRotation() {
-    if (!_settingsProvider.smartRotationEnabled) return;
+    if (!_settingsProvider.smartRotationEnabled || !_settingsProvider.autoRotate) {
+      return;
+    }
     _sensorSubscription = accelerometerEventStream().listen((event) {
       if (!mounted || _state.isLocked) return;
       if (event.x > 6.0) {
@@ -164,10 +316,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _enterFullscreen() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // "ملء الشاشة تلقائياً": عند التفعيل نفرض الوضع الأفقي، وعند التعطيل
+    // نسمح بالاتجاهين ليتحكم المستخدم (أو التدوير الذكي) فيه.
+    SystemChrome.setPreferredOrientations(
+      _settingsProvider.autoFullscreen
+          ? [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
+          : [
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ],
+    );
   }
 
   void _setOrientations() {}
@@ -229,7 +388,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _state.notifyListeners();
     });
     _state.notifyListeners();
-    VideoFitSettings.save(_state.fitMode);
+    if (_settingsProvider.rememberVideoMode) VideoFitSettings.save(_state.fitMode);
   }
 
   void _setFitMode(VideoFitMode mode) {
@@ -244,7 +403,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _state.notifyListeners();
     });
     _state.notifyListeners();
-    VideoFitSettings.save(mode);
+    if (_settingsProvider.rememberVideoMode) VideoFitSettings.save(mode);
   }
 
   void _toggleControls() {
@@ -305,8 +464,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _loadSubtitleFromAdjacentFile() async {
+    // "إظهار الترجمة تلقائياً" معطّل: لا نحمّل ملف الترجمة المجاور تلقائياً.
+    if (!_settingsProvider.showSubtitlesByDefault) return;
     if (_state.autoSubtitleSelected && _state.showSubtitles) return;
-    final srtPath = SubtitleService.findSrt(_currentVideo.path);
+    final srtPath = SubtitleService.findSrt(_currentVideo.path,
+        extraFolder: _settingsProvider.subtitleFolder);
     if (srtPath != null) {
       await _loadSrtFile(srtPath, _settingsProvider.subtitleEncoding,
           silent: true);
@@ -537,10 +699,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                       Theme.of(context).colorScheme.primary,
                                 ),
                                 child: Slider(
-                                  value: _state.speed.clamp(0.25, 4.0),
+                                  value: _state.speed.clamp(0.25, _service.maxSpeed).toDouble(),
                                   min: 0.25,
-                                  max: 4.0,
-                                  divisions: 15,
+                                  max: _service.maxSpeed,
+                                  divisions: ((_service.maxSpeed - 0.25) / 0.25).round(),
                                   onChanged: (v) {
                                     _service.setSpeed(v);
                                     controller.text = v.toStringAsFixed(2);
@@ -1180,6 +1342,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     final subtitleSettings = s.subtitleSettings;
     final lib = context.watch<LibraryProvider>();
     final useFlutterRenderer = _shouldUseFlutterRenderer();
+    _playerProvider.setAutoPipEnabled(s.autoPipOnBackground);
     _playerProvider.updateUseNativeSubtitleRendering(!useFlutterRenderer);
 
     if (PipService.isInPipMode.value) {
@@ -1213,7 +1376,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           provider.closePlayer();
         }
       },
-      child: Scaffold(
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _onKeyEvent,
+        child: Scaffold(
         backgroundColor: Colors.black,
         body: Directionality(
           textDirection: TextDirection.ltr,
@@ -1477,6 +1643,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       right: 0,
                       child: RepaintBoundary(
                         child: PlayerTopBar(
+                          showClock: s.showClock,
+                          showBattery: s.showBattery,
                           videoName: _currentVideo.name,
                           onBack: () {
                             final provider = context.read<PlayerProvider>();
@@ -1673,6 +1841,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                           showRemainingTime: s.showRemainingTime,
                           showElapsedTime: s.showElapsedTime,
                           showVideoTitle: s.showVideoTitle,
+                          showSeekPreview: s.showSeekPreview,
                         ),
                       ),
                     ),
@@ -1689,6 +1858,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     ),
                 ]),
         ),
+      ),
       ),
     );
   }
@@ -1708,6 +1878,14 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     }
     _state.removeListener(_onStateChanged);
     _sensorSubscription?.cancel();
+    _volumeKeySub?.cancel();
+    PipService.setInterceptVolumeKeys(false);
+    final dimmedFrom = _brightnessBeforePause;
+    if (dimmedFrom != null) {
+      ScreenBrightness.instance
+          .setApplicationScreenBrightness(dimmedFrom)
+          .catchError((_) {});
+    }
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPipMode.removeListener(_onPipModeChanged);
     _brightnessNotifier.dispose();

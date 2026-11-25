@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart' hide Playlist;
 import 'package:media_kit/src/player/native/player/real.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,14 +75,12 @@ class PlayerControlService {
         player.setPlaylistMode(PlaylistMode.single);
         break;
       case 'playlist':
-        player.setPlaylistMode(PlaylistMode.loop);
+        // نفتح Media واحداً فقط، لذا PlaylistMode.loop كان يكرر الفيديو
+        // الحالي بدل القائمة. تكرار الطابور يُعالَج في _onPlaybackCompleted.
+        player.setPlaylistMode(PlaylistMode.none);
         break;
       default:
         player.setPlaylistMode(PlaylistMode.none);
-    }
-
-    if (s.rememberSpeed) {
-      player.setRate(s.defaultSpeed);
     }
 
     if (s.pitchCorrection) {
@@ -90,8 +89,26 @@ class PlayerControlService {
       await native.setProperty('audio-pitch-correction', 'no');
     }
 
-    if (s.preventScreenLock) {
+    // خياران يتحكمان بنفس الشيء (إبقاء الشاشة مضاءة): نبقيها مضاءة فقط
+    // إذا كانا مفعّلين معاً.
+    if (s.preventScreenLock && s.keepScreenOn) {
       WakelockPlus.enable();
+    } else {
+      WakelockPlus.disable();
+    }
+
+    // تشغيل منخفض التأخير (أفضل جهد): تقليل التخزين المؤقت وتفعيل
+    // حيل التأخير فـ mpv، وإرجاع القيم الافتراضية عند التعطيل.
+    if (s.lowLatencyPlayback) {
+      await native.setProperty('video-latency-hacks', 'yes');
+      await native.setProperty('cache-pause', 'no');
+      await native.setProperty('audio-buffer', '0.1');
+      await native.setProperty('demuxer-readahead-secs', '2');
+    } else {
+      await native.setProperty('video-latency-hacks', 'no');
+      await native.setProperty('cache-pause', 'yes');
+      await native.setProperty('audio-buffer', '0.2');
+      await native.setProperty('demuxer-readahead-secs', '1');
     }
 
     if (s.frameDropping) {
@@ -260,7 +277,8 @@ class PlayerControlService {
     if (!settingsProvider.longPressSpeedEnabled || !settingsProvider.longPressSpeed) return;
     if (_preLongPressSpeed != null) return;
     _preLongPressSpeed = state.speed;
-    player.setRate(settingsProvider.longPressSpeedValue);
+    player.setRate(
+        settingsProvider.longPressSpeedValue.clamp(0.25, maxSpeed).toDouble());
     state.isSpeedBoosted = true;
     state.notifyListeners();
   }
@@ -315,13 +333,38 @@ class PlayerControlService {
       state.volumeLevel = 0.5;
       await savePersistedVolume();
     }
+    await _applyVolumeForVideo(video);
+    state.speed =
+        settingsProvider.defaultSpeed.clamp(0.25, maxSpeed).toDouble();
     state.audioBoost = (settingsProvider.defaultAudioBoost / 100.0).clamp(1.0, 3.0);
     state.notifyListeners();
+  }
+
+  /// أقصى سرعة تشغيل مسموحة (يتحكم بها خيار "السماح بسرعة حتى 4x").
+  double get maxSpeed => settingsProvider.allowSpeedUpTo4x ? 4.0 : 2.0;
+
+  String _volumeKeyFor(VideoItem v) => 'player_volume_${v.path.hashCode}';
+
+  /// مستوى الصوت لكل فيديو: إذا كان "تذكر مستوى الصوت لكل فيديو" مفعّلاً
+  /// نستعيد المستوى المحفوظ لهذا الفيديو، وإن لم يوجد وكان "إعادة الضبط"
+  /// مفعّلاً نبدأ من 100% بدل وراثة مستوى الفيديو السابق.
+  Future<void> _applyVolumeForVideo(VideoItem v) async {
+    if (!settingsProvider.rememberVolumePerVideo) return;
+    _prefs ??= await SharedPreferences.getInstance();
+    final saved = _prefs!.getDouble(_volumeKeyFor(v));
+    if (saved != null) {
+      state.volumeLevel = saved.clamp(0.0, 1.0).toDouble();
+    } else if (settingsProvider.resetVolumePerVideo) {
+      state.volumeLevel = 1.0;
+    }
   }
 
   Future<void> savePersistedVolume() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setDouble('player_volume_level', state.volumeLevel);
+    if (settingsProvider.rememberVolumePerVideo) {
+      await _prefs!.setDouble(_volumeKeyFor(video), state.volumeLevel);
+    }
   }
 
   Future<void> initPlayer() async {
@@ -412,6 +455,11 @@ class PlayerControlService {
         state.notifyListeners();
       }));
 
+      // نهاية الفيديو: الانتقال للتالي / الإيقاف / الاهتزاز ... حسب الإعدادات.
+      _playerSubscriptions.add(player.stream.completed.listen((done) {
+        if (done) _onPlaybackCompleted();
+      }));
+
       _playerSubscriptions.add(player.stream.tracks.listen((tracks) {
         state.subtitleTracks = tracks.subtitle;
         state.audioTracks = _cleanAudioTracks(tracks.audio);
@@ -449,7 +497,23 @@ class PlayerControlService {
   /// ترتيب يدوية قام بها المستخدم) - وإلا نرجع للسلوك القديم (فيديوهات
   /// نفس المجلد مرتبة أبجدياً).
   void buildPlaybackQueue() {
-    final containingPlaylist = libraryProvider.playlistsContaining(video.path).firstOrNull;
+    final candidates = libraryProvider.playlistsContaining(video.path);
+    Playlist? containingPlaylist;
+    if (candidates.isNotEmpty) {
+      // "تذكر القائمة الأخيرة": إذا كان الفيديو ضمن أكثر من قائمة نفضّل
+      // القائمة التي شُغّل منها آخر مرة.
+      Playlist? remembered;
+      if (settingsProvider.rememberLastPlaylist) {
+        final lastId = _prefs?.getString('last_playlist_id');
+        if (lastId != null) {
+          remembered = candidates.where((p) => p.id == lastId).firstOrNull;
+        }
+      }
+      containingPlaylist = remembered ?? candidates.first;
+      if (settingsProvider.rememberLastPlaylist) {
+        _prefs?.setString('last_playlist_id', containingPlaylist.id);
+      }
+    }
 
     List<VideoItem> queue;
     if (containingPlaylist != null) {
@@ -460,6 +524,20 @@ class PlayerControlService {
     } else {
       queue = libraryProvider.allVideos.where((v) => v.folder == video.folder).toList()
         ..sort((a, b) => a.name.compareTo(b.name));
+    }
+
+    // التشغيل العشوائي: الفيديو الحالي أولاً ثم الباقي بترتيب عشوائي. إذا كان
+    // "حفظ ترتيب التشغيل" مفعّلاً نحفظ هذا الترتيب فالقائمة المخصّصة.
+    if (settingsProvider.shufflePlaylist && queue.length > 1) {
+      final current = queue.firstWhere((v) => v.path == video.path,
+          orElse: () => queue.first);
+      final rest = queue.where((v) => v.path != current.path).toList()
+        ..shuffle();
+      queue = [current, ...rest];
+      if (settingsProvider.savePlaylistOrder && containingPlaylist != null) {
+        libraryProvider.setPlaylistOrder(
+            containingPlaylist.id, queue.map((v) => v.path).toList());
+      }
     }
 
     state.playlistVideos = queue;
@@ -492,12 +570,61 @@ class PlayerControlService {
     await _playVideoAtIndex(prevIndex);
   }
 
-  Future<void> _playVideoAtIndex(int index) async {
+  bool _handlingCompletion = false;
+
+  /// يُستدعى عند انتهاء الفيديو الحالي.
+  Future<void> _onPlaybackCompleted() async {
+    if (_handlingCompletion) return;
+    _handlingCompletion = true;
+    try {
+      final s = settingsProvider;
+      if (s.vibrateOnEnd) HapticFeedback.heavyImpact();
+
+      // فيديو انتهى لا يجب أن يعرض "استئناف" عند فتحه من جديد.
+      libraryProvider.clearPosition(video.path);
+
+      // "إزالة الفيديو بعد التشغيل": تُزال من قوائم التشغيل فقط
+      // (لا يُحذف الملف نفسه من الجهاز أبداً).
+      if (s.removeVideoAfterPlayback) {
+        for (final pl in libraryProvider.playlistsContaining(video.path)) {
+          await libraryProvider.removeFromPlaylist(pl.id, video.path);
+        }
+      }
+
+      if (s.stopAfterVideo) return;
+
+      final queue = state.playlistVideos;
+      if (queue.isEmpty) return;
+      final isLast = state.currentPlaylistIndex >= queue.length - 1;
+      final loopQueue = s.loopMode == 'playlist';
+
+      int? nextIndex;
+      if (isLast) {
+        if (loopQueue) nextIndex = 0;
+      } else if (s.autoNextVideo || loopQueue) {
+        nextIndex = state.currentPlaylistIndex + 1;
+      }
+      if (nextIndex == null) return;
+
+      // "التشغيل المتواصل": إن كان معطّلاً يُفتح الفيديو التالي متوقفاً.
+      await _playVideoAtIndex(nextIndex,
+          play: loopQueue || s.continuousPlayback, saveCurrentPosition: false);
+    } finally {
+      _handlingCompletion = false;
+    }
+  }
+
+  Future<void> _playVideoAtIndex(int index,
+      {bool play = true, bool saveCurrentPosition = true}) async {
     final nextVideo = state.playlistVideos[index];
-    if (settingsProvider.rememberPosition && state.position.inSeconds > 5) {
+    if (saveCurrentPosition &&
+        settingsProvider.rememberPosition &&
+        state.position.inSeconds > 5) {
       libraryProvider.savePosition(video.path, state.position);
     }
-    await player.open(Media(nextVideo.path), play: true);
+    // نفتح متوقفاً ثم نطبّق الإعدادات ثم نبدأ التشغيل: استدعاء play()
+    // قبل applyPlayerSettings() كان يسبب فقدان الصوت أحياناً على أندرويد.
+    await player.open(Media(nextVideo.path), play: false);
     // نُحدِّث الفيديو الحالي بالخدمة حتى تعمل بشكل صحيح كل الدوال الأخرى
     // المرتبطة به (المفضلة، الإضافة لقائمة تشغيل، الإشارات المرجعية...)
     // على الفيديو الصحيح المُشغَّل فعلياً الآن، وليس الفيديو القديم الذي
@@ -509,8 +636,10 @@ class PlayerControlService {
     state.duration = Duration.zero;
     state.position = Duration.zero;
     player.setRate(state.speed);
+    await _applyVolumeForVideo(nextVideo);
     applyInitialDecoderAndColor();
     await applyPlayerSettings();
+    if (play) await player.play();
     libraryProvider.addRecent(nextVideo.path);
     onVideoChanged?.call(nextVideo);
     state.notifyListeners();
@@ -584,15 +713,39 @@ class PlayerControlService {
     });
   }
 
+  bool _langMatches(String? a, String? b) {
+    if (a == null || b == null) return false;
+    final x = a.toLowerCase();
+    final y = b.toLowerCase();
+    if (x.length < 2 || y.length < 2) return false;
+    return x == y || x.startsWith(y) || y.startsWith(x);
+  }
+
   void applyPreferredSubtitleLanguage() {
     if (state.autoSubtitleSelected || state.subtitleTracks.isEmpty) return;
-    for (final track in state.subtitleTracks) {
-      if (track.language == settingsProvider.subtitleSettings.autoLanguage) {
-        player.setSubtitleTrack(track);
-        state.showSubtitles = true;
-        state.autoSubtitleSelected = true;
-        state.notifyListeners();
-        return;
+
+    // "إظهار الترجمة تلقائياً" معطّل: لا نختار أي مسار ترجمة.
+    if (!settingsProvider.showSubtitlesByDefault) {
+      player.setSubtitleTrack(SubtitleTrack.no());
+      state.showSubtitles = false;
+      state.autoSubtitleSelected = true;
+      state.notifyListeners();
+      return;
+    }
+
+    final wanted = <String>[
+      settingsProvider.preferredSubtitleLanguage,
+      settingsProvider.subtitleSettings.autoLanguage,
+    ];
+    for (final lang in wanted) {
+      for (final track in state.subtitleTracks) {
+        if (_langMatches(track.language, lang)) {
+          player.setSubtitleTrack(track);
+          state.showSubtitles = true;
+          state.autoSubtitleSelected = true;
+          state.notifyListeners();
+          return;
+        }
       }
     }
     state.autoSubtitleSelected = true;
@@ -883,9 +1036,11 @@ class PlayerControlService {
       Share.shareXFiles([XFile(video.path)], subject: video.name);
 
   void setSpeed(double sp) {
+    sp = sp.clamp(0.25, maxSpeed).toDouble();
     state.speed = sp;
     player.setRate(sp);
-    if (settingsProvider.rememberSpeed) {
+    // "تذكر آخر سرعة": نحفظ السرعة الحالية كسرعة افتراضية للفيديوهات القادمة.
+    if (settingsProvider.rememberSpeed || settingsProvider.rememberPlaybackSpeed) {
       settingsProvider.setDefaultSpeed(sp);
     }
     state.notifyListeners();

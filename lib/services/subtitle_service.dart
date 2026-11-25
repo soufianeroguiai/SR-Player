@@ -15,11 +15,24 @@ class SubtitleEntry {
 class SubtitleService {
   static final Map<String, List<SubtitleEntry>> _cache = {};
 
-  static String? findSrt(String videoPath) {
+  static String? findSrt(String videoPath, {String? extraFolder}) {
+    const exts = ['.srt', '.SRT', '.ssa', '.SSA', '.ass', '.ASS'];
     final base = videoPath.replaceAll(RegExp(r'\.[^.]+$'), '');
-    for (final ext in ['.srt', '.SRT', '.ssa', '.SSA', '.ass', '.ASS']) {
+    for (final ext in exts) {
       final f = File('$base$ext');
       if (f.existsSync()) return f.path;
+    }
+    // مجلد الترجمات المخصّص (إعداد "مجلد الترجمات"): نبحث فيه عن ملف
+    // بنفس اسم الفيديو.
+    if (extraFolder != null && extraFolder.isNotEmpty) {
+      final name = base.split('/').last;
+      final folder = extraFolder.endsWith('/')
+          ? extraFolder.substring(0, extraFolder.length - 1)
+          : extraFolder;
+      for (final ext in exts) {
+        final f = File('$folder/$name$ext');
+        if (f.existsSync()) return f.path;
+      }
     }
     return null;
   }
